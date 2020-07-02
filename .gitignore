@@ -1,0 +1,6 @@
+/output
+*.user
+/sources/*.suo
+/sources/*.opensdf
+/sources/*.sdf
+/sources/ipch

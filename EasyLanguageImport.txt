@@ -1,0 +1,38 @@
+
+DefineDLLFunc: "Takion.dll", string, "Takion_GetConnectionInfo";
+DefineDLLFunc: "Takion.dll", string, "Takion_GetLastError";
+
+// @param symbol
+// @param size
+// @return "zero" at success
+// @sa Takion_GetLastError
+DefineDLLFunc: "Takion.dll", int, "Takion_BuyMarket", string, dword;
+DefineDLLFunc: "Takion.dll", int, "Takion_SellMarket", string, dword;
+
+// @param symbol
+// @param size
+// @param stop price
+// @return "zero" at success
+// @sa Takion_GetLastError
+DefineDLLFunc: "Takion.dll", int, "Takion_BuyStop", string, dword, double;
+DefineDLLFunc: "Takion.dll", int, "Takion_SellStop", string, dword, double;
+
+// @param symbol
+// @param size
+// @param price
+// @return "zero" at success
+// @sa Takion_GetLastError
+DefineDLLFunc: "Takion.dll", int, "Takion_BuyLimit", string, dword, double;
+DefineDLLFunc: "Takion.dll", int, "Takion_SellLimit", string, dword, double;
+
+// @param symbol
+// @return size at success, zero at error
+// @sa Takion_GetLastError
+DefineDLLFunc: "Takion.dll", dword, "Takion_GetPosSize", string;
+DefineDLLFunc: "Takion.dll", double, "Takion_GetPosPrice", string;
+
+// @param symbol
+// @return money value at success, zero at error
+// @sa Takion_GetLastError
+DefineDLLFunc: "Takion.dll", dword, "Takion_GetOpenPnL", string;
+DefineDLLFunc: "Takion.dll", dword, "Takion_GetClosedPnL", string;

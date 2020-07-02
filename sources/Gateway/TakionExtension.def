@@ -1,0 +1,30 @@
+
+LIBRARY
+
+EXPORTS
+GetExtensionCode				@2
+ExtensionInitialize				@3
+ExtensionTerminate				@4
+GetExtensionVersion				@5
+GetUtilsVersion					@6
+GetUtilsHeaderVersion			@7
+GetTakionUtilsVersion			@8
+GetTakionUtilsHeaderVersion		@9
+GetTakionGuiVersion				@10
+GetTakionGuiHeaderVersion		@11
+GetTakionDataVersion			@12
+GetTakionDataHeaderVersion		@13
+GetTakionLogVersion				@14
+GetTakionLogHeaderVersion		@15
+GetObserverVersion				@16
+GetObserverHeaderVersion		@17
+GetTakionExtensionDescription	@18
+GetTakionExtensionMenu			@19
+ExecuteTakionCommand			@20
+
+KeyStrokeAndCommand				@21
+SymbolEnteredInMmBox			@22
+SecurityRefreshed				@23
+TakionMoveWindows				@24
+
+ActiveMmBoxChanged				@25

@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Interface", "Interface\Interface.vcxproj", "{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Gateway", "Gateway\Gateway.vcxproj", "{D778EF9C-A908-407A-A3AD-6FDF0B961873}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DllClient", "DllClient\DllClient.vcxproj", "{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+		Test|x64 = Test|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}.Debug|x64.ActiveCfg = Debug|x64
+		{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}.Debug|x64.Build.0 = Debug|x64
+		{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}.Release|x64.ActiveCfg = Release|x64
+		{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}.Release|x64.Build.0 = Release|x64
+		{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}.Test|x64.ActiveCfg = Test|x64
+		{FCAE17A2-6C3F-49D9-901A-8F7EAD9B9DB1}.Test|x64.Build.0 = Test|x64
+		{D778EF9C-A908-407A-A3AD-6FDF0B961873}.Debug|x64.ActiveCfg = Debug|x64
+		{D778EF9C-A908-407A-A3AD-6FDF0B961873}.Debug|x64.Build.0 = Debug|x64
+		{D778EF9C-A908-407A-A3AD-6FDF0B961873}.Release|x64.ActiveCfg = Release|x64
+		{D778EF9C-A908-407A-A3AD-6FDF0B961873}.Release|x64.Build.0 = Release|x64
+		{D778EF9C-A908-407A-A3AD-6FDF0B961873}.Test|x64.ActiveCfg = Test|x64
+		{D778EF9C-A908-407A-A3AD-6FDF0B961873}.Test|x64.Build.0 = Test|x64
+		{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}.Debug|x64.ActiveCfg = Debug|x64
+		{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}.Debug|x64.Build.0 = Debug|x64
+		{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}.Release|x64.ActiveCfg = Release|x64
+		{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}.Release|x64.Build.0 = Release|x64
+		{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}.Test|x64.ActiveCfg = Test|x64
+		{5EC1E2CC-3F5C-40C3-8A6D-2A378BB2C04E}.Test|x64.Build.0 = Test|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
