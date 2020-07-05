@@ -13,7 +13,10 @@
 #define OBSERVER_API __declspec(dllimport)
 #endif
 
-const char* const ObserverHeaderVersion = "1.0.1.149";
+#include <UtilsApi.h>
+#include <list>
+
+const char* const ObserverHeaderVersion = "1.0.3.70";
 
 class Message
 {
@@ -21,7 +24,7 @@ public:
 	unsigned short m_length;
 	unsigned short m_type;
 protected:
-	Message(unsigned short type, unsigned short length):m_length(length),m_type(type){}
+	Message(const unsigned short& type, const unsigned short& length):m_length(length),m_type(type){}
 };
 
 //http://login2win.blogspot.com/2008/05/c-observer-patterm.html
@@ -31,7 +34,11 @@ class OBSERVER_API Observer
 friend class Observable;
 public:
 //	typedef std::set<Observable*> ObservableSet;
+#if (_MSC_VER > 1600)
+	typedef std::unordered_set<Observable*> ObservableSet;
+#else
 	typedef std::hash_set<Observable*> ObservableSet;
+#endif
 	virtual ~Observer(){Detach();}
 	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) = 0;
 	void Detach();
@@ -48,7 +55,7 @@ class OBSERVER_API Observable
 {
 friend class Observer;
 public:
-	typedef std::list<Observer*> ObserverList;
+//	typedef std::list<Observer*> ObserverList;
 	typedef std::set<Observer*> ObserverSet;
 //	typedef std::hash_set<Observer*> ObserverSet;
 	Observable():m_begin(m_observers.begin()),m_end(m_observers.end()){}//{UpdateIterators();}
@@ -91,6 +98,43 @@ protected:
 
 	typedef std::list<ObserverSet::iterator*> IteratorList;
 	mutable IteratorList m_iteratorList;
+};
+
+class OBSERVER_API MessageThreadBase : public TakionThreadBase
+{
+friend class MessageReader;
+friend unsigned int __stdcall MessageThreadFunction(void* data);
+public:
+	virtual ~MessageThreadBase();
+	void WriteMessage(const Message* message);//called from main thread
+//	void WriteControlMessage(const Message* message);//called from main thread
+	void WriteBuffers(WSABUF* data, unsigned int count, unsigned int totalLength);//called from main thread
+	virtual void ThreadInfoToString(std::string& info) const;
+	const bool& isExited() const{return m_exited;}
+	bool Restart();
+protected:
+	MessageThreadBase(const char* name, int priority = 0, unsigned int waitToTerminate = INFINITE, unsigned int padSize = 0);
+
+	virtual bool InvalidateData() override;
+//	virtual bool ProcessControlMessage(const Message* message) = 0;
+	virtual void NotifyOverflow(){}
+
+	virtual bool ProcessDataMessage(const Message* message) = 0;
+
+	void Terminate()//Call this function in the derived class Destructor to finish all data processing
+	{
+		m_dataOk = false;
+		SetEvent(m_event);
+		WaitForSingleObject(m_threadHandle, m_waitToTerminate);
+	}
+
+	void ReadMessage();//called from this thread
+
+	HANDLE m_event;
+	RingBufferListEventNotification* m_ringBuffer;
+
+	MessageReader* m_messageReader;
+	bool m_exited;
 };
 
 #ifdef __cplusplus

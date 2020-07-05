@@ -17,7 +17,9 @@
 #define NED_MALLOC
 #endif
 
-const char* const TakionMemoryHeaderVersion = "1.0.0.169";
+#include <string>
+
+const char* const TakionMemoryHeaderVersion = "1.0.3.70";
 
 #define NO_NED_NAMESPACE
 
@@ -246,302 +248,17 @@ EXTSPEC MALLOCATTR void **nedpindependent_comalloc(nedpool *p, size_t elems, siz
 
 #ifdef NED_MALLOC\
 
-#define DECLARE_NED_NEW void* operator new(size_t s)\
-{\
-	return nedmalloc(s);\
-}\
-void operator delete(void* p)\
-{\
-	nedfree(p);\
-}\
-void* operator new(size_t nSize, LPCSTR lpszFileName, int nLine)\
-{\
-	return nedmalloc(nSize);\
-}\
-void operator delete(void* p, LPCSTR lpszFileName, int nLine)\
-{\
-	nedfree(p);\
-}
+#define DECLARE_NED_NEW void* operator new(size_t s){return nedmalloc(s);}\
+void* operator new(size_t s, void* ptr){return ptr;}\
+void operator delete(void* p){nedfree(p);}\
+void* operator new(size_t nSize, LPCSTR lpszFileName, int nLine){return nedmalloc(nSize);}\
+void operator delete(void* p, LPCSTR lpszFileName, int nLine){nedfree(p);}
 
 #else
 
 #define DECLARE_NED_NEW
 
 #endif
-/*
-#elif _DEBUG
-
-#define DECLARE_NED_NEW void* operator new(size_t s)\
-{\
-	return ::operator new(s);\
-}\
-void operator delete(void* p)\
-{\
-	::operator delete(p);\
-}\
-void* operator new(size_t nSize, LPCSTR lpszFileName, int nLine)\
-{\
-	return ::operator new(nSize, lpszFileName, nLine);\
-}\
-void operator delete(void* p, LPCSTR lpszFileName, int nLine)\
-{\
-	::operator delete(p, lpszFileName, nLine);\
-}\
-
-#else
-
-#define DECLARE_NED_NEW void* operator new(size_t s)\
-{\
-	return ::operator new(s);\
-}\
-void operator delete(void* p)\
-{\
-	::operator delete(p);\
-}
-
-#endif
-*/
-/*
-#ifdef _DEBUG
-#define ALLOCATOR_STATS
-#endif
-*/
-
-/*
-#ifdef ALLOCATOR_STATS
-class TU_API MemoryPoolStatistics
-{
-public:
-	MemoryPoolStatistics()
-		: m_locksAttempts( 0 )
-		, m_locksSuccesses( 0 )
-		, m_allocations( 0 )
-		, m_frees( 0 )
-		, m_currentlyAllocated( 0 )
-		, m_commitedSize( 0 )
-	{}
-
-	unsigned long	m_locksAttempts;
-	unsigned long	m_locksSuccesses;
-	unsigned long	m_allocations;
-	unsigned long	m_frees;
-	unsigned long	m_currentlyAllocated;
-	size_t			m_commitedSize;
-};
-#endif
-
-template<typename T>
-class FixedSizeMemoryPool
-{
-public:
-    enum { init_size = 10 };
-	
-	typedef std::list<char*> PageList;
-	
-	FixedSizeMemoryPool()
-		: m_pFree( NULL )
-		, m_allocSize( sizeof(T) )
-		, m_commitedSize( 0 )
-	{
-		Initialize();
-	}
-
-	~FixedSizeMemoryPool()
-	{
-		PageList::iterator itend = m_pageList.end();
-		for(PageList::iterator it = m_pageList.begin(); it != itend; ++it)
-		{
-			kill(*it);
-		}
-//		std::for_each( m_pageList.begin(), m_pageList.end(), kill );
-	}
-
-	void Initialize()
-	{
-		SYSTEM_INFO si;
-		GetSystemInfo( &si );
-		m_allocationGranularity = si.dwAllocationGranularity;
-
-		if( m_allocSize < sizeof(link) )
-			m_allocSize = sizeof(link);
-
-		if( m_allocationGranularity < m_allocSize )
-		{
-			m_growSize		= ( m_allocSize % m_allocationGranularity ) ? ( m_allocSize / m_allocationGranularity + 1 ) * m_allocationGranularity : m_allocSize;
-			m_unitsPerGrow	= 1;
-
-			if( m_growSize > m_allocationGranularity * m_initSize )
-			{
-				m_initSize = 1;
-			}
-			else
-			{
-				m_initSize = ( init_size * m_allocationGranularity ) / m_growSize;
-			}
-		}
-		else
-		{
-			m_growSize		= m_allocationGranularity;
-			m_unitsPerGrow	= m_growSize / m_allocSize;
-			m_initSize		= init_size;
-		}
-
-		if( m_initSize > 0 )
-		{
-			link* pLastLink = NULL;
-			for( unsigned int n = 0; n < m_initSize; ++n )
-			{
-				link* pLink = (link*)( VirtualAlloc( NULL, m_growSize, MEM_COMMIT, PAGE_READWRITE ) );
-				if( pLink )
-				{
-					m_pageList.push_back((char*)pLink);
-#ifdef ALLOCATOR_STATS
-					++m_stats.m_locksAttempts;
-					BOOL bResult = VirtualLock(pLink, m_growSize);
-					if( bResult )
-					{
-						++m_stats.m_locksSuccesses;
-					}
-
-					m_stats.m_commitedSize = m_commitedSize += m_growSize;
-#else
-					VirtualLock(pLink, m_growSize);
-					m_commitedSize += m_growSize;
-#endif
-					if( pLastLink )
-					{
-						pLastLink->m_pNext = pLink;
-					}
-
-					for( size_t i = 1; i < m_unitsPerGrow; ++i)
-						pLink = pLink->m_pNext = (link*)((char*)(pLink) + m_allocSize);
-
-					pLastLink = pLink;
-					pLastLink->m_pNext = NULL;
-				}
-				else
-				{
-					break;
-				}
-			}
-
-			if( m_commitedSize )
-			{
-				m_pFree = (link*)*m_pageList.begin();
-			}
-		}
-	}
-
-    T* Allocate()
-    {
-        link* pLink = m_pFree;
-        if( NULL == pLink ) 
-		{
-			Grow();
-		}
-
-		T* ret = (T*)( m_pFree );
-
-		if( m_pFree )
-		{
-			m_pFree = m_pFree->m_pNext;
-#ifdef ALLOCATOR_STATS
-			++m_stats.m_allocations;
-			++m_stats.m_currentlyAllocated;
-#endif
-		}
-
-        return ret;
-    }
-
-	void Deallocate( void* p )
-    {
-        link* pLink = m_pFree;
-        m_pFree = (link*)p;
-		m_pFree->m_pNext = pLink;
-#ifdef ALLOCATOR_STATS
-		++m_stats.m_frees;
-		--m_stats.m_currentlyAllocated;
-#endif
-    }
-
-#ifdef ALLOCATOR_STATS
-	// Statistics
-	const MemoryPoolStatistics& GetStatistics() const{return m_stats;}
-#endif
-
-private:
-	struct link
-	{
-		link* m_pNext;
-	};
-
-	void Grow()
-	{
-		link* pLink = (link*)VirtualAlloc(NULL, m_growSize, MEM_COMMIT, PAGE_READWRITE);
-
-		if( pLink )
-		{
-			m_pageList.push_back((char*)pLink);
-
-			link* pOldFree = m_pFree;
-			m_pFree = pLink;
-
-#ifdef ALLOCATOR_STATS
-			++m_stats.m_locksAttempts;
-			if(VirtualLock(pLink, m_growSize))
-				++m_stats.m_locksSuccesses;
-			m_stats.m_commitedSize = m_commitedSize += m_growSize;
-#else
-			VirtualLock(pLink, m_growSize);
-			m_commitedSize += m_growSize;
-#endif
-
-			for(size_t i = 1; i < m_unitsPerGrow; ++i)
-				pLink = pLink->m_pNext = (link*)((char*)pLink + m_allocSize);
-
-			pLink->m_pNext = pOldFree;
-		}
-		else
-		{
-			DWORD dwErr = GetLastError();
-			// It is very bad if we've got here ( out of memory )
-		}
-	}
-
-	static void kill(char *p){ VirtualFree( p, 0, MEM_RELEASE ); }
-
-    link*			m_pFree;
-	size_t			m_allocSize;
-    size_t			m_initSize;
-	size_t			m_growSize;
-	size_t			m_allocationGranularity;
-	size_t			m_unitsPerGrow;
-	size_t			m_commitedSize;
-
-#ifdef ALLOCATOR_STATS
-	MemoryPoolStatistics	m_stats;
-#endif
-    std::list<char*> m_pageList;
-};
-*/
-template<typename T>
-class FixedSizePoolAllocator;
-// Specialization for void
-template <> 
-class FixedSizePoolAllocator<void>
-{
-public:
-	typedef void* pointer;
-	typedef const void* const_pointer;
-	// reference to void members are impossible.
-	typedef void value_type;
-
-	template <class Other> struct rebind 
-	{ 
-		typedef FixedSizePoolAllocator<Other> other; 
-	};
-};    
 
 template <typename T>
 class FixedSizePoolAllocator
@@ -560,80 +277,84 @@ public:
 		typedef FixedSizePoolAllocator<Other> other; 
 	};
 
-	FixedSizePoolAllocator() {}
+	FixedSizePoolAllocator(){}
 
-    pointer			address( reference x )			const { return &x; }
-    const_pointer	address( const_reference x )	const { return &x; }
-    pointer			allocate( size_type size, FixedSizePoolAllocator<void>::const_pointer hint = 0 ) const
+    pointer address(reference x) const{return &x;}
+    const_pointer address(const_reference x) const{ return &x; }
+    pointer allocate(size_type size, FixedSizePoolAllocator<void>::const_pointer hint = 0) const
     {
-        if( size == 1 ) 
+        if(1 == size) 
 		{
 #ifdef NED_MALLOC
-			return (T*)nedmalloc(sizeof(T));
+			return (pointer)nedmalloc(sizeof(value_type));
 #else
-			return (T*)::operator new(sizeof(T));
+			return (pointer)::operator new(sizeof(value_type));
 #endif
-//			return GetMemoryPool().Allocate();
 		}
 		else
 		{
-			// We shouldn't get here
+//We shouldn't get here
 //			assert( 0 );
-			return NULL;
+//			return NULL;
+#ifdef NED_MALLOC
+			return (pointer)nedmalloc(size * sizeof(value_type));
+#else
+			return (pointer)::operator new(size * sizeof(value_type));
+#endif
 		}
     }
 
-    template <class U> FixedSizePoolAllocator( const FixedSizePoolAllocator<U>& ) {}
-    FixedSizePoolAllocator( const FixedSizePoolAllocator<T>& ) {}
-    void deallocate( pointer p, size_type n ) const
+    template <class U> FixedSizePoolAllocator(const FixedSizePoolAllocator<U>&){}
+    FixedSizePoolAllocator( const FixedSizePoolAllocator<T>&){}
+    void deallocate(pointer p, size_type n) const
     {
-//		assert( 1 == n );
-//        GetMemoryPool().Deallocate( p );
+//		assert(1 == n);
 #ifdef NED_MALLOC
 		nedfree(p);
 #else
 		::operator delete(p);
 #endif
     }
-    void deallocate( void *p, size_type n ) const
+    void deallocate(void *p, size_type n) const
     {
-//		assert( 1 == n );
-//        GetMemoryPool().Deallocate( p );
+//		assert(1 == n);
 #ifdef NED_MALLOC
 		return nedfree(p);
 #else
 		::operator delete(p);
 #endif
     }
-    size_type max_size() const throw() { return size_t(-1) / sizeof( value_type ); }
+    size_type max_size() const throw(){return size_t(-1) / sizeof(value_type);}
 
-    void construct(pointer p, const T& val)
+    void construct(pointer p, const_reference val)
     {
-        new ((void*)p) T(val);
+        new (p) value_type(val);
     }
-    void construct( pointer p )
+
+    void construct(pointer p)
     {
-        new ((void*)p) T();
+//		new ((void*)p) T();
+        new (p) value_type();
     }
     
-	void destroy( pointer p ) { p->T::~T(); }
-/*
-#ifdef ALLOCATOR_STATS
-	// Statistics for memory pool
-	static MemoryPoolStatistics& GetStatistics() { return GetMemoryPool().GetStatistics(); }
-#endif
-	FixedSizeMemoryPool<T>& GetMemoryPool() const
+	void destroy(pointer p)
 	{
-	    static FixedSizeMemoryPool<T> s_memoryPool;
-		return s_memoryPool;
+		p->~value_type();
 	}
-*/
 };
 
-//template <typename T> CFixedSizeMemoryPool<T> CFixedSizePoolAllocator<T>::s_memoryPool;
+// Specialization for void
+template <> 
+class FixedSizePoolAllocator<void>
+{
+public:
+	typedef void* pointer;
+	typedef const void* const_pointer;
+//reference to void members are impossible.
+	typedef void value_type;
 
-template <typename T, typename U>
-inline bool operator==(const FixedSizePoolAllocator<T>&, const FixedSizePoolAllocator<U>){return true;}
-
-template <typename T, typename U>
-inline bool operator!=(const FixedSizePoolAllocator<T>&, const FixedSizePoolAllocator<U>){return false;}
+	template <class Other> struct rebind 
+	{ 
+		typedef FixedSizePoolAllocator<Other> other; 
+	};
+};    

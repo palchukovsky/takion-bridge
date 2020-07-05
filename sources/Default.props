@@ -5,8 +5,8 @@
   <PropertyGroup>
     <IntDir>$(SolutionDir)..\output\$(PlatformShortName)\int\$(Configuration)\$(ProjectName)\</IntDir>
     <OutDir>$(SolutionDir)..\output\$(PlatformShortName)\bin\</OutDir>
-    <LibraryPath>$(SolutionDir)..\output\lib;c:\Program Files\Boost\lib\;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir);c:\Program Files\Boost\include\boost-1_53\;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)..\output\lib;C:\boost\boost_1_73_0\lib64-msvc-10.0;$(SolutionDir)..\externals\Takion\lib\$(Configuration)\;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir);C:\boost\boost_1_73_0;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>

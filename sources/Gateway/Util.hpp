@@ -18,8 +18,8 @@ namespace TakionBridge { namespace Gateway {
 
 	inline Interface::Price PriceToPrice(::Money money) {
 		return
-			double(money.GetDollarsRef())
-				+ (double(money.GetDollarFractionRef())
+			double(money.GetDollars())
+				+ (double(money.GetDollarFraction())
 					/ double(::Money::divider));
 	}
 

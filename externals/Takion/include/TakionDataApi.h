@@ -1,5 +1,3 @@
-// TakionData.h : main header file for the TakionData DLL
-
 #pragma once
 
 #ifndef __AFXWIN_H__
@@ -12,17 +10,21 @@
 #define TD_API __declspec(dllimport)
 #endif
 
-const char* const TakionDataHeaderVersion = "1.0.1.214";
+const char* const TakionDataHeaderVersion = "1.0.5.7";
 
 //#define TAKION_EXCEPTION
-//class RingBufferListEventNotification;
 
 #include <TakionUtilsApi.h>
-#include <TakionLogApi.h>
-//#include <TakionMemoryApi.h>
+#include <wincrypt.h>
 
 //#define UPDATE_PRINT_MESSAGE
-const unsigned int qstkNum = 0x4B545351;//*(unsigned int*)"QSTK";
+
+#if defined(T_RELEASED) || defined(_DEBUG)
+#define WATCH_UNSUBSCRIBABLE
+#endif
+
+const unsigned int qstkNum = Chars4ToUInt('Q', 'S', 'T', 'K');//0x4B545351;//*(unsigned int*)"QSTK";
+const unsigned int bdrgNum = Chars4ToUInt('B', 'D', 'R', 'G');
 
 enum MessageIds : unsigned short
 {
@@ -73,14 +75,25 @@ enum MessageIds : unsigned short
 	M_RESET_IMBALANCES,
 
 	M_PMI,
+#ifdef LRPS
 	M_LRP,
-	M_T_TIME,
+#endif
+	M_T_TIME = 31,
 	M_RPI,
 
 	M_AGGREGATED_PRINT,
 
 	M_LULD,
 //	M_REQ_KICK,
+
+	M_AVERAGE_DAILY_VOLUME,
+	M_PREVIOUS_DAY_HIGH_LOW,
+	
+	M_SECURITY_TYPE,
+
+	M_TICK_PILOT,
+
+	M_SNAPSHOT,
 
 // Should be last enum member
     MARKET_DATA_END,
@@ -132,13 +145,24 @@ enum MessageIds : unsigned short
 	SM_M_RESET_IMBALANCES,
 
 	SM_M_PMI,
+#ifdef LRPS
 	SM_M_LRP,
-	SM_M_T_TIME,
+#endif
+	SM_M_T_TIME = 231,
 	SM_M_RPI,
 
 	SM_M_AGGREGATED_PRINT,
 
 	SM_M_LULD,
+
+	SM_M_AVERAGE_DAILY_VOLUME,
+	SM_M_PREVIOUS_DAY_HIGH_LOW,
+
+	SM_M_SECURITY_TYPE,
+
+	SM_M_TICK_PILOT,
+
+	SM_M_SNAPSHOT,
 
 // Should be last enum member
     SYMBOL_MAPPING_MD_END,
@@ -160,13 +184,22 @@ enum MessageIds : unsigned short
 	M_MS_RESET_IMBALANCES,
 
 	M_MS_PMI,
+#ifdef LRPS
 	M_MS_LRP,
-	M_MS_T_TIME,
+#endif
+	M_MS_T_TIME = 517,
 	M_MS_RPI,	// Should be last enum member
 	M_MS_AGGREGATED_PRINT_SHORT,
 	M_MS_AGGREGATED_PRINT_LONG,
 
 	M_MS_LULD,
+
+	M_MS_AVERAGE_DAILY_VOLUME,
+	M_MS_PREVIOUS_DAY_HIGH_LOW,
+
+	M_MS_SECURITY_TYPE,
+
+	M_MS_TICK_PILOT,
 
 	MARKET_SORTER_END,
 /////////////////////////
@@ -187,14 +220,23 @@ enum MessageIds : unsigned short
 	SM_MS_RESET_IMBALANCES,
 
 	SM_MS_PMI,
+#ifdef LRPS
 	SM_MS_LRP,
-	SM_MS_T_TIME,
+#endif
+	SM_MS_T_TIME = 617,
 	SM_MS_RPI,
 
 	SM_MS_AGGREGATED_PRINT_SHORT,
 	SM_MS_AGGREGATED_PRINT_LONG,
 
 	SM_MS_LULD,
+
+	SM_MS_AVERAGE_DAILY_VOLUME,
+	SM_MS_PREVIOUS_DAY_HIGH_LOW,
+
+	SM_MS_SECURITY_TYPE,
+
+	SM_MS_TICK_PILOT,
 
 	SYMBOL_MAPPING_MS_END,// Should be last enum member
 /////////////////////////
@@ -222,6 +264,7 @@ enum MessageIds : unsigned short
 	M_RESP_MD_LOGON,
 	M_REQ_PUBLIC_KEY,
 	M_RESP_PUBLIC_KEY,
+	M_REQ_REPORT_EXTENSION_INFO,
 
 	M_HEARTBEAT = 2001,
 	M_DISCONNECT,
@@ -257,7 +300,7 @@ enum MessageIds : unsigned short
 	TS_ACCOUNT_ORDER_HISTORY_REQ,
 	TS_ACCOUNT_ORDER_HISTORY_COMPLETE,
 
-#ifdef FIRM_VALUES
+//#ifdef FIRM_VALUES
 	TS_FIRM_POSITION_SUBSCRIBE_REQ,
 	TS_FIRM_POSITION_UPDATE,
 	TS_FIRM_POSITION_UNSUBSCRIBE_REQ,
@@ -265,7 +308,12 @@ enum MessageIds : unsigned short
 	TS_FIRM_POSITION_REJECT,
 	TS_SET_UNTRADEABLE_STATUS,
 	TS_UNTRADEABLE_STATUS_UPDATE,
-#endif
+	TS_ADV_INFO_UPDATE,
+//#endif
+	TS_REMOVE_ACCOUNT,//not used
+	TS_BORROW_ACCEPT_REQ,
+	TS_BORROW_ACCEPT_RESP,
+
 	M_TR_HTB_LOCATE_INFO				= 12001,
 	M_TR_HTB_REQ_SYMBOL_LIST,//			= 12002,
 	M_TR_HTB_RESP_SYMBOL_LIST,//			= 12003,
@@ -273,6 +321,9 @@ enum MessageIds : unsigned short
 	M_TR_ETB_RESP_SYMBOL_LIST,
 	M_TR_HTB_REQ_LOCATE_INFO,
 	M_TR_HTB_RESP_LOCATE_INFO,
+	M_TR_RESTR_REQ_SYMBOL_LIST,
+	M_TR_RESTR_RESP_SYMBOL_LIST,
+	M_TR_BETA_INFO,
 
 	M_REQ_PRINTS = 14001,
 	M_RESP_PRINTS,
@@ -298,17 +349,31 @@ enum MessageIds : unsigned short
 
 	MARKET_DATA_OPTIONS_END,
 #endif
+
+//	TM_TAKION_FIX_MESSAGE = 63996,
+	TM_TAKION_CLIENT_FIX_ERROR = 63993,
+	TM_TAKION_CLIENT_FIX_CONTROL_SUM_ERROR,
+	TM_TAKION_CLIENT_FIX_MESSAGE,
+	TM_TAKION_SERVER_FIX_ERROR,
+	TM_TAKION_SERVER_FIX_CONTROL_SUM_ERROR,
+	TM_TAKION_SERVER_FIX_MESSAGE,
+	TM_TAKION_SERVER_MESSAGE,
+
 	TM_CONNECTED						= 64001,
 	TM_DISCONNECTED,
 	TM_STARTED_TO_CONNECT,
 	TM_FAILED_TO_CONNECT,
 	TM_CONNECTION_DESTROYED,
+	TM_RECONNECT,
 
 //	TM_EXIT_THREAD,
 
 	TM_THREAD_MD_ENTITLEMENTS_CHANGED,
 	TM_THREAD_BOOK_CLEANUP,
+	TM_THREAD_MARKET_STATUS,//sent to all stocks' threads when market closes or opens
 
+	TM_NEW_STOCK,//notification in main thread with the stock object
+	TM_STOCK_NEW,//message sent to the main thread with the stock symbol
 	TM_STOCK_INVALID,
 	TM_STOCK_REFRESHED,
 	TM_EQUITY_REFRESHED,
@@ -329,6 +394,9 @@ enum MessageIds : unsigned short
 
 	TM_POSITION_UPDATE,
 	TM_POSITION_NEW,
+
+	TM_POSITION_DELETE,
+
 	TM_POSITION_OPEN_PNL_LEVEL1,
 	TM_POSITION_OPEN_PNL_PRINT,
 	TM_POSITION_OPEN_PNL_TCLOSE,
@@ -353,6 +421,7 @@ enum MessageIds : unsigned short
 	TM_UPDATED_ACCOUNT,
 	TM_UPDATED_ACCOUNT_AND_POSITION,
 	TM_UPDATED_EQUITY,
+	TM_REFRESHED_EQUITY,
 
 	TM_ORDER_UPDATE,
 	TM_ORDER_NEW,
@@ -406,6 +475,7 @@ enum MessageIds : unsigned short
 //	TM_CUSTOM_EXTERNAL,
 
 	TM_NEXT_DAY_STARTED,
+	TM_NEXT_UTC_DAY_STARTED,
 
 	TM_DEFAULT_COMMISSION_FEE,
 	TM_ACCOUNT_CONSTRAINTS,
@@ -420,6 +490,7 @@ enum MessageIds : unsigned short
 	TM_INDEX_CHART_LOADED,
 	TM_NEW_INDEX,
 	TM_UPDATED_INDEX,
+	TM_REFRESHED_INDEX,
 	TM_MARKET_SORTER_INDEXES_LOADED,
 	TM_MARKET_SORTER_INDEX_CHUNK_LOADED,
 	TM_INDEX_NEW_MINUTE,
@@ -437,6 +508,7 @@ enum MessageIds : unsigned short
 	TM_ACCOUNT_COMMAND_PHANTOM_SHARES,
 	TM_ACCOUNT_COMMAND_ALL_PHANTOM,
 
+	TM_POSITION_SORTABLE_SECURITY_INITIALIZED,
 	TM_POSITION_SECURITY_INITIALIZED,
 	TM_POSITION_SECURITY_UPDATED,
 	TM_POSITION_PHANTOM_SHARES_CHANGED,
@@ -462,6 +534,7 @@ enum MessageIds : unsigned short
 	TM_ACCOUNT_ALGO_MAIN_THREAD_NOTIFICATION,
 
 	TM_POSITION_COST,
+	TM_ACCOUNT_COMMAND_INVENTORY,
 
 	TM_REMOVE_QUOTE,
 
@@ -487,6 +560,7 @@ enum MessageIds : unsigned short
 	TM_STRING_NEWS_HISTORIC_SEARCH_DONE,
 
 	TM_ACCOUNT_REMOVE_DELAYED_ORDERS,
+	TM_ACCOUNT_CANCEL_STOP_ORDERS,
 
 	TM_ACCOUNT_WAIT_MS_CLEANUP,
 
@@ -495,11 +569,13 @@ enum MessageIds : unsigned short
 	TM_HARD_BP_HIT,
 
 	TM_EQUITY_OPENED,
-	TM_EQUITY_CLOSED,
+	TM_EQUITY_CLOSED,//sent from stock thread to main thread when the stock's close price is set
 	TM_EQUITY_YEST_CLOSE_PRICE_CHANGED,
 
 	TM_EQUITY_NEW_TIME_FRAME,
 
+	TM_CLIENT_CONNECTED,
+	TM_CLIENT_DISCONNECTED,
 #ifdef FIRM_VALUES
 	TM_ACCOUNT_UPDATE_FIRM_ENFORCEMENT,
 	TM_NEW_FIRM_POSITION,
@@ -523,15 +599,242 @@ enum MessageIds : unsigned short
 	TM_UNDERLIER_NEW_DAY,
 	TM_OPTION_ADD_TO_UNDERLIER,
 	TM_OPTION_SET_UNDERLIER_POSITION,
+	TM_OPTION_POSITION_UPDATE_CONTRACT_SIZE,
+
+	TM_OPTION_ADD,
+	TM_OPTION_REMOVE,
+	TM_OPTION_L2_ADD,
+	TM_OPTION_L2_REMOVE,
+	TM_OPTION_ADD_IDLE,
+	TM_OPTION_REMOVE_IDLE,
+
+	TM_UNDERLIER_ADD,
+	TM_UNDERLIER_REMOVE,
+	TM_UNDERLIER_ADD_IDLE,
+	TM_UNDERLIER_REMOVE_IDLE,
+	TM_UNDERLIER_ADD_REMOVABLE,
+	TM_UNDERLIER_REMOVE_REMOVABLE,
+
+	TM_POSITION_INIT_INVALID_OPTION,//sent to account thread to initialize positions PNL as updated when a "failed" option snapshot is received
+	TM_OPTION_NEW_DAY,
 #endif
+	TM_CANCEL_REJECTED,
+	TM_ACCOUNT_RESTRICTED_SYMBOL_LIST_LOADED,
+
+	TM_POSITION_CLOSING_PRICE,
+
+	TM_ACCOUNT_ADD_OCO_ORDERS,
+	TM_ACCOUNT_REMOVE_OCO_ORDERS,
+	TM_ACCOUNT_CLEAR_OCO_ORDERS,
+	TM_ACCOUNT_CLEAR_ALL_OCO_ORDERS,
+	TM_ACCOUNT_SET_CURRENT_OCO_ID,
+	TM_ACCOUNT_RESET_CURRENT_OCO_ID,
+
+	TM_ACCOUNT_DESTROY_UNTRADED_POSITIONS,
+	TM_ACCOUNT_DESTROY_UNTRADED_POSITION,
+
+	TM_POSITION_AUTO_CLOSE_ON_STOCK_OPEN,
+
+	TM_STOCK_ADD_IDLE,
+	TM_STOCK_REMOVE_IDLE,
+
+	TM_POSITION_INIT_SORTABLE_SECURITY,//sent to main thread to initialize positions' MS security when MS security snapshot is received
+	TM_POSITION_INIT_SECURITY,//sent to main thread to initialize positions' stock when stock snapshot is received
+	TM_POSITION_INIT_INVALID_SECURITY,//sent to account thread to initialize positions PNL as updated when a "failed" stock snapshot is received
+
+	TM_THREAD_NEW_DAY,
+	TM_STOCK_NEW_DAY,
+
+	TM_INDEX_DELETE,
+
+	TM_REPLACE_PRICE_AND_SIZE,
+	TM_ACCOUNT_SIMULATION,
+
+	TM_IP_CHANGE,
+
+	TM_ACCOUNT_ALGO_ACCOUNT_THREAD_NOTIFICATION,
+
+	TM_RSI_MH_CHART_LOADED,
+	TM_RSI_MH_CHART_REQUESTED,
+	TM_RSI_MH_CHART_FAILED,
+	TM_RSI_MH_CHARTS_CLEARED,
+	TM_RSI_MH_ALL_CHARTS_LOADED,
+
+	TM_RSI_MH_SECURITY_DATA_LOADED,
+
+	TM_RSI_DAYS_CHART_LOADED,
+	TM_RSI_DAYS_CHART_REQUESTED,
+	TM_RSI_DAYS_CHART_FAILED,
+	TM_RSI_DAYS_CHARTS_CLEARED,
+	TM_RSI_DAYS_ALL_CHARTS_LOADED,
+
+	TM_RSI_DAYS_SECURITY_DATA_LOADED,
+
+	TM_POSITION_TRAILING_ORDERS_PRINT,
+	TM_POSITION_TRAILING_ORDERS_LEVEL1,
+
+	TM_QUOTE_INFO,//used as additional info when notifying InThread observers about Level2 changes
+
+	TM_SORTABLE_SECURITY_ADD_IDLE,
+	TM_SORTABLE_SECURITY_REMOVE_IDLE,
+	TM_SORTABLE_SECURITY_INVALID,
+	TM_SORTABLE_SECURITY_DELETE,
+
+	TM_SORTABLE_SECURITY_SYMBOL_MAPPING_CHANGED,
+
+	TM_STOCK_LIGHT_SNAPSHOT,
+
+	TM_POSITION_OPEN_PNL_IMBEXNEAR,
+
+	TM_EQUITY_MINUTE_EVENT,
+	TM_TIME_NBBO_PRINT,
+
+	TM_SEND_ORDER_DONE, //Posted to the Observers of Position and Account in worker and main thread when all the orders resulting from SendOrder or ReplacePriceAndSize function are sent.
+
+	TM_SORTABLE_SECURITY_NEWS_HEADLINE_COUNT, //Posted to worker thread of MarketSorter stock from main thread
+	TM_SECURITY_NEWS_HEADLINE_COUNT, //Posted to worker thread of MarketData stock from main thread
+
+	TM_ACCOUNT_COMMAND_DESTROY_BLOCKED_ORDER,
+	TM_ACCOUNT_RETAIL_IN_SIMULATION,
+
+	TM_SORTABLE_SECURITY_ENTITLEMENTS_CHANGED,
+	TM_STOCK_ENTITLEMENTS_CHANGED,
+#ifndef TAKION_NO_OPTIONS
+	TM_OPTION_ENTITLEMENTS_CHANGED,
+	TM_UNDERLIER_UNSUBSCRIBED,
+#endif
+
+	TM_ADDITIONAL_DATA_UCHAR,
+	TM_EQUITY_RESET,
+
+	TM_EQUITY_USED_COUNT_UPDATE,
+	TM_STOCK_USED_COUNT_UPDATE,
+	TM_OPTION_USED_COUNT_UPDATE,
+
+	TM_THREAD_EXT_MD_ENTITLEMENTS_CHANGED,
+
+	TM_SORTABLE_SECURITY_EXT_ENTITLEMENTS_CHANGED,
+	TM_STOCK_EXT_ENTITLEMENTS_CHANGED,
+	
+	TM_OTHER_ORDER_EXECUTED,
+
+	TM_ALL_ACCOUNTS_LOADED,
+
+	TM_SET_EQUITY_TEMPORARY_TIER_SIZE,
+	TM_SET_STOCK_TEMPORARY_TIER_SIZE,
+
+//	TM_STOCK_YEST_CLOSE_PRICE_CHANGED,
+	TM_POSITION_TODAYS_CLOSING_PRICE,
+
+	TM_SET_STOCK_CUSTOM_PRICE_BASE,
+	TM_SET_EQUITY_CUSTOM_PRICE_BASE,
+
+	TM_CLEARING_FIRM_UPDATE,
+	TM_CLEARING_FIRM_CONSTRAINTS_UPDATE,
+	TM_NEW_CLEARING_FIRM,
+	TM_UPDATED_CLEARING_FIRM,
+	TM_UPDATED_CLEARING_FIRM_CONSTRAINTS,
+	TM_DELETE_ALL_CLEARING_FIRMS,
+
+	TM_ACCOUNT_LOSS_90_PERCENT,
+
+	TM_ENTITLEMENTS_CHANGED,
+	TM_EXT_ENTITLEMENTS_CHANGED,
+
+	TM_SET_STOCK_CUSTOM_DATE,
+	TM_SET_EQUITY_CUSTOM_DATE,
+
+	TM_STOCK_BORROW_INFO,
+	TM_EQUITY_BORROW_INFO,
+	TM_POSITION_BORROW_INFO,
+
+	TM_STOCK_BETA_AND_RETAIL_INFO,
+	TM_EQUITY_BETA_AND_RETAIL_INFO,
+	TM_POSITION_BETA_AND_RETAIL_INFO,
+
+	TM_CLEARING_FIRM_RETAIL_UPDATE,
+	TM_UPDATED_CLEARING_FIRM_RETAIL,
+
+	TM_POSITION_UPDATE_LEVERAGE,
+	TM_THREAD_CALCULATE_POSITION_LEVERAGE,//sent to all worker threads when the need to calculate Position Leverage changes
+
+	TM_HARD_ME_HIT,
+
+	TM_BOOKTOP_INFO,//used (as primary, not additional, info) for notification of InThread Observers if there are no Book Depth Entitlements, instead of TM_QUOTE_INFO
+
+	TM_STOCK_ECHO,
+	TM_SORTABLE_STOCK_ECHO,
+
+	TM_CONFIRM_BORROW,
+	TM_SIMULATE_EXECUTION,
+
+	TM_EXPIRATION_TIMER,
+
+	TM_NASDAQ_MARKET_STATUS_CHANGED,
+
+#ifndef TAKION_NO_OPTIONS
+	TM_OPTION_ECHO,
+#endif
+#ifdef CLEARING_FIRM_IN_WORKER_THREAD
+	TM_CLEARING_FIRM_INCREMENT_BETA_BP_USED,
+	TM_CLEARING_FIRM_INCREMENT_BETA_INVESTMENT,
+	TM_CLEARING_FIRM_ADD_ACCOUNT,
+	TM_CLEARING_FIRM_REMOVE_ACCOUNT,
+	TM_CLEARING_FIRM_DELETE_ALL_ACCOUNTS,
+	TM_CLEARING_FIRM_SET_BOOL_PARAMS,
+	TM_CLEARING_FIRM_SET_BETA_PARAMS,
+	TM_CLEARING_FIRM_SET_RETAIL_PARAMS,
+	TM_CLEARING_FIRM_ACCOUNT_UPDATE_FIRM_ENFORCEMENT,
+#endif
+#ifndef TAKION_NO_OPTIONS
+	TM_POSITION_UNDERLIER_SORTABLE_SECURITY_INITIALIZED,
+	TM_POSITION_UNDERLIER_SECURITY_INITIALIZED,
+	TM_OPTION_OPENED,
+	TM_OPTION_CLOSED,
+	TM_OPTION_EXT_ENTITLEMENTS_CHANGED,
+	TM_UNDERLIER_OBJECT,//For additionalInfo only
+
+	TM_UNDERLIER_SUBSCRIPTION_QUEUED,
+	TM_OPTION_SUBSCRIPTION_QUEUED,
+	TM_UNDERLIER_SUBSCRIPTION_UNQUEUED,
+	TM_OPTION_SUBSCRIPTION_UNQUEUED,
+	TM_OPTION_SUBSCRIPTION_QUEUE_CLEARED,
+	TM_OPTION_SUBSCRIPTION_STUCK,
+#endif
+};
+
+#define LYNX_REROUTING
+
+enum DmaFlags : unsigned char
+{
+	FLAG_DMA = 1,
+	FLAG_DMA_PLUS,
+	FLAG_APEX,
+#ifdef LYNX_REROUTING
+	FLAG_LYNX,// = 4
+#endif
+	FLAG_DMA_Count,
 };
 
 class TMsgRemoveQuote : public Message
 {
 public:
-	TMsgRemoveQuote(const unsigned __int64& symbol, bool side, EcnBookId bookId, unsigned int mmid, unsigned int dollarsFrom, unsigned int dollarFractionFrom, unsigned int dollarsTo, unsigned int dollarFractionTo):
+	TMsgRemoveQuote(const unsigned __int64& symbol = 0,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionBlock = 0,
+#endif
+		const bool& side = false,
+		const unsigned char& bookId = BOOK_LEVEL2,
+		const unsigned int& mmid = 0,
+		const unsigned int& dollarsFrom = 0,
+		const unsigned int& dollarFractionFrom = 0,
+		const unsigned int& dollarsTo = 0,
+		const unsigned int& dollarFractionTo = 0):
 		Message(TM_REMOVE_QUOTE, sizeof(TMsgRemoveQuote)),
 		m_symbol(symbol),
+#ifndef TAKION_NO_OPTIONS
+		m_optionBlock(optionBlock),
+#endif
 		m_mmid(mmid),
 		m_dollarsFrom(dollarsFrom),
 		m_dollarFractionFrom(dollarFractionFrom),
@@ -541,13 +844,16 @@ public:
 		m_bookId(bookId)
 	{}
 	unsigned __int64 m_symbol;
+#ifndef TAKION_NO_OPTIONS
+	unsigned __int64 m_optionBlock;
+#endif
 	unsigned int m_mmid;
 	unsigned int m_dollarsFrom;
 	unsigned int m_dollarFractionFrom;
 	unsigned int m_dollarsTo;
 	unsigned int m_dollarFractionTo;
 	bool m_side;
-	EcnBookId m_bookId;
+	unsigned char m_bookId;
 };
 
 class TMessageTime : public Message
@@ -555,7 +861,7 @@ class TMessageTime : public Message
 public:
 	unsigned int m_time;
 protected:
-	TMessageTime(unsigned int time, unsigned short type, unsigned short length):
+	TMessageTime(const unsigned int& time, const unsigned short& type, const unsigned short& length):
 		Message(type, length),
 		m_time(time ? time : TL_GetCurrentMillisecond())
 	{
@@ -567,7 +873,7 @@ class TSmMessageSymbol : public Message
 public:
 	unsigned short m_symbol;
 protected:
-	TSmMessageSymbol(unsigned short symbol, unsigned short type, unsigned short length):
+	TSmMessageSymbol(const unsigned short& symbol, const unsigned short& type, const unsigned short& length):
 		Message(type, length),
 		m_symbol(symbol)
 	{
@@ -579,7 +885,7 @@ class TSmMessageTimeSymbol : public TMessageTime
 public:
 	unsigned short m_symbol;
 protected:
-	TSmMessageTimeSymbol(unsigned short symbol, unsigned int time, unsigned short type, unsigned short length):
+	TSmMessageTimeSymbol(const unsigned short& symbol, const unsigned int& time, const unsigned short& type, const unsigned short& length):
 		TMessageTime(time, type, length),
 		m_symbol(symbol)
 	{
@@ -595,7 +901,7 @@ enum TradeReportFlags : unsigned char
 	TradeThroughExempt	= 8,
 };
 
-#define MAX_SRORDID_SIZE		16
+//#define MAX_SRORDID_SIZE		16
 #define MAX_ACCOUNT_SIZE		16
 #define MAX_IP_ADDRESS_SIZE		16			// *AK*
 #define MAX_FIRM_ID_SIZE		5			// *AK*
@@ -611,18 +917,143 @@ enum TradeReportFlags : unsigned char
 
 typedef char Symbol[MAX_SYMBOL_SIZE];
 
+class TMsgQuoteInfo : public Message//used as additional info when notifying InThread observers about Level2 changes
+{
+public:
+	TMsgQuoteInfo(const unsigned int& oldPriceDollars,
+		const unsigned int& oldPriceFraction,
+		const unsigned int& oldSize,
+		const unsigned int& newPriceDollars,
+		const unsigned int& newPriceFraction,
+		const unsigned int& newSize,
+		const unsigned int& mmid,
+		const unsigned int& oldMillisecond,
+		const unsigned int& newMillisecond,
+		const unsigned char& bookId,
+		const unsigned char& oldQuoteCondition = 0,
+		const unsigned char& newQuoteCondition = 0,
+		const bool& oldRetailLiquidity = false,
+		const bool& newRetailLiquidity = false):
+		Message(TM_QUOTE_INFO, sizeof(TMsgQuoteInfo)),
+//		m_oldPriceDollars(oldPriceDollars),
+//		m_oldPriceFraction(oldPriceFraction),
+		m_oldPrice(oldPriceDollars, oldPriceFraction),
+		m_oldSize(oldSize),
+//		m_newPriceDollars(newPriceDollars),
+//		m_newPriceFraction(newPriceFraction),
+		m_newPrice(newPriceDollars, newPriceFraction),
+		m_newSize(newSize),
+		m_mmid(mmid),
+		m_oldMillisecond(oldMillisecond),
+		m_newMillisecond(newMillisecond),
+		m_bookId(bookId),
+		m_oldQuoteCondition(oldQuoteCondition),
+		m_newQuoteCondition(newQuoteCondition),
+		m_oldRetailLiquidity(oldRetailLiquidity),
+		m_newRetailLiquidity(newRetailLiquidity)
+	{}
+	TMsgQuoteInfo(const Price& oldPrice,
+		const unsigned int& oldSize,
+		const Price& newPrice,
+		const unsigned int& newSize,
+		const unsigned int& mmid,
+		const unsigned int& oldMillisecond,
+		const unsigned int& newMillisecond,
+		const unsigned char& bookId,
+		const unsigned char& oldQuoteCondition = 0,
+		const unsigned char& newQuoteCondition = 0,
+		const bool& oldRetailLiquidity = false,
+		const bool& newRetailLiquidity = false):
+		Message(TM_QUOTE_INFO, sizeof(TMsgQuoteInfo)),
+		m_oldPrice(oldPrice),
+		m_oldSize(oldSize),
+		m_newPrice(newPrice),
+		m_newSize(newSize),
+		m_mmid(mmid),
+		m_oldMillisecond(oldMillisecond),
+		m_newMillisecond(newMillisecond),
+		m_bookId(bookId),
+		m_oldQuoteCondition(oldQuoteCondition),
+		m_newQuoteCondition(newQuoteCondition),
+		m_oldRetailLiquidity(oldRetailLiquidity),
+		m_newRetailLiquidity(newRetailLiquidity)
+	{}
+/*
+	TMsgQuoteInfo(const MsgQuote& quote):
+		m_oldPrice(quote.m_priceDollars, quote.m_priceFraction),
+		m_oldSize(quote.m_size),
+		m_newPrice(quote.m_priceDollars, quote.m_priceFraction),
+		m_newSize(quote.m_size),
+		m_mmid(quote.m_mmid),
+		m_oldMillisecond(quote.m_millisecond),
+		m_newMillisecond(quote.m_millisecond),
+		m_bookId(quote.m_bookID),
+		m_oldQuoteCondition(quote.m_quoteCondition),
+		m_newQuoteCondition(quote.m_quoteCondition),
+		m_oldRetailLiquidity((quote.m_flags & MsgQuote::RetailInterest) != 0),
+		m_newRetailLiquidity((quote.m_flags & MsgQuote::RetailInterest) != 0)
+	{}
+*/
+
+//	unsigned int m_oldPriceDollars;
+//	unsigned int m_oldPriceFraction;
+	Price m_oldPrice;
+	unsigned int m_oldSize;
+//	unsigned int m_newPriceDollars;
+//	unsigned int m_newPriceFraction;
+	Price m_newPrice;
+	unsigned int m_newSize;
+	unsigned int m_mmid;
+	unsigned int m_oldMillisecond;
+	unsigned int m_newMillisecond;
+	unsigned char m_bookId;
+	unsigned char m_oldQuoteCondition;
+	unsigned char m_newQuoteCondition;
+	bool m_oldRetailLiquidity;
+	bool m_newRetailLiquidity;
+};
+
+class TMsgBookTopInfo : public Message//This Message is used (as primary, not additional, info) for notification of InThread Observers if there are no Book Depth Entitlements, instead of TMsgQuoteInfo as additional info
+{
+public:
+	TMsgBookTopInfo(const Price& oldPrice,
+		const unsigned int& oldSize,
+		const Price& newPrice,
+		const unsigned int& newSize,
+		const unsigned int& mmid,
+		const unsigned char& bookId,
+		const bool& bid):
+		Message(TM_BOOKTOP_INFO, sizeof(TMsgQuoteInfo)),
+		m_oldPrice(oldPrice),
+		m_oldSize(oldSize),
+		m_newPrice(newPrice),
+		m_newSize(newSize),
+		m_mmid(mmid),
+		m_bookId(bookId),
+		m_bid(bid)
+	{
+	}
+	Price m_oldPrice;
+	unsigned int m_oldSize;
+	Price m_newPrice;
+	unsigned int m_newSize;
+	unsigned int m_mmid;
+	unsigned char m_bookId;
+	bool m_bid;
+};
+
 class MsgQuote
 {
 public:
-	MsgQuote(unsigned __int64 referenceNumber,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned int mmid,
-		unsigned int millisecond,
-		unsigned char bookID,//	: 8;
-		unsigned char quoteCondition,//	: 8;
-		unsigned short flags)://		: 24;
+	MsgQuote(const unsigned __int64& referenceNumber,
+		const unsigned int& priceDollars,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned int& mmid,
+		const unsigned int& millisecond,
+		const unsigned char& bookID,//	: 8;
+		const unsigned char& quoteCondition,//	: 8;
+		const unsigned short& flags)://		: 24;
 		m_referenceNumber(referenceNumber),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -667,17 +1098,17 @@ enum TradeSide : unsigned char
 class TSmMsgBookNewQuote : public TSmMessageSymbol
 {
 public:
-	TSmMsgBookNewQuote(unsigned short symbol = 0,
-		unsigned char side = Buy,
-		unsigned __int64 referenceNumber = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned int size = 0,
-		unsigned int mmid = 0,
-		unsigned int millisecond = 0,
-		unsigned char bookID = 0,//	: 8;
-		unsigned char quoteCondition = 0,//	: 8;
-		unsigned short flags = 0)://		: 24;
+	TSmMsgBookNewQuote(const unsigned short& symbol = 0,
+		const unsigned char& side = Buy,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& mmid = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned char& bookID = 0,//	: 8;
+		const unsigned char& quoteCondition = 0,//	: 8;
+		const unsigned short& flags = 0)://		: 24;
 		TSmMessageSymbol(symbol, SM_M_BOOK_NEW_QUOTE, sizeof(TSmMsgBookNewQuote)),
 		m_side(side),
 		m_quote(referenceNumber, priceDollars, priceFraction, size, mmid, millisecond, bookID, quoteCondition, flags)
@@ -689,17 +1120,17 @@ public:
 class TSmMsgBookModifyQuote : public TSmMessageSymbol
 {
 public:
-	TSmMsgBookModifyQuote(unsigned short symbol = 0,
-		unsigned char side = Buy,
-		unsigned __int64 referenceNumber = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned int size = 0,
-		unsigned int mmid = 0,
-		unsigned int millisecond = 0,
-		unsigned char bookID = 0,//	: 8;
-		unsigned char quoteCondition = 0,//	: 8;
-		unsigned short flags = 0)://		: 24;
+	TSmMsgBookModifyQuote(const unsigned short& symbol = 0,
+		const unsigned char& side = Buy,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& mmid = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned char& bookID = 0,//	: 8;
+		const unsigned char& quoteCondition = 0,//	: 8;
+		const unsigned short& flags = 0)://		: 24;
 		TSmMessageSymbol(symbol, SM_M_BOOK_MODIFY_QUOTE, sizeof(TSmMsgBookModifyQuote)),
 		m_side(side),
 		m_quote(referenceNumber, priceDollars, priceFraction, size, mmid, millisecond, bookID, quoteCondition, flags)
@@ -711,11 +1142,11 @@ public:
 class TSmMsgBookDeleteQuote : public TMessageTime
 {
 public:
-	TSmMsgBookDeleteQuote(unsigned short symbol = 0,
-		unsigned int millisecond = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TSmMsgBookDeleteQuote(const unsigned short& symbol = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTime(millisecond, SM_M_BOOK_DELETE_QUOTE, sizeof(TSmMsgBookDeleteQuote)),
 		m_referenceNumber(referenceNumber),
 		m_symbol(symbol),
@@ -731,13 +1162,13 @@ public:
 class TSmMsgBookOrderExecuted : public TMessageTime
 {
 public:
-	TSmMsgBookOrderExecuted(unsigned short symbol = 0,
-		unsigned int millisecond = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TSmMsgBookOrderExecuted(const unsigned short& symbol = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTime(millisecond, SM_M_BOOK_ORDER_EXECUTED, sizeof(TSmMsgBookOrderExecuted)),
 		m_referenceNumber(referenceNumber),
 		m_matchNumber(matchNumber),
@@ -757,17 +1188,17 @@ public:
 class TSmMsgBookOrderExecutedWithPrice : public TMessageTime
 {
 public:
-	TSmMsgBookOrderExecutedWithPrice(unsigned short symbol = 0,
-		unsigned int millisecond = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		unsigned int remainingShares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0,
-		bool bPrintable = false):
+	TSmMsgBookOrderExecutedWithPrice(const unsigned short& symbol = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned int& remainingShares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0,
+		const bool& bPrintable = false):
 		TMessageTime(millisecond, SM_M_BOOK_ORDER_EXECUTED_WITH_PRICE, sizeof(TSmMsgBookOrderExecutedWithPrice)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -795,12 +1226,12 @@ public:
 class TSmMsgBookOrderCanceled : public TMessageTime
 {
 public:
-	TSmMsgBookOrderCanceled(unsigned short symbol = 0,
-		unsigned int millisecond = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned int shares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TSmMsgBookOrderCanceled(const unsigned short& symbol = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTime(millisecond, SM_M_BOOK_ORDER_CANCELED, sizeof(TSmMsgBookOrderCanceled)),
 		m_referenceNumber(referenceNumber),
 		m_shares(shares),
@@ -818,14 +1249,14 @@ public:
 class TSmMsgBookTrade : public TMessageTime
 {
 public:
-	TSmMsgBookTrade(unsigned short symbol = 0,
-		unsigned int millisecond = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TSmMsgBookTrade(const unsigned short& symbol = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTime(millisecond, SM_M_BOOK_TRADE, sizeof(TSmMsgBookTrade)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -848,14 +1279,14 @@ public:
 class TSmMsgBookCrossTrade : public TMessageTime
 {
 public:
-	TSmMsgBookCrossTrade(unsigned short symbol = 0,
-		unsigned int millisecond = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		char crossType = 0,
-		unsigned char bookID = 0):
+	TSmMsgBookCrossTrade(const unsigned short& symbol = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const char& crossType = 0,
+		const unsigned char& bookID = 0):
 		TMessageTime(millisecond, SM_M_BOOK_CROSS_TRADE, sizeof(TSmMsgBookCrossTrade)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -877,12 +1308,12 @@ public:
 class TSmMsgStockDirectory : public TMessageTime
 {
 public:
-	TSmMsgStockDirectory(unsigned short symbol,
-		unsigned int time,
-		unsigned long roundLotSize,
-		bool roundLotsOnly,
-		char marketCategory,
-		char financialStatusIndicator):
+	TSmMsgStockDirectory(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& roundLotSize,
+		const bool& roundLotsOnly,
+		const char& marketCategory,
+		const char& financialStatusIndicator):
 		TMessageTime(time, SM_M_STOCK_DIRECTORY, sizeof(TSmMsgStockDirectory)),
 		m_roundLotSize(roundLotSize),
 		m_symbol(symbol),
@@ -890,7 +1321,7 @@ public:
 		m_marketCategory(marketCategory),
 		m_financialStatusIndicator(financialStatusIndicator)
 	{}
-	unsigned long m_roundLotSize;
+	unsigned int m_roundLotSize;
 	unsigned short m_symbol;
 	bool m_roundLotsOnly;
 	char m_marketCategory;
@@ -903,12 +1334,12 @@ public:
 	char m_tradingState;
 	char m_tradingActionReason[4];
 protected:
-	TSmMsgStockTradingActionBase(unsigned short symbol,
-		unsigned int time,
-		char tradingState,
-		unsigned int tradingActionReason,
-		unsigned short type,
-		unsigned short length):
+	TSmMsgStockTradingActionBase(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& tradingState = 0,
+		const unsigned int& tradingActionReason = 0,
+		const unsigned short& type = 0,
+		const unsigned short& length = 0):
 		TSmMessageTimeSymbol(symbol, time, type, length),
 		m_tradingState(tradingState)
 	{
@@ -919,10 +1350,10 @@ protected:
 class TSmMsgStockTradingAction : public TSmMsgStockTradingActionBase
 {
 public:
-	TSmMsgStockTradingAction(unsigned short symbol,
-		unsigned int time,
-		char tradingState,
-		unsigned int tradingActionReason):
+	TSmMsgStockTradingAction(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& tradingState = 0,
+		const unsigned int& tradingActionReason = 0):
 		TSmMsgStockTradingActionBase(symbol,
 			time,
 			tradingState,
@@ -936,37 +1367,38 @@ public:
 class TSmMsgResetSymbol: public TSmMessageSymbol
 {
 public:
-	TSmMsgResetSymbol(unsigned short symbol, unsigned char bookId = AllBooks):TSmMessageSymbol(symbol, SM_M_RESET_SYMBOL, sizeof(TSmMsgResetSymbol)), m_bookId(bookId){}
+	TSmMsgResetSymbol(const unsigned short& symbol = 0, const unsigned char& bookId = AllBooks):TSmMessageSymbol(symbol, SM_M_RESET_SYMBOL, sizeof(TSmMsgResetSymbol)), m_bookId(bookId){}
     unsigned char m_bookId;
 };
 
 class TSmMsgResetBook: public Message
 {
 public:
-	TSmMsgResetBook(unsigned char bookId = AllBooks):Message(SM_M_RESET_BOOK, sizeof(TSmMsgResetBook)),m_bookId(bookId){}
+	TSmMsgResetBook(const unsigned char& bookId = AllBooks):Message(SM_M_RESET_BOOK, sizeof(TSmMsgResetBook)),m_bookId(bookId){}
     unsigned char m_bookId;
 };
 
 class TSmMsgImbalance : public TSmMessageSymbol
 {
 public:
-	TSmMsgImbalance(unsigned short symbol,
-		unsigned int farPriceDollar,
-		unsigned int farPriceFraction,
-		unsigned int nearPriceDollar,
-		unsigned int nearPriceFraction,
-		unsigned int currentReferencePriceDollar,
-		unsigned int currentReferencePriceFraction,
-		unsigned int pairedShares,
-		unsigned int imbalanceShares,
-		unsigned int marketImbalanceShares,
-		unsigned int time,
-		unsigned int auctionTime,
-		char imbalanceDirection,
-		char crossType,
-		char priceVariationIndicator,
-		unsigned char bookId,
-		bool regulatory):
+	TSmMsgImbalance(const unsigned short& symbol = 0,
+		const unsigned int& farPriceDollar = 0,
+		const unsigned int& farPriceFraction = 0,
+		const unsigned int& nearPriceDollar = 0,
+		const unsigned int& nearPriceFraction = 0,
+		const unsigned int& currentReferencePriceDollar = 0,
+		const unsigned int& currentReferencePriceFraction = 0,
+		const unsigned int& pairedShares = 0,
+		const unsigned int& imbalanceShares = 0,
+		const unsigned int& marketImbalanceShares = 0,
+		const unsigned int& time = 0,
+		const unsigned int& auctionTime = 0,
+		const char& imbalanceDirection = 0,
+		const char& crossType = 0,
+		const char& priceVariationIndicator = 0,
+		const unsigned char& bookId = 0,
+		const bool& regulatory = false,
+		const bool& freezeStatus = false):
 	
 		TSmMessageSymbol(symbol, SM_M_STOCK_IMBALANCE_INDICATOR, sizeof(TSmMsgImbalance)),
 		m_farPriceDollar(farPriceDollar),
@@ -984,7 +1416,8 @@ public:
 		m_crossType(crossType),
 		m_priceVariationIndicator(priceVariationIndicator),
 		m_bookID(bookId),
-		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0)
+		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0),
+		m_freezeStatus(freezeStatus ? 1 : 0)
 	{}
 	unsigned int m_farPriceDollar;
 	unsigned int m_farPriceFraction;
@@ -1002,23 +1435,24 @@ public:
 	char m_priceVariationIndicator;
 	unsigned char m_bookID : 4;
 	unsigned char m_regulatoryImbalance_StockOpen : 1;
+	unsigned char m_freezeStatus : 1;
 };
 
 class TSmMsgLevel1: public TMessageTime
 {
 public:
-	TSmMsgLevel1(unsigned short symbol,
-		unsigned int time,
-		unsigned int bidDollars,
-		unsigned int bidFraction,
-		unsigned int askDollars,
-		unsigned int askFraction,
-		unsigned int bidSize,
-		unsigned int askSize,
-		char primaryListingMarket,
-		char bidMarketCenter,
-		char askMarketCenter,
-		char quoteCondition):
+	TSmMsgLevel1(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& bidDollars = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollars = 0,
+		const unsigned int& askFraction = 0,
+		const unsigned int& bidSize = 0,
+		const unsigned int& askSize = 0,
+		const char& primaryListingMarket = 0,
+		const char& bidMarketCenter = 0,
+		const char& askMarketCenter = 0,
+		const char& quoteCondition = 0):
 		TMessageTime(time, SM_M_LEVEL1, sizeof(TSmMsgLevel1)),
 		m_bidDollars(bidDollars),
 		m_bidFraction(bidFraction),
@@ -1048,19 +1482,19 @@ public:
 class TSmMsgTrade: public TMessageTime
 {
 public:
-	TSmMsgTrade(unsigned short symbol,
-		unsigned int time,
-		unsigned __int64 referenceNumber,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		char saleCondition1,
-		char saleCondition2,
-		char saleCondition3,
-		char saleCondition4,
-		char marketCenterID,
-		char primaryListingMarket,
-		unsigned char flags):
+	TSmMsgTrade(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const char& saleCondition1 = 0,
+		const char& saleCondition2 = 0,
+		const char& saleCondition3 = 0,
+		const char& saleCondition4 = 0,
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TMessageTime(time, SM_M_TRADE_REPORT, sizeof(TSmMsgTrade)),
 		m_referenceNumber(referenceNumber),
 		m_priceDollars(priceDollars),
@@ -1108,33 +1542,33 @@ public:
 	unsigned short m_symbol;
 	char m_marketCenterID;
 	char m_primaryListingMarket;
-	char m_flags;
+	unsigned char m_flags;
 protected:
-	TSmMsgTradeErrorBase(unsigned short symbol,
-		unsigned int time,
-		unsigned __int64 originalReferenceNumber,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int originalSize,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
+	TSmMsgTradeErrorBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned __int64& originalReferenceNumber,
+		const unsigned int& originalPriceDollars,
+		const unsigned int& originalPriceFraction,
+		const unsigned int& originalSize,
+		const char& originalSaleCondition1,
+		const char& originalSaleCondition2,
+		const char& originalSaleCondition3,
+		const char& originalSaleCondition4,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars,
+		const unsigned int& lastPriceFraction,
+		const unsigned int& highPriceDollars,
+		const unsigned int& highPriceFraction,
+		const unsigned int& lowPriceDollars,
+		const unsigned int& lowPriceFraction,
+		const unsigned __int64& volume,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags,
+		const char& marketCenterID,
+		const char& primaryListingMarket,
+		const unsigned char& flags,
 
-		unsigned short type,
-		unsigned short length):
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTime(time, type, length),
 		m_originalReferenceNumber(originalReferenceNumber),
 		m_originalPriceDollars(originalPriceDollars),
@@ -1163,28 +1597,28 @@ protected:
 class TSmMsgTradeError: public TSmMsgTradeErrorBase
 {
 public:
-	TSmMsgTradeError(unsigned short symbol,
-		unsigned int time,
-		unsigned __int64 originalReferenceNumber,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int originalSize,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
+	TSmMsgTradeError(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TSmMsgTradeErrorBase(symbol,
 			time,
 			originalReferenceNumber,
@@ -1237,40 +1671,39 @@ public:
 	char m_primaryListingMarket;
 	char m_flags;
 protected:
-//	TMsgTradeCorrectionBase(const char* symbol, unsigned int time, unsigned short type, unsigned short length):TMessageTimeSymbol(symbol, time, type, length){}
-	TSmMsgTradeCorrectionBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int correctedPriceDollars,
-		unsigned int correctedPriceFraction,
-		unsigned int originalSize,
-		unsigned int correctedSize,
-		unsigned __int64 originalReferenceNumber,
-		unsigned __int64 correctedReferenceNumber,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
-		char correctedSaleCondition1,
-		char correctedSaleCondition2,
-		char correctedSaleCondition3,
-		char correctedSaleCondition4,
+	TSmMsgTradeCorrectionBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& originalPriceDollars,
+		const unsigned int& originalPriceFraction,
+		const unsigned int& correctedPriceDollars,
+		const unsigned int& correctedPriceFraction,
+		const unsigned int& originalSize,
+		const unsigned int& correctedSize,
+		const unsigned __int64& originalReferenceNumber,
+		const unsigned __int64& correctedReferenceNumber,
+		const char& originalSaleCondition1,
+		const char& originalSaleCondition2,
+		const char& originalSaleCondition3,
+		const char& originalSaleCondition4,
+		const char& correctedSaleCondition1,
+		const char& correctedSaleCondition2,
+		const char& correctedSaleCondition3,
+		const char& correctedSaleCondition4,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars,
+		const unsigned int& lastPriceFraction,
+		const unsigned int& highPriceDollars,
+		const unsigned int& highPriceFraction,
+		const unsigned int& lowPriceDollars,
+		const unsigned int& lowPriceFraction,
+		const unsigned __int64& volume,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags,
+		const char& marketCenterID,
+		const char& primaryListingMarket,
+		const char& flags,
 
-		unsigned short type,
-		unsigned short length):
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTime(time, type, length),
 		m_originalPriceDollars(originalPriceDollars),
 		m_originalPriceFraction(originalPriceFraction),
@@ -1309,36 +1742,36 @@ protected:
 class TSmMsgTradeCorrection: public TSmMsgTradeCorrectionBase
 {
 public:
-	TSmMsgTradeCorrection(unsigned short symbol,
-		unsigned int time,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int correctedPriceDollars,
-		unsigned int correctedPriceFraction,
-		unsigned int originalSize,
-		unsigned int correctedSize,
-		unsigned __int64 originalReferenceNumber,
-		unsigned __int64 correctedReferenceNumber,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
-		char correctedSaleCondition1,
-		char correctedSaleCondition2,
-		char correctedSaleCondition3,
-		char correctedSaleCondition4,
+	TSmMsgTradeCorrection(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& correctedPriceDollars = 0,
+		const unsigned int& correctedPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const unsigned int& correctedSize = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned __int64& correctedReferenceNumber = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
+		const char& correctedSaleCondition1 = 0,
+		const char& correctedSaleCondition2 = 0,
+		const char& correctedSaleCondition3 = 0,
+		const char& correctedSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const char& flags = 0):
 		TSmMsgTradeCorrectionBase(symbol,
 			time,
 			originalPriceDollars,
@@ -1382,13 +1815,13 @@ public:
     unsigned __int64 m_volume;
 	unsigned short m_symbol;
 protected:
-    TSmMsgEndOfDaySummaryReportBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int todaysClosePriceDollar,
-		unsigned int todaysClosePriceFraction,
-		unsigned __int64 volume,
-		unsigned short type,
-		unsigned short length):
+    TSmMsgEndOfDaySummaryReportBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& todaysClosePriceDollar,
+		const unsigned int& todaysClosePriceFraction,
+		const unsigned __int64& volume,
+		const unsigned short& type,
+		const unsigned short& length):
 		
 		TMessageTime(time, type, length),
 		m_todaysClosePriceDollar(todaysClosePriceDollar),
@@ -1401,11 +1834,11 @@ protected:
 class TSmMsgEndOfDaySummaryReport : public TSmMsgEndOfDaySummaryReportBase
 {
 public:
-    TSmMsgEndOfDaySummaryReport(unsigned short symbol,
-		unsigned int time,
-		unsigned int todaysClosePriceDollar,
-		unsigned int todaysClosePriceFraction,
-		unsigned __int64 volume):
+    TSmMsgEndOfDaySummaryReport(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& todaysClosePriceDollar,
+		const unsigned int& todaysClosePriceFraction,
+		const unsigned __int64& volume):
 		
 		TSmMsgEndOfDaySummaryReportBase(symbol,
 			time,
@@ -1423,12 +1856,12 @@ public:
 	char m_shortSaleThresholdIndicator;//'Y', 'N'
 	char m_regSHOTestIndicator;//'0', '1', '2'
 protected:
-    TSmMsgShortSaleIndicatorsBase(unsigned short symbol,
-		unsigned int time,
-		char shortSaleThresholdIndicator,
-		char regSHOTestIndicator,
-		unsigned short type,
-		unsigned short length):
+    TSmMsgShortSaleIndicatorsBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const char& shortSaleThresholdIndicator,
+		const char& regSHOTestIndicator,
+		const unsigned short& type,
+		const unsigned short& length):
 
 		TSmMessageTimeSymbol(symbol, time, type, length),
         m_shortSaleThresholdIndicator(shortSaleThresholdIndicator),
@@ -1440,41 +1873,57 @@ protected:
 class TSmMsgShortSaleIndicators : public TSmMsgShortSaleIndicatorsBase
 {
 public:
-    TSmMsgShortSaleIndicators(unsigned short symbol,
-		unsigned int time,
-		char shortSaleThresholdIndicator,
-		char regSHOTestIndicator):
+    TSmMsgShortSaleIndicators(const unsigned short& symbol,
+		const unsigned int& time,
+		const char& shortSaleThresholdIndicator,
+		const char& regSHOTestIndicator):
 
 		TSmMsgShortSaleIndicatorsBase(symbol, time, shortSaleThresholdIndicator, regSHOTestIndicator, SM_M_SHORT_SALE_INDICATORS, sizeof(TSmMsgShortSaleIndicators))
     {}
 };
 
-class TSmMsgPmiBase : public TMessageTime
+class TSmMsgHighLowBase : public TMessageTime
 {
 public:
-	unsigned int m_bidDollar;
-	unsigned int m_bidFraction;
-	unsigned int m_askDollar;
-	unsigned int m_askFraction;
+	unsigned int m_lowDollar;
+	unsigned int m_lowFraction;
+	unsigned int m_highDollar;
+	unsigned int m_highFraction;
+protected:
+	TSmMsgHighLowBase(const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTime(time, type, length),
+		m_lowDollar(lowDollar),
+		m_lowFraction(lowFraction),
+		m_highDollar(highDollar),
+		m_highFraction(highFraction)
+    {
+	}
+};
+
+class TSmMsgPmiBase : public TSmMsgHighLowBase
+{
+public:
 	unsigned short m_symbol;
 	unsigned char m_securityStatus;
 	unsigned char m_adjustment;
 protected:
-	TSmMsgPmiBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int bidDollar,
-		unsigned int bidFraction,
-		unsigned int askDollar,
-		unsigned int askFraction,
-		unsigned char securityStatus,
-		unsigned char adjustment,
-		unsigned short type,
-		unsigned short length):
-		TMessageTime(time, type, length),
-		m_bidDollar(bidDollar),
-		m_bidFraction(bidFraction),
-		m_askDollar(askDollar),
-		m_askFraction(askFraction),
+	TSmMsgPmiBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& bidDollar,
+		const unsigned int& bidFraction,
+		const unsigned int& askDollar,
+		const unsigned int& askFraction,
+		const unsigned char& securityStatus,
+		const unsigned char& adjustment,
+		const unsigned short& type,
+		const unsigned short& length):
+		TSmMsgHighLowBase(time, bidDollar, bidFraction, askDollar, askFraction, type, length),
 		m_symbol(symbol),
         m_securityStatus(securityStatus),
         m_adjustment(adjustment)
@@ -1485,14 +1934,14 @@ protected:
 class TSmMsgPmi : public TSmMsgPmiBase
 {
 public:
-    TSmMsgPmi(unsigned short symbol,
-		unsigned int time,
-		unsigned int bidDollar,
-		unsigned int bidFraction,
-		unsigned int askDollar,
-		unsigned int askFraction,
-		unsigned char securityStatus,
-		unsigned char adjustment):
+    TSmMsgPmi(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& bidDollar = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollar = 0,
+		const unsigned int& askFraction = 0,
+		const unsigned char& securityStatus = 0,
+		const unsigned char& adjustment = 0):
 		TSmMsgPmiBase(symbol,
 			time,
 			bidDollar,
@@ -1506,46 +1955,39 @@ public:
     {}
 };
 
-class TSmMsgLrpBase : public TMessageTime
+class TSmMsgLrpBase : public TSmMsgHighLowBase
 {
 public:
-	unsigned int m_lowDollar;
-	unsigned int m_lowFraction;
-	unsigned int m_highDollar;
-	unsigned int m_highFraction;
 	unsigned short m_symbol;
 	unsigned char m_changeIndicator;
 protected:
-	TSmMsgLrpBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator,
-		unsigned short type,
-		unsigned short length):
-		TMessageTime(time, type, length),
-		m_lowDollar(lowDollar),
-		m_lowFraction(lowFraction),
-		m_highDollar(highDollar),
-		m_highFraction(highFraction),
+	TSmMsgLrpBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned char& changeIndicator,
+		const unsigned short& type,
+		const unsigned short& length):
+		TSmMsgHighLowBase(time, lowDollar, lowFraction, highDollar, highFraction, type, length),
 		m_symbol(symbol),
         m_changeIndicator(changeIndicator)
     {
 	}
 };
 
+#ifdef LRPS
 class TSmMsgLrp : public TSmMsgLrpBase
 {
 public:
-    TSmMsgLrp(unsigned short symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TSmMsgLrp(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TSmMsgLrpBase(symbol,
 			time,
 			lowDollar,
@@ -1557,17 +1999,18 @@ public:
 			sizeof(TSmMsgLrp))
     {}
 };
+#endif
 
 class TSmMsgLuld : public TSmMsgLrpBase
 {
 public:
-    TSmMsgLuld(unsigned short symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TSmMsgLuld(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TSmMsgLrpBase(symbol,
 			time,
 			lowDollar,
@@ -1586,11 +2029,11 @@ public:
 	unsigned int m_tradeTime;
 	unsigned short m_symbol;
 protected:
-	TSmMsgTradeTimeBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int tradeTime,
-		unsigned short type,
-		unsigned short length):
+	TSmMsgTradeTimeBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& tradeTime,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTime(time, type, length),
 		m_symbol(symbol),
 		m_tradeTime(tradeTime)
@@ -1601,23 +2044,24 @@ protected:
 class TSmMsgTradeTime : public TSmMsgTradeTimeBase
 {
 public:
-    TSmMsgTradeTime(unsigned short symbol,
-		unsigned int time,
-		unsigned int tradeTime):
+    TSmMsgTradeTime(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& tradeTime):
 		TSmMsgTradeTimeBase(symbol, time, tradeTime, SM_M_T_TIME, sizeof(TSmMsgTradeTime))
     {}
 };
+
 
 class TSmMsgRpiBase : public TSmMessageTimeSymbol
 {
 public:
 	char m_indicator;
 protected:
-	TSmMsgRpiBase(unsigned short symbol,
-		unsigned int time,
-		char indicator,
-		unsigned short type,
-		unsigned short length):
+	TSmMsgRpiBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const char& indicator,
+		const unsigned short& type,
+		const unsigned short& length):
 		TSmMessageTimeSymbol(symbol, time, type, length),
 		m_indicator(indicator)
     {
@@ -1627,10 +2071,20 @@ protected:
 class TSmMsgRpi : public TSmMsgRpiBase
 {
 public:
-    TSmMsgRpi(unsigned short symbol,
-		unsigned int time,
-		unsigned char indicator):
+    TSmMsgRpi(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& indicator = 0):
 		TSmMsgRpiBase(symbol, time, indicator, SM_M_RPI, sizeof(TSmMsgRpi))
+    {}
+};
+
+class TSmMsgSecurityType : public TSmMsgRpiBase
+{
+public:
+    TSmMsgSecurityType(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& securityType = 0):
+		TSmMsgRpiBase(symbol, time, securityType, SM_M_SECURITY_TYPE, sizeof(TSmMsgSecurityType))
     {}
 };
 
@@ -1644,15 +2098,15 @@ public:
     unsigned short m_splitDenominator;
 	char m_exDivDate[sizeof(unsigned int) + 1];
 protected:
-    TSmMsgDividendsAndSplitsBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int dividendDollar,
-		unsigned int dividendFraction,
-	    unsigned short splitNumerator,
-		unsigned short splitDenominator,
-		unsigned int exDivDate,
-		unsigned short type,
-		unsigned short length):
+    TSmMsgDividendsAndSplitsBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& dividendDollar,
+		const unsigned int& dividendFraction,
+	    const unsigned short& splitNumerator,
+		const unsigned short& splitDenominator,
+		const unsigned int& exDivDate,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTime(time, type, length),
 		m_dividendDollar(dividendDollar),
 		m_dividendFraction(dividendFraction),
@@ -1668,13 +2122,13 @@ protected:
 class TSmMsgDividendsAndSplits : public TSmMsgDividendsAndSplitsBase
 {
 public:
-    TSmMsgDividendsAndSplits(unsigned short symbol,
-		unsigned int time,
-		unsigned int dividendDollar,
-		unsigned int dividendFraction,
-	    unsigned short splitNumerator,
-		unsigned short splitDenominator,
-		unsigned int exDivDate):
+    TSmMsgDividendsAndSplits(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& dividendDollar = 0,
+		const unsigned int& dividendFraction = 0,
+	    const unsigned short& splitNumerator = 0,
+		const unsigned short& splitDenominator = 0,
+		const unsigned int& exDivDate = 0):
 		TSmMsgDividendsAndSplitsBase(symbol,
 			time,
 			dividendDollar,
@@ -1694,12 +2148,12 @@ public:
 	unsigned int m_closePriceFraction;
 	unsigned short m_symbol;
 protected:
-    TSmMsgPreviousDayCloseBase(unsigned short symbol,
-		unsigned int time,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction,
-		unsigned short type,
-		unsigned short length):
+    TSmMsgPreviousDayCloseBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& closePriceDollar,
+		const unsigned int& closePriceFraction,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTime(time, type, length),
 		m_closePriceDollar(closePriceDollar),
 		m_closePriceFraction(closePriceFraction),
@@ -1710,10 +2164,10 @@ protected:
 class TSmMsgPreviousDayClose : public TSmMsgPreviousDayCloseBase
 {
 public:
-    TSmMsgPreviousDayClose(unsigned short symbol,
-		unsigned int time,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction):
+    TSmMsgPreviousDayClose(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& closePriceDollar = 0,
+		const unsigned int& closePriceFraction = 0):
 		TSmMsgPreviousDayCloseBase(symbol,
 			time,
 			closePriceDollar,
@@ -1726,14 +2180,14 @@ public:
 class TSmMsgRespRefreshSymbol : public Message
 {
 public:
-	TSmMsgRespRefreshSymbol(unsigned short dataSize,
-		unsigned int requestId,
-		const char* symbol,
-		unsigned short symbolIndex,
-		unsigned char steps,
-		unsigned char flags,
-		unsigned char bookID,
-		char marketStatus):
+	TSmMsgRespRefreshSymbol(const unsigned short& dataSize = 0,
+		const unsigned int& requestId = 0,
+		const char* const& symbol = "",
+		const unsigned short& symbolIndex = 0,
+		const unsigned char& steps = 0,
+		const unsigned char& flags = 0,
+		const unsigned char& bookID = 0,
+		const char& marketStatus = 0):
 		Message(SM_M_RESP_REFRESH_SYMBOL, dataSize),
 		m_requestID(requestId),
 		m_symbolIndex(symbolIndex),
@@ -1754,12 +2208,212 @@ public:
 	char m_marketStatus;
 };
 
-class TSmMsgSystemEvent : public Message
+class SnapshotQuote
 {
 public:
-	TSmMsgSystemEvent(unsigned char eventCode, unsigned char source):Message(SM_M_SYSTEM_EVENT, sizeof(TSmMsgSystemEvent)), m_eventCode(eventCode), m_source(source){}
+	SnapshotQuote(const unsigned int& priceDollar,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned int& mmid,
+		const unsigned int& timeStamp,
+		const unsigned char& bookId,
+		const unsigned char& quoteCondition,
+		const unsigned char& flags,
+		const unsigned char& reserved):
+		m_priceDollar(priceDollar),
+		m_priceFraction(priceFraction),
+		m_size(size),
+		m_mmid(mmid),
+		m_timeStamp(timeStamp),
+		m_bookId(bookId),
+		m_quoteCondition(quoteCondition),
+		m_flags(flags),
+		m_reserved(reserved)
+	{}
+
+	unsigned int m_priceDollar;
+	unsigned int m_priceFraction;
+	unsigned int m_size;
+	unsigned int m_mmid;
+	unsigned int m_timeStamp;
+	unsigned char m_bookId;
+	unsigned char m_quoteCondition;
+	unsigned char m_flags;
+	unsigned char m_reserved;
+};
+
+class SnapshotPrint
+{
+public:
+	SnapshotPrint(const unsigned int priceDollar,
+		const unsigned int priceFraction,
+		const unsigned int timeStamp,
+		const unsigned int size,
+		const char saleCondition1,
+		const char saleCondition2,
+		const char saleCondition3,
+		const char saleCondition4,
+		const char marketCenterId,
+		const unsigned char printFlags)://TradeLevel1
+
+		m_priceDollar(priceDollar),
+		m_priceFraction(priceFraction),
+		m_timeStamp(timeStamp),
+		m_size(size),
+		m_saleCondition1(saleCondition1),
+		m_saleCondition2(saleCondition2),
+		m_saleCondition3(saleCondition3),
+		m_saleCondition4(saleCondition4),
+		m_marketCenterId(marketCenterId),
+		m_printFlags(printFlags)
+	{}
+
+	unsigned int m_priceDollar;
+	unsigned int m_priceFraction;
+	unsigned int m_timeStamp;
+	unsigned int m_size;
+	char m_saleCondition1;
+	char m_saleCondition2;
+	char m_saleCondition3;
+	char m_saleCondition4;
+	char m_marketCenterId;
+	unsigned char m_printFlags;//TradeLevel1
+};
+
+class TSmMsgSnapshot : public TMessageTime
+{
+public:
+	TSmMsgSnapshot(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+
+		const unsigned int& bidDollar = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollar = 0,
+		const unsigned int& askFraction = 0,
+/*
+		const unsigned int& lastDollar = 0,
+		const unsigned int& lastFraction = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned __int64& volume = 0,
+*/
+		const unsigned long& bidSize = 0,
+		const unsigned long& askSize = 0,
+//		const unsigned long& lastSize = 0,
+//		const unsigned int& lastTime = 0,
+
+		const char& bidMarketCenter = 0,
+		const char& askMarketCenter = 0,
+//		const char& lastMarketCenter = 0,
+		const char& quoteCondition = 0,
+
+		const unsigned char& quoteNodeSize = 0,
+//		const unsigned char& printNodeSize = 0,
+		const unsigned char& bidQuoteCount = 0,
+		const unsigned char& askQuoteCount = 0):
+//		const unsigned char& printCount = 0):
+
+		TMessageTime(time, SM_M_SNAPSHOT, sizeof(TSmMsgSnapshot) + ((unsigned short)bidQuoteCount + (unsigned short)askQuoteCount) * quoteNodeSize),// + (unsigned short)printCount * printNodeSize),
+
+		m_bidDollar(bidDollar),
+		m_bidFraction(bidFraction),
+		m_askDollar(askDollar),
+		m_askFraction(askFraction),
+/*
+		m_lastDollar(lastDollar),
+		m_lastFraction(lastFraction),
+		m_lowDollar(lowDollar),
+		m_lowFraction(lowFraction),
+		m_highDollar(highDollar),
+		m_highFraction(highFraction),
+		m_volume(volume),
+*/
+		m_bidSize(bidSize),
+		m_askSize(askSize),
+//		m_lastSize(lastSize),
+//		m_lastTime(lastTime),
+
+		m_symbol(symbol),
+
+		m_bidMarketCenter(bidMarketCenter),
+		m_askMarketCenter(askMarketCenter),
+//		m_lastMarketCenter(lastMarketCenter),
+		m_quoteCondition(quoteCondition),
+
+		m_quoteNodeSize(quoteNodeSize),
+//		m_printNodeSize(printNodeSize),
+		m_bidQuoteCount(bidQuoteCount),
+		m_askQuoteCount(askQuoteCount),
+//		m_printCount(printCount),
+		m_reserved1(0),
+		m_reserved2(0),
+		m_reserved3(0),
+		m_quotesOffset(sizeof(TSmMsgSnapshot))
+	{}
+
+	unsigned int m_bidDollar;
+	unsigned int m_bidFraction;
+	unsigned int m_askDollar;
+	unsigned int m_askFraction;
+/*
+	unsigned int m_lastDollar;
+	unsigned int m_lastFraction;
+	unsigned int m_lowDollar;
+	unsigned int m_lowFraction;
+	unsigned int m_highDollar;
+	unsigned int m_highFraction;
+	unsigned __int64 m_volume;
+*/
+	unsigned long m_bidSize;
+	unsigned long m_askSize;
+//	unsigned long m_lastSize;
+//	unsigned int m_lastTime;
+
+	unsigned short m_symbol;
+
+	char m_bidMarketCenter;
+	char m_askMarketCenter;
+//	char m_lastMarketCenter;
+	char m_quoteCondition;
+
+	unsigned char m_quoteNodeSize;//BYTE
+//	unsigned char m_printNodeSize;//BYTE
+	unsigned char m_bidQuoteCount;//BYTE
+	unsigned char m_askQuoteCount;//BYTE
+//	unsigned char m_printCount;
+
+	unsigned char m_reserved1;//char
+	unsigned char m_reserved2;//char
+	unsigned char m_reserved3;//char
+
+	unsigned char m_quotesOffset;
+};
+
+class TSmMsgSystemEventBase : public Message
+{
+public:
 	unsigned char m_eventCode;
 	unsigned char m_source;
+protected:
+	TSmMsgSystemEventBase(const unsigned char& eventCode,
+		const unsigned char& source,
+		const unsigned short& type,
+		const unsigned short& length):
+		Message(type, length), m_eventCode(eventCode), m_source(source){}
+};
+
+class TSmMsgSystemEvent : public TSmMsgSystemEventBase
+{
+public:
+	TSmMsgSystemEvent(const unsigned char& eventCode, const unsigned char& source):TSmMsgSystemEventBase(eventCode, source, SM_M_SYSTEM_EVENT, sizeof(TSmMsgSystemEvent)){}
+};
+
+class TMsgSystemEvent : public TSmMsgSystemEventBase
+{
+public:
+	TMsgSystemEvent(const unsigned char& eventCode, const unsigned char& source):TSmMsgSystemEventBase(eventCode, source, M_SYSTEM_EVENT, sizeof(TMsgSystemEvent)){}
 };
 
 class TSmMsgResetImbalances : public Message
@@ -1772,10 +2426,10 @@ public:
 class TSmMsgMsLevel1Short: public Message
 {
 public:
-	TSmMsgMsLevel1Short(unsigned short symbol,
-		unsigned int price,
-		unsigned char side,
-		char quoteCondition):
+	TSmMsgMsLevel1Short(const unsigned short& symbol = 0,
+		const unsigned int& price = 0,
+		const unsigned char& side = 0,
+		const char& quoteCondition = 0):
 		Message(SM_MS_LEVEL1_SHORT, sizeof(TSmMsgMsLevel1Short)),
 		m_price(price),
 		m_symbol(symbol),
@@ -1791,11 +2445,11 @@ public:
 class TSmMsgMsLevel1Long: public Message
 {
 public:
-	TSmMsgMsLevel1Long(unsigned short symbol,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned char side,
-		char quoteCondition):
+	TSmMsgMsLevel1Long(const unsigned short& symbol = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned char& side = 0,
+		const char& quoteCondition = 0):
 		Message(SM_MS_LEVEL1_LONG, sizeof(TSmMsgMsLevel1Long)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -1813,23 +2467,24 @@ public:
 class TSmMsgMsImbalanceLong : public Message
 {
 public:
-	TSmMsgMsImbalanceLong(unsigned short symbol,
-		unsigned int farPriceDollar,
-		unsigned int farPriceFraction,
-		unsigned int nearPriceDollar,
-		unsigned int nearPriceFraction,
-		unsigned int currentReferencePriceDollar,
-		unsigned int currentReferencePriceFraction,
-		unsigned int pairedShares,
-		unsigned int imbalanceShares,
-//		unsigned int marketImbalanceShares,
-		unsigned int time,
-		unsigned int auctionTime,
-		char imbalanceDirection,
-		char crossType,
-		char priceVariationIndicator,
-		unsigned char bookId,
-		bool regulatory):
+	TSmMsgMsImbalanceLong(const unsigned short& symbol = 0,
+		const unsigned int& farPriceDollar = 0,
+		const unsigned int& farPriceFraction = 0,
+		const unsigned int& nearPriceDollar = 0,
+		const unsigned int& nearPriceFraction = 0,
+		const unsigned int& currentReferencePriceDollar = 0,
+		const unsigned int& currentReferencePriceFraction = 0,
+		const unsigned int& pairedShares = 0,
+		const unsigned int& imbalanceShares = 0,
+		const unsigned int& marketImbalanceShares = 0,
+		const unsigned int& time = 0,
+		const unsigned int& auctionTime = 0,
+		const char& imbalanceDirection = 0,
+		const char& crossType = 0,
+		const char& priceVariationIndicator = 0,
+		const unsigned char& bookId = 0,
+		const bool& regulatory = false,
+		const bool& freezeStatus = false):
 	
 		Message(SM_MS_IMBALANCE_LONG, sizeof(TSmMsgMsImbalanceLong)),
 		m_farPriceDollar(farPriceDollar),
@@ -1840,7 +2495,7 @@ public:
 		m_currentReferencePriceFraction(currentReferencePriceFraction),
 		m_pairedShares(pairedShares),
 		m_imbalanceShares(imbalanceShares),
-//		m_marketImbalanceShares(marketImbalanceShares),
+		m_marketImbalanceShares(marketImbalanceShares),
 		m_time(time),
 		m_auctionTime(auctionTime),
 		m_symbol(symbol),
@@ -1848,7 +2503,8 @@ public:
 		m_crossType(crossType),
 		m_priceVariationIndicator(priceVariationIndicator),
 		m_bookID(bookId),
-		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0)
+		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0),
+		m_freezeStatus(freezeStatus ? 1 : 0)
 	{}
 	unsigned int m_farPriceDollar;
 	unsigned int m_farPriceFraction;
@@ -1858,7 +2514,6 @@ public:
 	unsigned int m_currentReferencePriceFraction;
 	unsigned int m_pairedShares;
 	unsigned int m_imbalanceShares;
-//	unsigned int m_marketImbalanceShares;??????
 	unsigned int m_marketImbalanceShares;
 	unsigned int m_time;
 	unsigned int m_auctionTime;
@@ -1868,25 +2523,27 @@ public:
 	char m_priceVariationIndicator;
 	unsigned char m_bookID : 4;
 	unsigned char m_regulatoryImbalance_StockOpen : 1;//for ARCA : 1 if market imbalance, 0 if non market imbalance
+	unsigned char m_freezeStatus : 1;
 };
 
 class TSmMsgMsImbalanceShort : public Message
 {
 public:
-	TSmMsgMsImbalanceShort(unsigned short symbol,
-		unsigned int farPrice,//18 bits for dollar and 14 bits for 4 digits of fraction
-		unsigned int nearPrice,//18 bits for dollar and 14 bits for 4 digits of fraction
-		unsigned int currentReferencePrice,//18 bits for dollar and 14 bits for 4 digits of fraction
-		unsigned int pairedShares,
-		unsigned int imbalanceShares,
-//		unsigned int marketImbalanceShares,
-		unsigned int time,
-		unsigned int auctionTime,
-		char imbalanceDirection,
-		char crossType,
-		char priceVariationIndicator,
-		unsigned char bookId,
-		bool regulatory):
+	TSmMsgMsImbalanceShort(const unsigned short& symbol = 0,
+		const unsigned int& farPrice = 0,//18 bits for dollar and 14 bits for 4 digits of fraction
+		const unsigned int& nearPrice = 0,//18 bits for dollar and 14 bits for 4 digits of fraction
+		const unsigned int& currentReferencePrice = 0,//18 bits for dollar and 14 bits for 4 digits of fraction
+		const unsigned int& pairedShares = 0,
+		const unsigned int& imbalanceShares = 0,
+		const unsigned int& marketImbalanceShares = 0,
+		const unsigned int& time = 0,
+		const unsigned int& auctionTime = 0,
+		const char& imbalanceDirection = 0,
+		const char& crossType = 0,
+		const char& priceVariationIndicator = 0,
+		const unsigned char& bookId = 0,
+		const bool& regulatory = false,
+		const bool& freezeStatus = false):
 	
 		Message(SM_MS_IMBALANCE_SHORT, sizeof(TSmMsgMsImbalanceShort)),
 		m_farPrice(farPrice),
@@ -1894,7 +2551,7 @@ public:
 		m_currentReferencePrice(currentReferencePrice),
 		m_pairedShares(pairedShares),
 		m_imbalanceShares(imbalanceShares),
-//		m_marketImbalanceShares(marketImbalanceShares),
+		m_marketImbalanceShares(marketImbalanceShares),
 		m_time(time),
 		m_auctionTime(auctionTime),
 		m_symbol(symbol),
@@ -1902,14 +2559,14 @@ public:
 		m_crossType(crossType),
 		m_priceVariationIndicator(priceVariationIndicator),
 		m_bookID(bookId),
-		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0)//for ARCA : 1 if market imbalance, 0 if non market imbalance
+		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0),//for ARCA : 1 if market imbalance, 0 if non market imbalance
+		m_freezeStatus(freezeStatus ? 1 : 0)
 	{}
 	unsigned int m_farPrice;
 	unsigned int m_nearPrice;
 	unsigned int m_currentReferencePrice;
 	unsigned int m_pairedShares;
 	unsigned int m_imbalanceShares;
-//	unsigned int m_marketImbalanceShares;?????
 	unsigned int m_marketImbalanceShares;
 	unsigned int m_time;
 	unsigned int m_auctionTime;
@@ -1919,17 +2576,18 @@ public:
 	char m_priceVariationIndicator;
 	unsigned char m_bookID : 4;
 	unsigned char m_regulatoryImbalance_StockOpen : 1;//for ARCA : 1 if market imbalance, 0 if non market imbalance
+	unsigned char m_freezeStatus : 1;
 };
 
 class TSmMsgMsTradeLong: public Message
 {
 public:
-	TSmMsgMsTradeLong(unsigned short symbol,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned int saleCondition,
-		char marketCenter):
+	TSmMsgMsTradeLong(const unsigned short& symbol = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& saleCondition = 0,
+		const char& marketCenter = 0):
 		Message(SM_MS_TRADE_REPORT_LONG, sizeof(TSmMsgMsTradeLong)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -1950,11 +2608,11 @@ public:
 class TSmMsgMsTradeShort: public Message
 {
 public:
-	TSmMsgMsTradeShort(unsigned short symbol,
-		unsigned int price,
-		unsigned short size,
-		char saleCondition,
-		char marketCenter):
+	TSmMsgMsTradeShort(const unsigned short& symbol = 0,
+		const unsigned int& price = 0,
+		const unsigned short& size = 0,
+		const char& saleCondition = 0,
+		const char& marketCenter = 0):
 		Message(SM_MS_TRADE_REPORT_SHORT, sizeof(TSmMsgMsTradeShort)),
 		m_symbol(symbol),
 		m_price(price),
@@ -1972,28 +2630,28 @@ public:
 class TSmMsgMsTradeError: public TSmMsgTradeErrorBase
 {
 public:
-	TSmMsgMsTradeError(unsigned short symbol,
-		unsigned int time,
-		unsigned __int64 originalReferenceNumber,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int originalSize,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
+	TSmMsgMsTradeError(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TSmMsgTradeErrorBase(symbol,
 			time,
 			originalReferenceNumber,
@@ -2024,36 +2682,36 @@ public:
 class TSmMsgMsTradeCorrection: public TSmMsgTradeCorrectionBase
 {
 public:
-	TSmMsgMsTradeCorrection(unsigned short symbol,
-		unsigned int time,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int correctedPriceDollars,
-		unsigned int correctedPriceFraction,
-		unsigned int originalSize,
-		unsigned int correctedSize,
-		unsigned __int64 originalReferenceNumber,
-		unsigned __int64 correctedReferenceNumber,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
-		char correctedSaleCondition1,
-		char correctedSaleCondition2,
-		char correctedSaleCondition3,
-		char correctedSaleCondition4,
+	TSmMsgMsTradeCorrection(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& correctedPriceDollars = 0,
+		const unsigned int& correctedPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const unsigned int& correctedSize = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned __int64& correctedReferenceNumber = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
+		const char& correctedSaleCondition1 = 0,
+		const char& correctedSaleCondition2 = 0,
+		const char& correctedSaleCondition3 = 0,
+		const char& correctedSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TSmMsgTradeCorrectionBase(symbol,
 			time,
 			originalPriceDollars,
@@ -2092,11 +2750,11 @@ public:
 class TSmMsgMsEndOfDaySummaryReport : public TSmMsgEndOfDaySummaryReportBase
 {
 public:
-    TSmMsgMsEndOfDaySummaryReport(unsigned short symbol,
-		unsigned int time,
-		unsigned int todaysClosePriceDollar,
-		unsigned int todaysClosePriceFraction,
-		unsigned __int64 volume):
+    TSmMsgMsEndOfDaySummaryReport(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& todaysClosePriceDollar = 0,
+		const unsigned int& todaysClosePriceFraction = 0,
+		const unsigned __int64& volume = 0):
 		
 		TSmMsgEndOfDaySummaryReportBase(symbol,
 			time,
@@ -2111,10 +2769,10 @@ public:
 class TSmMsgMsShortSaleIndicators : public TSmMsgShortSaleIndicatorsBase
 {
 public:
-    TSmMsgMsShortSaleIndicators(unsigned short symbol,
-		unsigned int time,
-		char shortSaleThresholdIndicator,
-		char regSHOTestIndicator):
+    TSmMsgMsShortSaleIndicators(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& shortSaleThresholdIndicator = 0,
+		const char& regSHOTestIndicator = 0):
 
 		TSmMsgShortSaleIndicatorsBase(symbol,
 			time,
@@ -2128,14 +2786,14 @@ public:
 class TSmMsgMsPmi : public TSmMsgPmiBase
 {
 public:
-    TSmMsgMsPmi(unsigned short symbol,
-		unsigned int time,
-		unsigned int bidDollar,
-		unsigned int bidFraction,
-		unsigned int askDollar,
-		unsigned int askFraction,
-		unsigned char securityStatus,
-		unsigned char adjustment):
+    TSmMsgMsPmi(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& bidDollar = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollar = 0,
+		const unsigned int& askFraction = 0,
+		const unsigned char& securityStatus = 0,
+		const unsigned char& adjustment = 0):
 		TSmMsgPmiBase(symbol,
 			time,
 			bidDollar,
@@ -2149,16 +2807,17 @@ public:
     {}
 };
 
+#ifdef LRPS
 class TSmMsgMsLrp : public TSmMsgLrpBase
 {
 public:
-    TSmMsgMsLrp(unsigned short symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TSmMsgMsLrp(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TSmMsgLrpBase(symbol,
 			time,
 			lowDollar,
@@ -2170,17 +2829,18 @@ public:
 			sizeof(TSmMsgMsLrp))
     {}
 };
+#endif
 
 class TSmMsgMsLuld : public TSmMsgLrpBase
 {
 public:
-    TSmMsgMsLuld(unsigned short symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TSmMsgMsLuld(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TSmMsgLrpBase(symbol,
 			time,
 			lowDollar,
@@ -2196,9 +2856,9 @@ public:
 class TSmMsgMsTradeTime : public TSmMsgTradeTimeBase
 {
 public:
-    TSmMsgMsTradeTime(unsigned short symbol,
-		unsigned int time,
-		unsigned int tradeTime):
+    TSmMsgMsTradeTime(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& tradeTime = 0):
 		TSmMsgTradeTimeBase(symbol,
 			time,
 			tradeTime,
@@ -2210,9 +2870,9 @@ public:
 class TSmMsgMsRpi : public TSmMsgRpiBase
 {
 public:
-    TSmMsgMsRpi(unsigned short symbol,
-		unsigned int time,
-		unsigned char indicator):
+    TSmMsgMsRpi(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& indicator = 0):
 		TSmMsgRpiBase(symbol,
 			time,
 			indicator,
@@ -2221,16 +2881,30 @@ public:
     {}
 };
 
+class TSmMsgMsSecurityType : public TSmMsgRpiBase
+{
+public:
+    TSmMsgMsSecurityType(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& securityType = 0):
+		TSmMsgRpiBase(symbol,
+			time,
+			securityType,
+			SM_MS_SECURITY_TYPE,
+			sizeof(TSmMsgMsSecurityType))
+    {}
+};
+
 class TSmMsgMsDividendsAndSplits : public TSmMsgDividendsAndSplitsBase
 {
 public:
-    TSmMsgMsDividendsAndSplits(unsigned short symbol,
-		unsigned int time,
-		unsigned int dividendDollar,
-		unsigned int dividendFraction,
-	    unsigned short splitNumerator,
-		unsigned short splitDenominator,
-		unsigned int exDivDate):
+    TSmMsgMsDividendsAndSplits(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& dividendDollar = 0,
+		const unsigned int& dividendFraction = 0,
+	    const unsigned short& splitNumerator = 0,
+		const unsigned short& splitDenominator = 0,
+		const unsigned int& exDivDate = 0):
 		TSmMsgDividendsAndSplitsBase(symbol,
 			time,
 			dividendDollar,
@@ -2246,10 +2920,10 @@ public:
 class TSmMsgMsPreviousDayClose : public TSmMsgPreviousDayCloseBase
 {
 public:
-    TSmMsgMsPreviousDayClose(unsigned short symbol,
-		unsigned int time,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction):
+    TSmMsgMsPreviousDayClose(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& closePriceDollar = 0,
+		const unsigned int& closePriceFraction = 0):
 		TSmMsgPreviousDayCloseBase(symbol,
 			time,
 			closePriceDollar,
@@ -2262,10 +2936,10 @@ public:
 class TSmMsgMsStockTradingAction : public TSmMsgStockTradingActionBase
 {
 public:
-	TSmMsgMsStockTradingAction(unsigned short symbol,
-		unsigned int time,
-		char tradingState,
-		unsigned int tradingActionReason):
+	TSmMsgMsStockTradingAction(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const char& tradingState = 0,
+		const unsigned int& tradingActionReason = 0):
 		TSmMsgStockTradingActionBase(symbol,
 			time,
 			tradingState,
@@ -2286,12 +2960,12 @@ public:
 class TSmMsgRespChart : public Message
 {
 public:
-	TSmMsgRespChart(unsigned short symbol,
-		unsigned long requestId,
-		unsigned short minute,
-		unsigned char tickSize,
-		unsigned short ticks,
-		bool done):
+	TSmMsgRespChart(const unsigned short& symbol = 0,
+		const unsigned int& requestId = 0,
+		const unsigned short& minute = 0,
+		const unsigned char& tickSize = 0,
+		const unsigned short& ticks = 0,
+		const bool& done = false):
 		Message(SM_RESP_CHART, sizeof(TSmMsgRespChart) + (unsigned int)tickSize * ticks),
 		m_requestId(requestId),
 		m_symbol(symbol),
@@ -2299,7 +2973,7 @@ public:
 		m_tickSize(tickSize),
 		m_done(done)
 	{}
-	unsigned long m_requestId;
+	unsigned int m_requestId;
 	unsigned short	m_symbol;
 	unsigned short m_minute;
 	unsigned char m_tickSize;
@@ -2312,10 +2986,10 @@ public:
 //	unsigned short	m_symbol;
 	unsigned short m_minute;
 protected:
-	TSmMsgNewTick(unsigned short symbol,
-		unsigned short minute,
-		unsigned short type,
-		unsigned short size):
+	TSmMsgNewTick(const unsigned short& symbol,
+		const unsigned short& minute,
+		const unsigned short& type,
+		const unsigned short& size):
 		TSmMessageSymbol(symbol, type, size),
 		m_minute(minute)
 	{}
@@ -2324,21 +2998,33 @@ protected:
 class TSmMsgEquityNewTick : public TSmMsgNewTick
 {
 public:
-	TSmMsgEquityNewTick(unsigned short symbol, unsigned short minute):TSmMsgNewTick(symbol, minute, SM_NEW_TICK, sizeof(TSmMsgEquityNewTick)){}
+	TSmMsgEquityNewTick(const unsigned short& symbol = 0, const unsigned short& minute = 0):TSmMsgNewTick(symbol, minute, SM_NEW_TICK, sizeof(TSmMsgEquityNewTick)){}
+};
+
+class TMsgEquityMinuteEvent : public TSmMsgNewTick
+{
+public:
+	TMsgEquityMinuteEvent(const unsigned short& symbol = 0, const unsigned short& minute = 0):TSmMsgNewTick(symbol, minute, TM_EQUITY_MINUTE_EVENT, sizeof(TMsgEquityMinuteEvent)){}
+};
+
+class TMsgEquityTimeNbboPrint : public TSmMsgNewTick
+{
+public:
+	TMsgEquityTimeNbboPrint(const unsigned short& symbol = 0, const unsigned char& change = 0):TSmMsgNewTick(symbol, change, TM_TIME_NBBO_PRINT, sizeof(TMsgEquityTimeNbboPrint)){}
 };
 
 class TSmMsgTickCorrection : public Message
 {
 public:
-	TSmMsgTickCorrection(unsigned short symbol,
-		unsigned int volume,
-		unsigned int moneyDollars,
-		unsigned int moneyFraction,
-		unsigned int first,
-		unsigned int last,
-		unsigned int high,
-		unsigned int low,
-		unsigned short minute):
+	TSmMsgTickCorrection(const unsigned short& symbol = 0,
+		const unsigned int& volume = 0,
+		const unsigned int& moneyDollars = 0,
+		const unsigned int& moneyFraction = 0,
+		const unsigned int& first = 0,
+		const unsigned int& last = 0,
+		const unsigned int& high = 0,
+		const unsigned int& low = 0,
+		const unsigned short& minute = 0):
 		Message(SM_TICK_CORRECTION, sizeof(TSmMsgTickCorrection)),
 		m_volume(volume),
 		m_moneyDollars(moneyDollars),
@@ -2365,40 +3051,58 @@ public:
 class TMsgHeartbeat : public Message
 {
 public:
-	TMsgHeartbeat(unsigned __int64 serverTime = 0) : Message(M_HEARTBEAT, sizeof(TMsgHeartbeat)), m_reserved(0), m_serverTime(serverTime){}
+	TMsgHeartbeat(const unsigned __int64& serverTime = 0) : Message(M_HEARTBEAT, sizeof(TMsgHeartbeat)), m_reserved(0), m_serverTime(serverTime){}
  	unsigned int		m_reserved;
 	unsigned __int64	m_serverTime;
 };
 
-class TMsqDisconnectServerCommand : public Message
+class TMsgDisconnectServerCommand : public Message
 {
 public:
-	TMsqDisconnectServerCommand():Message(M_DISCONNECT, sizeof(TMsqDisconnectServerCommand)), m_reserved(0), m_reserved2(0){}
-	unsigned int		m_reserved;
-	unsigned __int64	m_reserved2;
+	TMsgDisconnectServerCommand():Message(M_DISCONNECT, sizeof(TMsgDisconnectServerCommand)), m_reserved(0), m_reserved2(0){}
+	unsigned int m_reserved;
+	unsigned __int64 m_reserved2;
 };
 
 class TMsgText : public Message
 {
 public:
-	TMsgText(const char* text):
+/*
+	TMsgText(const char* const& text = ""):
 		Message(M_TEXT, (unsigned short)(sizeof(TMsgText) + __min(strlen( text ), 1000 ) + 1)),
 		m_reserved(0)
 	{
 		strncpy_s((char*)this + sizeof(TMsgText), 1001, text, 1000 );
 		((char*)this)[m_length-1] = 0;
 	}
- 	unsigned int	m_reserved;
+*/
+	TMsgText(const unsigned short& textLength):
+		Message(M_TEXT, sizeof(TMsgText) + textLength),
+		m_reserved(0)
+	{
+	}
+ 	unsigned int m_reserved;
 };
 
 class TMsgDataThreadBufferOverflow : public Message
 {
 public:
-	TMsgDataThreadBufferOverflow(unsigned int threadId, unsigned int ordinal):Message(TM_DATA_THREAD_BUFFER_OVERFLOW, sizeof(TMsgDataThreadBufferOverflow)), m_threadId(threadId), m_ordinal(ordinal){}
+	TMsgDataThreadBufferOverflow(const unsigned int& threadId = 0, const unsigned int& ordinal = 0):Message(TM_DATA_THREAD_BUFFER_OVERFLOW, sizeof(TMsgDataThreadBufferOverflow)), m_threadId(threadId), m_ordinal(ordinal){}
 	unsigned int m_threadId;
 	unsigned int m_ordinal;
 };
 
+class TMsgEntitlementsChanged : public Message//Notified from TD_GetAdminObservable()
+{
+public:
+	TMsgEntitlementsChanged():Message(TM_ENTITLEMENTS_CHANGED, sizeof(TMsgEntitlementsChanged)){}
+};
+
+class TMsgExtEntitlementsChanged : public Message//Notified from TD_GetAdminObservable()
+{
+public:
+	TMsgExtEntitlementsChanged():Message(TM_EXT_ENTITLEMENTS_CHANGED, sizeof(TMsgExtEntitlementsChanged)){}
+};
 
 class TMsgMarketSorterCleanup : public Message
 {
@@ -2406,27 +3110,47 @@ public:
 	TMsgMarketSorterCleanup():Message(TM_MARKET_SORTER_CLEANUP, sizeof(TMsgMarketSorterCleanup)){}
 };
 
-class TMsgNextDayStarted : public Message
+class TMsgDayStarted : public Message
 {
 public:
-	TMsgNextDayStarted(unsigned int date):Message(TM_NEXT_DAY_STARTED, sizeof(TMsgNextDayStarted)), m_date(date){}
 	unsigned int m_date;
+protected:
+	TMsgDayStarted(const unsigned int& date, const unsigned short& type, const unsigned short& length):Message(type, length), m_date(date){}
+};
+
+class TMsgNextDayStarted : public TMsgDayStarted
+{
+public:
+	TMsgNextDayStarted(const unsigned int& date = 0):TMsgDayStarted(date, TM_NEXT_DAY_STARTED, sizeof(TMsgNextDayStarted)){}
+};
+
+class TMsgNextUtcDayStarted : public TMsgDayStarted
+{
+public:
+	TMsgNextUtcDayStarted(const unsigned int& date = 0):TMsgDayStarted(date, TM_NEXT_UTC_DAY_STARTED, sizeof(TMsgNextUtcDayStarted)){}
 };
 
 class TMsgSystemTimeChanged : public Message
 {
 public:
-	TMsgSystemTimeChanged(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int prevDate):Message(TM_SYSTEM_TIME_CHANGED, sizeof(TMsgSystemTimeChanged)), m_prevMillisecond(prevMillisecond), m_currentMillisecond(currentMillisecond), m_prevDate(prevDate){}
+	TMsgSystemTimeChanged(const unsigned int& prevMillisecond = 0, const unsigned int& currentMillisecond = 0, const unsigned int& prevDate = 0):Message(TM_SYSTEM_TIME_CHANGED, sizeof(TMsgSystemTimeChanged)), m_prevMillisecond(prevMillisecond), m_currentMillisecond(currentMillisecond), m_prevDate(prevDate){}
 	unsigned int m_prevMillisecond;
 	unsigned int m_currentMillisecond;
 	unsigned int m_prevDate;
 };
 
-class TMsgMarketOpen : public Message
+class TMsgMarketOpen : public Message//Admin Observable
 {
 public:
-	TMsgMarketOpen(bool open):Message(TM_MARKET_STATUS, sizeof(TMsgMarketOpen)), m_open(open){}
+	TMsgMarketOpen(const bool& open = false):Message(TM_MARKET_STATUS, sizeof(TMsgMarketOpen)), m_open(open){}
 	bool m_open;
+};
+
+class TMsgNasdaqMarketStatusChanged : public Message//Admin Observable
+{
+public:
+	TMsgNasdaqMarketStatusChanged(const unsigned char& status = '\0'):Message(TM_NASDAQ_MARKET_STATUS_CHANGED, sizeof(TMsgNasdaqMarketStatusChanged)), m_status(status){}
+	unsigned char m_status;//O - MessagesOpen; S - SystemOpen; Q - MarketOpen; M - MarketClosed; E - SystemClosed; C - MessagesClosed
 };
 
 class TMessageSymbol : public Message
@@ -2434,13 +3158,195 @@ class TMessageSymbol : public Message
 public:
 	Symbol m_symbol;
 protected:
-	TMessageSymbol(const char* symbol, unsigned short type, unsigned short length):
+	TMessageSymbol(const char* const& symbol, const unsigned short& type, const unsigned short& length):
 		Message(type, length)
 	{
 		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
 	}
-	TMessageSymbol(const unsigned __int64& symbol, unsigned short type, unsigned short length):Message(type, length){*(unsigned __int64*)m_symbol = symbol;}
+	TMessageSymbol(const unsigned __int64& symbol, const unsigned short& type, const unsigned short& length):
+		Message(type, length)
+	{
+		*(unsigned __int64*)m_symbol = symbol;
+	}
+	TMessageSymbol(const unsigned short& type, const unsigned short& length):
+		Message(type, length)
+	{
+		*(unsigned __int64*)m_symbol = 0;
+	}
 };
+
+class TMessageSymbolChar : public TMessageSymbol
+{
+public:
+	char m_charValue;
+protected:
+	TMessageSymbolChar(const char* const& symbol, const char& value, const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(symbol, type, length),
+		m_charValue(value)
+    {
+	}
+	TMessageSymbolChar(const unsigned __int64& symbol, const char& value, const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(symbol, type, length),
+		m_charValue(value)
+    {
+	}
+};
+
+class TSmMessageSymbolChar : public TSmMessageSymbol
+{
+public:
+	char m_charValue;
+protected:
+	TSmMessageSymbolChar(const unsigned short& symbol, const char& value, const unsigned short& type, const unsigned short& length):
+		TSmMessageSymbol(symbol, type, length),
+		m_charValue(value)
+	{
+	}
+};
+
+
+class TMsgSecurityTickPilot : public TMessageSymbolChar
+{
+public:
+	TMsgSecurityTickPilot(const char* const& symbol, const char& pilotGroup = 0):
+		TMessageSymbolChar(symbol, pilotGroup, M_TICK_PILOT, sizeof(TMsgSecurityTickPilot))
+	{}
+	TMsgSecurityTickPilot(const unsigned __int64& symbol = 0, const char& pilotGroup = 0):
+		TMessageSymbolChar(symbol, pilotGroup, M_TICK_PILOT, sizeof(TMsgSecurityTickPilot))
+	{}
+};
+
+class TMsgMsSecurityTickPilot : public TMessageSymbolChar
+{
+public:
+	TMsgMsSecurityTickPilot(const char* const& symbol, const char& pilotGroup = 0):
+		TMessageSymbolChar(symbol, pilotGroup, M_MS_TICK_PILOT, sizeof(TMsgMsSecurityTickPilot))
+	{}
+	TMsgMsSecurityTickPilot(const unsigned __int64& symbol = 0, const char& pilotGroup = 0):
+		TMessageSymbolChar(symbol, pilotGroup, M_MS_TICK_PILOT, sizeof(TMsgMsSecurityTickPilot))
+	{}
+};
+
+class TSmMsgSecurityTickPilot : public TSmMessageSymbolChar
+{
+public:
+    TSmMsgSecurityTickPilot(const unsigned short& symbol = 0, const char& pilotGroup = 0):
+		TSmMessageSymbolChar(symbol, pilotGroup, SM_M_TICK_PILOT, sizeof(TSmMsgSecurityTickPilot))
+    {}
+};
+
+class TSmMsgMsSecurityTickPilot : public TSmMessageSymbolChar
+{
+public:
+    TSmMsgMsSecurityTickPilot(const unsigned short& symbol = 0, const char& pilotGroup = 0):
+		TSmMessageSymbolChar(symbol, pilotGroup, SM_MS_TICK_PILOT, sizeof(TSmMsgMsSecurityTickPilot))
+    {}
+};
+
+class TMessageOptionBlock : public TMessageSymbol
+{
+public:
+#ifndef TAKION_NO_OPTIONS
+	unsigned __int64 m_optionBlock;
+#endif
+protected:
+	TMessageOptionBlock(const char* const& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionBlock,
+#endif
+		const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(symbol, type, length)
+#ifndef TAKION_NO_OPTIONS
+		, m_optionBlock(optionBlock)
+#endif
+	{
+	}
+	TMessageOptionBlock(const unsigned __int64& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionBlock,
+#endif
+		const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(symbol, type, length)
+#ifndef TAKION_NO_OPTIONS
+		, m_optionBlock(optionBlock)
+#endif
+	{
+	}
+	TMessageOptionBlock(const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(type, length)
+#ifndef TAKION_NO_OPTIONS
+		, m_optionBlock(0)
+#endif
+	{
+	}
+};
+
+class TMessageSecurityEcho : public TMessageSymbol
+{
+public:
+	unsigned int m_echoId;
+protected:
+	TMessageSecurityEcho(const char* const& symbol, const unsigned int& echoId, const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(symbol, type, length),
+		m_echoId(echoId)
+	{}
+	TMessageSecurityEcho(const unsigned __int64& symbol, const unsigned int& echoId, const unsigned short& type, const unsigned short& length):
+		TMessageSymbol(symbol, type, length),
+		m_echoId(echoId)
+	{}
+};
+
+//The following 3 messages can be sent to the Security/Option thread, using function Security::WriteEchoMessageToSecurityThread, and the InThread Observers will be notified.
+//Use function GetMinCustomEchoId() to get the min echoId that Takion will accept from an Extension.
+//These can be used for initializing some custom data structures from the Worker Thread, so that there is no disparity with the incoming updates.
+//AddInThreadObserver should be called before WriteEchoMessageToSecurityThread for guaranteed notification.
+class TMessageStockEcho : public TMessageSecurityEcho
+{
+public:
+	TMessageStockEcho(const char* const& symbol, const unsigned int& echoId):
+		TMessageSecurityEcho(symbol, echoId, TM_STOCK_ECHO, sizeof(TMessageStockEcho))
+	{}
+	TMessageStockEcho(const unsigned __int64& symbol, const unsigned int& echoId):
+		TMessageSecurityEcho(symbol, echoId, TM_STOCK_ECHO, sizeof(TMessageStockEcho))
+	{}
+};
+
+class TMessageSortableStockEcho : public TMessageSecurityEcho
+{
+public:
+	TMessageSortableStockEcho(const char* const& symbol, const unsigned int& echoId):
+		TMessageSecurityEcho(symbol, echoId, TM_SORTABLE_STOCK_ECHO, sizeof(TMessageSortableStockEcho))
+	{}
+	TMessageSortableStockEcho(const unsigned __int64& symbol, const unsigned int& echoId):
+		TMessageSecurityEcho(symbol, echoId, TM_SORTABLE_STOCK_ECHO, sizeof(TMessageSortableStockEcho))
+	{}
+};
+
+class TMessageExpirationTimer : public Message //From TD_GetExpirationObservable
+{
+public:
+	TMessageExpirationTimer(const unsigned int& currentMillisecond = 0) :
+		Message(TM_EXPIRATION_TIMER, sizeof(TMessageExpirationTimer)),
+		m_currentMillisecond(currentMillisecond)
+	{}
+	unsigned int m_currentMillisecond;
+};
+
+#ifndef TAKION_NO_OPTIONS
+class TMessageOptionEcho : public TMessageOptionBlock
+{
+public:
+	TMessageOptionEcho(const char* const& symbol, const unsigned __int64& optionBlock, const unsigned int& echoId):
+		TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ECHO, sizeof(TMessageOptionBlock)),
+		m_echoId(echoId)
+	{}
+	TMessageOptionEcho(const unsigned __int64& symbol, const unsigned __int64& optionBlock, const unsigned int& echoId):
+		TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ECHO, sizeof(TMessageOptionBlock)),
+		m_echoId(echoId)
+	{}
+	unsigned int m_echoId;
+};
+#endif
 
 enum QuoteMoveCode : unsigned char
 {
@@ -2449,34 +3355,49 @@ enum QuoteMoveCode : unsigned char
 	QMC_LEAVE,
 	QMC_DROP,
 
+	QMC_PRINT_HIGH,
+	QMC_PRINT_LOW,
+	QMC_PRINT_SAME,
+
+	QMC_PRINT_ODD_HIGH,
+	QMC_PRINT_ODD_LOW,
+	QMC_PRINT_ODD_SAME,
+
 	QMC_COUNT
 };
 
-class TMsgQuoteMove : public TMessageSymbol
+class TMsgQuoteMove : public TMessageOptionBlock
 {
 public:
 	TMsgQuoteMove(const unsigned __int64& symbol,
 #ifndef TAKION_NO_OPTIONS
 		const unsigned __int64& optionBlock,
 #endif
-		unsigned int bid,
-		unsigned int ask,
-		unsigned int bidSize,
-		unsigned int askSize,
-		unsigned int printPrice,
-		unsigned int printSize,
-		unsigned int posPrice,
-		int posSize,
-		unsigned int lastExecPrice,
-		int lastExecSize,
-		unsigned int mmid,
-		unsigned char code,
-		bool side,
-		bool longPosition):
-		TMessageSymbol(symbol, TM_QUOTE_MOVE, sizeof(TMsgQuoteMove)),
+		const unsigned int& currentMillisecond,
+		const unsigned int& bid,
+		const unsigned int& ask,
+		const unsigned int& bidSize,
+		const unsigned int& askSize,
+		const unsigned int& printPrice,
+		const unsigned int& printSize,
+		const unsigned int& posPrice,
+		const unsigned int& posInventoryPrice,
+		const int& posSize,
+		const int& posInventorySize,
+		const unsigned int& lastExecPrice,
+		const int& lastExecSize,
+		const unsigned int& mmid,
+		const unsigned short& roundLot,
+		const unsigned char& code,
+		const bool& side,
+		const unsigned char& positionStatus,
+		const unsigned char& inventoryPositionStatus):
+		TMessageOptionBlock(symbol,
 #ifndef TAKION_NO_OPTIONS
-		m_optionBlock(optionBlock),
+			optionBlock,
 #endif
+			TM_QUOTE_MOVE, sizeof(TMsgQuoteMove)),
+		m_currentMillisecond(currentMillisecond),
 		m_bid(bid),
 		m_ask(ask),
 		m_bidSize(bidSize),
@@ -2484,17 +3405,19 @@ public:
 		m_printPrice(printPrice),
 		m_printSize(printSize),
 		m_posPrice(posPrice),
+		m_posInventoryPrice(posInventoryPrice),
 		m_posSize(posSize),
+		m_posInventorySize(posInventorySize),
 		m_lastExecPrice(lastExecPrice),
 		m_lastExecSize(lastExecSize),
 		m_mmid(mmid),
+		m_roundLot(roundLot),
 		m_code(code),
 		m_side(side),
-		m_longPosition(longPosition)
+		m_positionStatus(positionStatus),
+		m_inventoryPositionStatus(inventoryPositionStatus)
 	{}
-#ifndef TAKION_NO_OPTIONS
-	unsigned __int64 m_optionBlock;
-#endif
+	unsigned int m_currentMillisecond;
 	unsigned int m_bid;
 	unsigned int m_ask;
 	unsigned int m_bidSize;
@@ -2502,13 +3425,17 @@ public:
 	unsigned int m_printPrice;
 	unsigned int m_printSize;
 	unsigned int m_posPrice;
+	unsigned int m_posInventoryPrice;
 	int m_posSize;
+	int m_posInventorySize;
 	unsigned int m_lastExecPrice;
 	int m_lastExecSize;
 	unsigned int m_mmid;
+	unsigned short m_roundLot;
 	unsigned char m_code;
 	bool m_side;
-	bool m_longPosition;
+	unsigned char m_positionStatus;
+	unsigned char m_inventoryPositionStatus;
 };
 
 class TMessageSymbolMap : public Message
@@ -2516,7 +3443,7 @@ class TMessageSymbolMap : public Message
 public:
 	unsigned short m_symbolMap;
 protected:
-	TMessageSymbolMap(unsigned short symbolMap, unsigned short type, unsigned short length):Message(type, length),m_symbolMap(symbolMap){}
+	TMessageSymbolMap(const unsigned short& symbolMap, const unsigned short& type, const unsigned short& length):Message(type, length),m_symbolMap(symbolMap){}
 };
 
 class TMessageTimeSymbol : public TMessageTime
@@ -2524,70 +3451,218 @@ class TMessageTimeSymbol : public TMessageTime
 public:
 	Symbol m_symbol;
 protected:
-	TMessageTimeSymbol(const char* symbol, unsigned int time, unsigned short type, unsigned short length):
+	TMessageTimeSymbol(const char* const& symbol, const unsigned int& time, const unsigned short& type, const unsigned short& length):
 		TMessageTime(time, type, length)
 	{
 		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
 	}
-	TMessageTimeSymbol(const unsigned __int64& symbol, unsigned int time, unsigned short type, unsigned short length):TMessageTime(time, type, length){*(unsigned __int64*)m_symbol = symbol;}
+	TMessageTimeSymbol(const unsigned __int64& symbol, const unsigned int& time, const unsigned short& type, const unsigned short& length):
+		TMessageTime(time, type, length)
+	{
+		*(unsigned __int64*)m_symbol = symbol;
+	}
 };
-/*
-class TMsgStockLevel1 : public TMessageTimeSymbol
+
+class TMsgAverageDailyVolume : public TMessageTimeSymbol
 {
 public:
-	TMsgStockLevel1(const char* symbol,
-		unsigned int millisecond,
-		unsigned short delay,
-		unsigned int dollars,
-		unsigned int dollarFraction,
-		unsigned int quantity,
-		char marketParticipant,
-		char quoteCondition,
-		bool side):
-		TMessageTimeSymbol(symbol, millisecond, TM_STOCK_UPDATE_LEVEL1, sizeof(TMsgStockLevel1)),
-		m_dollars(dollars),
-		m_dollarFraction(dollarFraction),
-		m_quantity(quantity),
-		delay(delay),
-		m_marketParticipant(marketParticipant),
-		m_quoteCondition(quoteCondition),
-		m_side(side)
+	TMsgAverageDailyVolume(const char* const& symbol,
+		const unsigned int& time = 0,
+		const unsigned __int64& volume = 0):
+		TMessageTimeSymbol(symbol, time, M_AVERAGE_DAILY_VOLUME, sizeof(TMsgAverageDailyVolume)),
+		m_volume(volume)
 	{}
-	TMsgStockLevel1(unsigned __int64 symbol,
-		unsigned int millisecond,
-		unsigned short delay,
-		unsigned int dollars,
-		unsigned int dollarFraction,
-		unsigned int quantity,
-		char marketParticipant,
-		char quoteCondition,
-		bool side):
-		TMessageTimeSymbol(symbol, millisecond, TM_STOCK_UPDATE_LEVEL1, sizeof(TMsgStockLevel1)),
-		m_dollars(dollars),
-		m_dollarFraction(dollarFraction),
-		m_quantity(quantity),
-		delay(delay),
-		m_marketParticipant(marketParticipant),
-		m_quoteCondition(quoteCondition),
-		m_side(side)
+	TMsgAverageDailyVolume(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& volume = 0):
+		TMessageTimeSymbol(symbol, time, M_AVERAGE_DAILY_VOLUME, sizeof(TMsgAverageDailyVolume)),
+		m_volume(volume)
 	{}
-	unsigned int m_dollars;
-	unsigned int m_dollarFraction;
-	unsigned int m_quantity;
-	unsigned short delay;
-	char m_marketParticipant;
-	char m_quoteCondition;
-	bool m_side;
+	unsigned __int64 m_volume;
 };
-*/
-class TMessageStockAddTrade : public
-//#ifdef UPDATE_PRINT_MESSAGE
-	TMessageTimeSymbol
-/*
-#else
-	TMessageTime
-#endif
-*/
+
+class TMsgHighLowBase : public TMessageTimeSymbol
+{
+public:
+	unsigned int m_lowDollar;
+	unsigned int m_lowFraction;
+	unsigned int m_highDollar;
+	unsigned int m_highFraction;
+protected:
+	TMsgHighLowBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTimeSymbol(symbol, time, type, length),
+		m_lowDollar(lowDollar),
+		m_lowFraction(lowFraction),
+		m_highDollar(highDollar),
+		m_highFraction(highFraction)
+    {
+	}
+	TMsgHighLowBase(const unsigned __int64& symbol,
+		const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTimeSymbol(symbol, time, type, length),
+		m_lowDollar(lowDollar),
+		m_lowFraction(lowFraction),
+		m_highDollar(highDollar),
+		m_highFraction(highFraction)
+    {
+	}
+};
+
+class TMsgPreviousDayHighLow : public TMsgHighLowBase
+{
+public:
+	TMsgPreviousDayHighLow(const char* const& symbol,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0):
+		TMsgHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, M_PREVIOUS_DAY_HIGH_LOW, sizeof(TMsgPreviousDayHighLow))
+	{}
+	TMsgPreviousDayHighLow(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0):
+		TMsgHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, M_PREVIOUS_DAY_HIGH_LOW, sizeof(TMsgPreviousDayHighLow))
+	{}
+};
+
+class TSmMsgAverageDailyVolumeBase : public TMessageTime
+{
+public:
+	unsigned __int64 m_volume;
+	unsigned short m_symbol;
+protected:
+	TSmMsgAverageDailyVolumeBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned __int64& volume,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTime(time, type, length),
+		m_volume(volume),
+		m_symbol(symbol)
+	{}
+};
+
+class TSmMsgAverageDailyVolume : public TSmMsgAverageDailyVolumeBase
+{
+public:
+	TSmMsgAverageDailyVolume(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& volume = 0):
+		TSmMsgAverageDailyVolumeBase(symbol, time, volume, SM_M_AVERAGE_DAILY_VOLUME, sizeof(TSmMsgAverageDailyVolume))
+	{}
+};
+
+class TSmMsgPreviousDayHighLowBase : public TSmMsgHighLowBase
+{
+public:
+	unsigned short m_symbol;
+protected:
+	TSmMsgPreviousDayHighLowBase(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned short& type,
+		const unsigned short& length):
+		TSmMsgHighLowBase(time, lowDollar, lowFraction, highDollar, highFraction, type, length),
+		m_symbol(symbol)
+	{}
+};
+
+class TSmMsgPreviousDayHighLow : public TSmMsgPreviousDayHighLowBase
+{
+public:
+	TSmMsgPreviousDayHighLow(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0):
+		TSmMsgPreviousDayHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, SM_M_PREVIOUS_DAY_HIGH_LOW, sizeof(TSmMsgPreviousDayHighLow))
+	{}
+};
+
+class TMsgMsAverageDailyVolume : public TMessageTimeSymbol
+{
+public:
+	TMsgMsAverageDailyVolume(const char* const& symbol,
+		const unsigned int& time = 0,
+		const unsigned __int64& volume = 0):
+		TMessageTimeSymbol(symbol, time, M_MS_AVERAGE_DAILY_VOLUME, sizeof(TMsgMsAverageDailyVolume)),
+		m_volume(volume)
+	{}
+	TMsgMsAverageDailyVolume(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& volume = 0):
+		TMessageTimeSymbol(symbol, time, M_MS_AVERAGE_DAILY_VOLUME, sizeof(TMsgMsAverageDailyVolume)),
+		m_volume(volume)
+	{}
+	unsigned __int64 m_volume;
+};
+
+class TMsgMsPreviousDayHighLow : public TMsgHighLowBase
+{
+public:
+	TMsgMsPreviousDayHighLow(const char* const& symbol,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0):
+		TMsgHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, M_MS_PREVIOUS_DAY_HIGH_LOW, sizeof(TMsgMsPreviousDayHighLow))
+	{}
+	TMsgMsPreviousDayHighLow(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0):
+		TMsgHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, M_MS_PREVIOUS_DAY_HIGH_LOW, sizeof(TMsgMsPreviousDayHighLow))
+	{}
+};
+
+class TSmMsgMsAverageDailyVolume : public TSmMsgAverageDailyVolumeBase
+{
+public:
+	TSmMsgMsAverageDailyVolume(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned __int64& volume = 0):
+		TSmMsgAverageDailyVolumeBase(symbol, time, volume, SM_MS_AVERAGE_DAILY_VOLUME, sizeof(TSmMsgMsAverageDailyVolume))
+	{}
+};
+
+class TSmMsgMsPreviousDayHighLow : public TSmMsgPreviousDayHighLowBase
+{
+public:
+	TSmMsgMsPreviousDayHighLow(const unsigned short& symbol = 0,
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0):
+		TSmMsgPreviousDayHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, SM_MS_PREVIOUS_DAY_HIGH_LOW, sizeof(TSmMsgMsPreviousDayHighLow))
+	{}
+};
+
+class TMessageStockAddTrade : public TMessageTimeSymbol
 {
 public:
 	unsigned int m_l1Bid;
@@ -2603,20 +3678,14 @@ public:
 	unsigned char m_level1;
 protected:
 	TMessageStockAddTrade(
-//#ifdef UPDATE_PRINT_MESSAGE
-		const char* symbol,
-//#endif
+		const char* const& symbol,
 		const Trade& trade,
-		unsigned int l1Bid,	
-		unsigned int l1Ask,
-		unsigned int roundLot,
-		unsigned short type,
-		unsigned short length):
-//#ifdef UPDATE_PRINT_MESSAGE
+		const unsigned int& l1Bid,	
+		const unsigned int& l1Ask,
+		const unsigned int& roundLot,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, trade.GetMillisecond(), type, length),
-//#else
-//		TMessageTime(trade.GetMillisecond(), type, length),
-//#endif
 		m_l1Bid(l1Bid),
 		m_l1Ask(l1Ask),
 		m_dollars(trade.GetDollars()),
@@ -2632,9 +3701,9 @@ protected:
 #ifdef UPDATE_PRINT_MESSAGE
 	TMessageStockAddTrade(const unsigned __int64& symbol,
 		const Trade& trade,
-		unsigned int roundLot,
-		unsigned short type,
-		unsigned short length):
+		const unsigned int& roundLot,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, trade.GetMillisecond(), type, length),
 		m_dollars(trade.GetDollars()),
 		m_dollarFraction(trade.GetDollarFraction()),
@@ -2652,17 +3721,13 @@ class TMsgStockAddPrint : public TMessageStockAddTrade
 {
 public:
 	TMsgStockAddPrint(
-//#ifdef UPDATE_PRINT_MESSAGE
-		const char* symbol,
-//#endif
+		const char* const& symbol,
 		const NamedPrint& np,
-		unsigned int l1Bid,
-		unsigned int l1Ask,
-		unsigned int roundLot):
+		const unsigned int& l1Bid,
+		const unsigned int& l1Ask,
+		const unsigned int& roundLot):
 		TMessageStockAddTrade(
-//#ifdef UPDATE_PRINT_MESSAGE
 			symbol,
-//#endif
 			np,
 			l1Bid,	
 			l1Ask,
@@ -2674,7 +3739,7 @@ public:
 		m_saleCondition4(np.GetSaleCondition4())
 	{}
 #ifdef UPDATE_PRINT_MESSAGE
-	TMsgStockAddPrint(const unsigned __int64& symbol, const NamedPrint& np, unsigned int roundLot):
+	TMsgStockAddPrint(const unsigned __int64& symbol, const NamedPrint& np, const unsigned int& roundLot):
 		TMessageStockAddTrade(symbol, np, roundLot, TM_STOCK_ADD_PRINT, sizeof(TMsgStockAddPrint)),
 		m_saleCondition1(np.GetSaleCondition1()),
 		m_saleCondition2(np.GetSaleCondition2()),
@@ -2692,17 +3757,13 @@ class TMsgStockAddBookExecution : public TMessageStockAddTrade
 {
 public:
 	TMsgStockAddBookExecution(
-//#ifdef UPDATE_PRINT_MESSAGE
-		const char* symbol,
-//#endif
+		const char* const& symbol,
 		const NamedBookExecution& nbe,
-		unsigned int l1Bid,	
-		unsigned int l1Ask,
-		unsigned int roundLot):
+		const unsigned int& l1Bid,	
+		const unsigned int& l1Ask,
+		const unsigned int& roundLot):
 		TMessageStockAddTrade(
-//#ifdef UPDATE_PRINT_MESSAGE
 			symbol,
-//#endif
 			nbe,
 			l1Bid,	
 			l1Ask,
@@ -2713,7 +3774,7 @@ public:
 		m_hidden(nbe.isHidden())
 	{}
 #ifdef UPDATE_PRINT_MESSAGE
-	TMsgStockAddBookExecution(const unsigned __int64& symbol, const NamedBookExecution& nbe, unsigned int roundLot):
+	TMsgStockAddBookExecution(const unsigned __int64& symbol, const NamedBookExecution& nbe, const unsigned int& roundLot):
 		TMessageStockAddTrade(symbol, roundLot, nbe, TM_STOCK_ADD_BOOK_EXECUTION, sizeof(TMsgStockAddBookExecution)),
 		m_label(nbe.GetLabel()),
 		m_side(nbe.GetSide()),
@@ -2731,7 +3792,7 @@ class TMessageSymbolMapUpdate : public TMessageSymbolMap
 public:
 	unsigned int m_updateOrdinal;
 protected:
-	TMessageSymbolMapUpdate(unsigned short code, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageSymbolMap(code, type, length), m_updateOrdinal(updateOrdinal){}
+	TMessageSymbolMapUpdate(const unsigned short& code, const unsigned int& updateOrdinal, const unsigned short& type, const unsigned short& length):TMessageSymbolMap(code, type, length), m_updateOrdinal(updateOrdinal){}
 };
 
 
@@ -2740,54 +3801,102 @@ class TMessageStockUpdate : public TMessageSymbol
 public:
 	unsigned int m_updateOrdinal;
 protected:
-	TMessageStockUpdate(const char* symbol, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length), m_updateOrdinal(updateOrdinal){}
-	TMessageStockUpdate(const unsigned __int64& symbol, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length), m_updateOrdinal(updateOrdinal){}
+	TMessageStockUpdate(const char* const& symbol, const unsigned int& updateOrdinal, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length), m_updateOrdinal(updateOrdinal){}
+	TMessageStockUpdate(const unsigned __int64& symbol, const unsigned int& updateOrdinal, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length), m_updateOrdinal(updateOrdinal){}
 };
 
 class TMsgStockUpdateLevel2 : public TMessageStockUpdate
 {
 public:
-	TMsgStockUpdateLevel2(const char* symbol, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL2, sizeof(TMsgStockUpdateLevel2)){}
-	TMsgStockUpdateLevel2(const unsigned __int64& symbol, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL2, sizeof(TMsgStockUpdateLevel2)){}
+	TMsgStockUpdateLevel2(const char* const& symbol, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL2, sizeof(TMsgStockUpdateLevel2)){}
+	TMsgStockUpdateLevel2(const unsigned __int64& symbol, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL2, sizeof(TMsgStockUpdateLevel2)){}
 };
 
 class TMsgStockRefreshed : public TMessageStockUpdate
 {
 public:
-	TMsgStockRefreshed(const char* symbol, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_REFRESHED, sizeof(TMsgStockRefreshed)){}
-	TMsgStockRefreshed(const unsigned __int64& symbol, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_REFRESHED, sizeof(TMsgStockRefreshed)){}
+	TMsgStockRefreshed(const char* const& symbol, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_REFRESHED, sizeof(TMsgStockRefreshed)){}
+	TMsgStockRefreshed(const unsigned __int64& symbol, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_REFRESHED, sizeof(TMsgStockRefreshed)){}
 };
 
 class TMsgStockClosed : public TMessageSymbol
 {
 public:
-	TMsgStockClosed(const char* symbol):TMessageSymbol(symbol, TM_STOCK_CLOSED, sizeof(TMsgStockClosed)){}
+	TMsgStockClosed(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_CLOSED, sizeof(TMsgStockClosed)){}
 	TMsgStockClosed(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_CLOSED, sizeof(TMsgStockClosed)){}
 };
 
 class TMsgStockOpened : public TMessageSymbol
 {
 public:
-	TMsgStockOpened(const char* symbol):TMessageSymbol(symbol, TM_STOCK_OPENED, sizeof(TMsgStockOpened)){}
+	TMsgStockOpened(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_OPENED, sizeof(TMsgStockOpened)){}
 	TMsgStockOpened(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_OPENED, sizeof(TMsgStockOpened)){}
+};
+
+class TMsgNewsHeadlineCount : public TMessageSymbolMap //Posted to worker thread from main thread
+{
+public:
+	unsigned int m_headlineCount;
+	bool m_historical;
+	unsigned __int64 m_dateTime;
+protected:
+	TMsgNewsHeadlineCount(const unsigned short& code,
+		const unsigned int& headlineCount,
+		const bool& historical,
+		const unsigned __int64& dateTime,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageSymbolMap(code, type, length),
+		m_headlineCount(headlineCount),
+		m_historical(historical),
+		m_dateTime(dateTime)
+	{}
+};
+
+class TMsgEquityNewsHeadlineCount : public TMsgNewsHeadlineCount //Posted to worker thread from main thread
+{
+public:
+	TMsgEquityNewsHeadlineCount(const unsigned short& code,
+		const unsigned int& headlineCount,
+		const bool& historical,
+		const unsigned __int64& dateTime):
+		TMsgNewsHeadlineCount(code, headlineCount, historical, dateTime, TM_SORTABLE_SECURITY_NEWS_HEADLINE_COUNT, sizeof(TMsgEquityNewsHeadlineCount))
+	{}
+};
+
+class TMsgStockNewsHeadlineCount : public TMsgNewsHeadlineCount //Posted to worker thread from main thread
+{
+public:
+	TMsgStockNewsHeadlineCount(const unsigned short& code,
+		const unsigned int& headlineCount,
+		const bool& historical,
+		const unsigned __int64& dateTime):
+		TMsgNewsHeadlineCount(code, headlineCount, historical, dateTime, TM_SECURITY_NEWS_HEADLINE_COUNT, sizeof(TMsgStockNewsHeadlineCount))
+	{}
 };
 
 class TMsgEquityClosed : public TMessageSymbolMap
 {
 public:
-	TMsgEquityClosed(unsigned short code):TMessageSymbolMap(code, TM_EQUITY_CLOSED, sizeof(TMsgEquityClosed)){}
+	TMsgEquityClosed(const unsigned short& code):TMessageSymbolMap(code, TM_EQUITY_CLOSED, sizeof(TMsgEquityClosed)){}
 };
 
 class TMsgEquityYesterdaysClosePriceChanged : public TMessageSymbolMap
 {
 public:
-	TMsgEquityYesterdaysClosePriceChanged(unsigned short code):TMessageSymbolMap(code, TM_EQUITY_YEST_CLOSE_PRICE_CHANGED, sizeof(TMsgEquityYesterdaysClosePriceChanged)){}
+	TMsgEquityYesterdaysClosePriceChanged(const unsigned short& code):TMessageSymbolMap(code, TM_EQUITY_YEST_CLOSE_PRICE_CHANGED, sizeof(TMsgEquityYesterdaysClosePriceChanged)){}
 };
-
+/*
+class TMsgStockYesterdaysClosePriceChanged : public TMessageSymbolMap
+{
+public:
+	TMsgStockYesterdaysClosePriceChanged(const unsigned short& code):TMessageSymbolMap(code, TM_STOCK_YEST_CLOSE_PRICE_CHANGED, sizeof(TMsgStockYesterdaysClosePriceChanged)){}
+};
+*/
 class TMsgEquityOpened : public TMessageSymbolMap
 {
 public:
-	TMsgEquityOpened(unsigned short code):TMessageSymbolMap(code, TM_EQUITY_OPENED, sizeof(TMsgEquityOpened)){}
+	TMsgEquityOpened(const unsigned short& code):TMessageSymbolMap(code, TM_EQUITY_OPENED, sizeof(TMsgEquityOpened)){}
 };
 
 /*in TakionUtils.h
@@ -2801,23 +3910,23 @@ enum SymbolType : unsigned char
 class TMsgSymbolTypedInActiveCommandWindow : public TMessageSymbol
 {
 public:
-	TMsgSymbolTypedInActiveCommandWindow(const char* symbol, unsigned char basket):TMessageSymbol(symbol, TM_SYMBOL_TYPED, sizeof(TMsgSymbolTypedInActiveCommandWindow)), m_basket(basket){}
-	TMsgSymbolTypedInActiveCommandWindow(const unsigned __int64& symbol, unsigned char basket):TMessageSymbol(symbol, TM_SYMBOL_TYPED, sizeof(TMsgSymbolTypedInActiveCommandWindow)), m_basket(basket){}
+	TMsgSymbolTypedInActiveCommandWindow(const char* const& symbol, const unsigned char& basket):TMessageSymbol(symbol, TM_SYMBOL_TYPED, sizeof(TMsgSymbolTypedInActiveCommandWindow)), m_basket(basket){}
+	TMsgSymbolTypedInActiveCommandWindow(const unsigned __int64& symbol, const unsigned char& basket):TMessageSymbol(symbol, TM_SYMBOL_TYPED, sizeof(TMsgSymbolTypedInActiveCommandWindow)), m_basket(basket){}
 	unsigned char m_basket;
 };
 
 class TMsgNewIndex : public TMessageSymbol
 {
 public:
-	TMsgNewIndex(const char* symbol):TMessageSymbol(symbol, TM_INDEX_NEW, sizeof(TMsgNewIndex)){}
+	TMsgNewIndex(const char* const& symbol):TMessageSymbol(symbol, TM_INDEX_NEW, sizeof(TMsgNewIndex)){}
 	TMsgNewIndex(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_INDEX_NEW, sizeof(TMsgNewIndex)){}
 };
 
 class TMsgIndexRefreshed : public TMessageStockUpdate
 {
 public:
-	TMsgIndexRefreshed(const char* symbol, unsigned int updateOrdinal, bool newIndex, bool subscribeToChart):TMessageStockUpdate(symbol, updateOrdinal, TM_INDEX_REFRESHED, sizeof(TMsgIndexRefreshed)), m_newIndex(newIndex), m_subscribeToChart(subscribeToChart){}
-	TMsgIndexRefreshed(const unsigned __int64& symbol, unsigned int updateOrdinal, bool newIndex, bool subscribeToChart):TMessageStockUpdate(symbol, updateOrdinal, TM_INDEX_REFRESHED, sizeof(TMsgIndexRefreshed)), m_newIndex(newIndex), m_subscribeToChart(subscribeToChart){}
+	TMsgIndexRefreshed(const char* const& symbol, const unsigned int& updateOrdinal, const bool& newIndex, const bool& subscribeToChart):TMessageStockUpdate(symbol, updateOrdinal, TM_INDEX_REFRESHED, sizeof(TMsgIndexRefreshed)), m_newIndex(newIndex), m_subscribeToChart(subscribeToChart){}
+	TMsgIndexRefreshed(const unsigned __int64& symbol, const unsigned int& updateOrdinal, const bool& newIndex, const bool& subscribeToChart):TMessageStockUpdate(symbol, updateOrdinal, TM_INDEX_REFRESHED, sizeof(TMsgIndexRefreshed)), m_newIndex(newIndex), m_subscribeToChart(subscribeToChart){}
 	bool m_newIndex;
 	bool m_subscribeToChart;
 };
@@ -2825,40 +3934,52 @@ public:
 class TMsgIndexUpdate : public TMessageSymbolMapUpdate
 {
 public:
-	TMsgIndexUpdate(unsigned short code, unsigned int updateOrdinal):TMessageSymbolMapUpdate(code, updateOrdinal, TM_INDEX_UPDATE, sizeof(TMsgIndexUpdate)){}
+	TMsgIndexUpdate(const unsigned short& code, const unsigned int& updateOrdinal):TMessageSymbolMapUpdate(code, updateOrdinal, TM_INDEX_UPDATE, sizeof(TMsgIndexUpdate)){}
 };
 
 class TMsgIndexNewServerMinute : public TMessageSymbolMap
 {
 public:
-	TMsgIndexNewServerMinute(unsigned short code, unsigned short minute):TMessageSymbolMap(code, TM_INDEX_NEW_SERVER_MINUTE, sizeof(TMsgIndexNewServerMinute)), m_minute(minute){}
+	TMsgIndexNewServerMinute(const unsigned short& code, const unsigned short& minute):TMessageSymbolMap(code, TM_INDEX_NEW_SERVER_MINUTE, sizeof(TMsgIndexNewServerMinute)), m_minute(minute){}
 	unsigned short m_minute;
 };
 
 class TMsgIndex : public Message
 {
 public:
-	Index* m_index;
+	const Index* m_index;
 protected:
-	TMsgIndex(Index* index, unsigned short type, unsigned short length):Message(type, length), m_index(index){}
+	TMsgIndex(const Index* const& index, const unsigned short& type, const unsigned short& length):Message(type, length), m_index(index){}
 };
 
 class TMsgIndexObjectUpdated : public TMsgIndex
 {
 public:
-	TMsgIndexObjectUpdated(Index* index):TMsgIndex(index, TM_UPDATED_INDEX, sizeof(TMsgIndexObjectUpdated)){}
+	TMsgIndexObjectUpdated(const Index* const& index):TMsgIndex(index, TM_UPDATED_INDEX, sizeof(TMsgIndexObjectUpdated)){}
 };
 
 class TMsgIndexObjectNew : public TMsgIndex
 {
 public:
-	TMsgIndexObjectNew(Index* index):TMsgIndex(index, TM_NEW_INDEX, sizeof(TMsgIndexObjectNew)){}
+	TMsgIndexObjectNew(const Index* const& index):TMsgIndex(index, TM_NEW_INDEX, sizeof(TMsgIndexObjectNew)){}
+};
+
+class TMsgIndexObjectDelete : public TMsgIndex
+{
+public:
+	TMsgIndexObjectDelete(const Index* const& index):TMsgIndex(index, TM_INDEX_DELETE, sizeof(TMsgIndexObjectDelete)){}
+};
+
+class TMsgIndexObjectRefreshed : public TMsgIndex
+{
+public:
+	TMsgIndexObjectRefreshed(const Index* const& index):TMsgIndex(index, TM_REFRESHED_INDEX, sizeof(TMsgIndexObjectRefreshed)){}
 };
 
 class TMsgIndexChartLoaded : public TMessageSymbol
 {
 public:
-	TMsgIndexChartLoaded(const char* symbol):TMessageSymbol(symbol, TM_INDEX_CHART_LOADED, sizeof(TMsgIndexChartLoaded)){}
+	TMsgIndexChartLoaded(const char* const& symbol):TMessageSymbol(symbol, TM_INDEX_CHART_LOADED, sizeof(TMsgIndexChartLoaded)){}
 	TMsgIndexChartLoaded(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_INDEX_CHART_LOADED, sizeof(TMsgIndexChartLoaded)){}
 };
 
@@ -2866,19 +3987,44 @@ public:
 class TMsgNewEquity : public TMessageSymbol
 {
 public:
-	TMsgNewEquity(const char* symbol):TMessageSymbol(symbol, TM_EQUITY_NEW, sizeof(TMsgNewEquity)){}
+	TMsgNewEquity(const char* const& symbol):TMessageSymbol(symbol, TM_EQUITY_NEW, sizeof(TMsgNewEquity)){}
 	TMsgNewEquity(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_EQUITY_NEW, sizeof(TMsgNewEquity)){}
+};
+
+class TMsgNewStock : public TMessageSymbol
+{
+public:
+	TMsgNewStock(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_NEW, sizeof(TMsgNewStock)){}
+	TMsgNewStock(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_NEW, sizeof(TMsgNewStock)){}
 };
 
 class TMsgEquityRefreshed : public TMessageStockUpdate
 {
 public:
-	TMsgEquityRefreshed(const char* symbol, unsigned int updateOrdinal, bool newEquity, bool subscribeToChart, bool symbolMapping):TMessageStockUpdate(symbol, updateOrdinal, TM_EQUITY_REFRESHED, sizeof(TMsgEquityRefreshed)), m_newEquity(newEquity), m_subscribeToChart(subscribeToChart), m_symbolMapping(symbolMapping){}
-	TMsgEquityRefreshed(const unsigned __int64& symbol, unsigned int updateOrdinal, bool newEquity, bool subscribeToChart, bool symbolMapping):TMessageStockUpdate(symbol, updateOrdinal, TM_EQUITY_REFRESHED, sizeof(TMsgEquityRefreshed)), m_newEquity(newEquity), m_subscribeToChart(subscribeToChart), m_symbolMapping(symbolMapping){}
+	TMsgEquityRefreshed(const char* const& symbol, const unsigned int& updateOrdinal, const bool& newEquity, const bool& subscribeToChart, const bool& symbolMapping):TMessageStockUpdate(symbol, updateOrdinal, TM_EQUITY_REFRESHED, sizeof(TMsgEquityRefreshed)), m_newEquity(newEquity), m_subscribeToChart(subscribeToChart), m_symbolMapping(symbolMapping){}
+	TMsgEquityRefreshed(const unsigned __int64& symbol, const unsigned int& updateOrdinal, const bool& newEquity, const bool& subscribeToChart, const bool& symbolMapping):TMessageStockUpdate(symbol, updateOrdinal, TM_EQUITY_REFRESHED, sizeof(TMsgEquityRefreshed)), m_newEquity(newEquity), m_subscribeToChart(subscribeToChart), m_symbolMapping(symbolMapping){}
 	bool m_newEquity;
 	bool m_subscribeToChart;
 	bool m_symbolMapping;
 };
+
+class TMsgEquitySymbolMappingChanged : public TMessageSymbol
+{
+public:
+	TMsgEquitySymbolMappingChanged(const char* const& symbol, const unsigned short& newSymbolMapping, const unsigned short& prevSymbolMapping):
+		TMessageSymbol(symbol, TM_SORTABLE_SECURITY_SYMBOL_MAPPING_CHANGED, sizeof(TMsgEquitySymbolMappingChanged)),
+		m_newSymbolMapping(newSymbolMapping),
+		m_prevSymbolMapping(prevSymbolMapping)
+	{}
+	TMsgEquitySymbolMappingChanged(const unsigned __int64& symbol, const unsigned short& newSymbolMapping, const unsigned short& prevSymbolMapping):
+		TMessageSymbol(symbol, TM_SORTABLE_SECURITY_SYMBOL_MAPPING_CHANGED, sizeof(TMsgEquitySymbolMappingChanged)),
+		m_newSymbolMapping(newSymbolMapping),
+		m_prevSymbolMapping(prevSymbolMapping)
+	{}
+	unsigned short m_newSymbolMapping;
+	unsigned short m_prevSymbolMapping;
+};
+
 /*
 class TMsgEquityUpdate : public TMessageStockUpdate
 {
@@ -2890,72 +4036,251 @@ public:
 class TMsgEquityUpdate : public TMessageSymbolMapUpdate
 {
 public:
-	TMsgEquityUpdate(unsigned short code, bool hasPrints, unsigned int updateOrdinal):TMessageSymbolMapUpdate(code, updateOrdinal, TM_EQUITY_UPDATE, sizeof(TMsgEquityUpdate)), m_hasPrints(hasPrints){}
+	TMsgEquityUpdate(const unsigned short& code, const bool& hasPrints, const unsigned int& updateOrdinal):TMessageSymbolMapUpdate(code, updateOrdinal, TM_EQUITY_UPDATE, sizeof(TMsgEquityUpdate)), m_hasPrints(hasPrints){}
 	bool m_hasPrints;
+};
+
+class TMsgEquityUsedCountUpdate : public TMessageSymbol
+{
+public:
+	TMsgEquityUsedCountUpdate(const char* const& symbol):TMessageSymbol(symbol, TM_EQUITY_USED_COUNT_UPDATE, sizeof(TMsgEquityUsedCountUpdate)){}
+	TMsgEquityUsedCountUpdate(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_EQUITY_USED_COUNT_UPDATE, sizeof(TMsgEquityUsedCountUpdate)){}
+};
+
+class TMsgEquityReset : public TMessageSymbolMap
+{
+public:
+	TMsgEquityReset(const unsigned short& code):TMessageSymbolMap(code, TM_EQUITY_RESET, sizeof(TMsgEquityReset)){}
 };
 
 //used instead of TMsgEquityUpdate to smooth processing of imbalance spikes in IdleProcessing
 class TMsgEquityImbalanceUpdate : public TMessageSymbolMap
 {
 public:
-	TMsgEquityImbalanceUpdate(unsigned short code):TMessageSymbolMap(code, TM_EQUITY_IMBALANCE_UPDATE, sizeof(TMsgEquityImbalanceUpdate)){}
+	TMsgEquityImbalanceUpdate(const unsigned short& code):TMessageSymbolMap(code, TM_EQUITY_IMBALANCE_UPDATE, sizeof(TMsgEquityImbalanceUpdate)){}
 };
 
 class TMsgEquityChartCandleUpdated : public TMessageSymbolMap
 {
 public:
-	TMsgEquityChartCandleUpdated(unsigned short code, unsigned short minute):TMessageSymbolMap(code, TM_CHART_CANDLE_UPDATED, sizeof(TMsgEquityChartCandleUpdated)), m_minute(minute){}
+	TMsgEquityChartCandleUpdated(const unsigned short& code, const unsigned short& minute):TMessageSymbolMap(code, TM_CHART_CANDLE_UPDATED, sizeof(TMsgEquityChartCandleUpdated)), m_minute(minute){}
 	unsigned short m_minute;
 };
 
 class TMsgEquityNewDay : public TMessageSymbolMap
 {
 public:
-	TMsgEquityNewDay(unsigned short code):TMessageSymbolMap(code, TM_EQUITY_NEW_DAY, sizeof(TMsgEquityNewDay)){}
+	TMsgEquityNewDay(const unsigned short& code):TMessageSymbolMap(code, TM_EQUITY_NEW_DAY, sizeof(TMsgEquityNewDay)){}
 };
 
 class TMsgIndexNewDay : public TMessageSymbolMap
 {
 public:
-	TMsgIndexNewDay(unsigned short code):TMessageSymbolMap(code, TM_INDEX_NEW_DAY, sizeof(TMsgIndexNewDay)){}
+	TMsgIndexNewDay(const unsigned short& code):TMessageSymbolMap(code, TM_INDEX_NEW_DAY, sizeof(TMsgIndexNewDay)){}
 };
 
+class TMsgStockNewDay : public TMessageSymbol
+{
+public:
+	TMsgStockNewDay(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_NEW_DAY, sizeof(TMsgStockNewDay)){}
+	TMsgStockNewDay(const unsigned __int64& symbol = 0):TMessageSymbol(symbol, TM_STOCK_NEW_DAY, sizeof(TMsgStockNewDay)){}
+};
+
+#ifndef TAKION_NO_OPTIONS
+class TMsgOptionNewDay : public TMessageSymbol
+{
+public:
+	TMsgOptionNewDay(const char* const& symbol, const unsigned __int64& optionBlock):TMessageSymbol(symbol, TM_OPTION_NEW_DAY, sizeof(TMsgOptionNewDay)), m_optionBlock(optionBlock){}
+	TMsgOptionNewDay(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0):TMessageSymbol(symbol, TM_OPTION_NEW_DAY, sizeof(TMsgOptionNewDay)), m_optionBlock(optionBlock){}
+	unsigned __int64 m_optionBlock;
+};
+#endif
+
+class TMsgSecurity : public Message
+{
+public:
+	const Security* m_security;
+protected:
+	TMsgSecurity(const Security* const& security, const unsigned short& type, const unsigned short& length) :Message(type, length), m_security(security) {}
+};
+/*
 class TMsgEquity : public Message
 {
 public:
-	Security* m_security;
+	const Security* m_security;
 protected:
-	TMsgEquity(Security* security, unsigned short type, unsigned short length):Message(type, length), m_security(security){}
+	TMsgEquity(const Security* const& security, const unsigned short& type, const unsigned short& length):Message(type, length), m_security(security){}
 };
-
-class TMsgEquityObjectNew : public TMsgEquity
+*/
+/*
+class TMsgRsi : public TMsgEquity
 {
 public:
-	TMsgEquityObjectNew(Security* security):TMsgEquity(security, TM_NEW_EQUITY, sizeof(TMsgEquityObjectNew)){}
+	const RsiData* m_rsiData;
+protected:
+	TMsgRsi(const Security* const& security, const RsiData* const& rsiData, const unsigned short& type, const unsigned short& length):TMsgEquity(security, type, length), m_rsiData(rsiData){}
 };
 
-class TMsgEquityObjectUpdated : public TMsgEquity
+class TMsgRsiObjectNew : public TMsgRsi
 {
 public:
-	TMsgEquityObjectUpdated(Security* security):TMsgEquity(security, TM_UPDATED_EQUITY, sizeof(TMsgEquityObjectUpdated)){}
+	TMsgRsiObjectNew(const Security* const& security, const RsiData* const& rsiData):TMsgRsi(security, rsiData, TM_RSI_MH_CHART_LOADED, sizeof(TMsgRsiObjectNew)){}
+};
+
+class TMsgRsiObjectFailed : public TMsgRsi
+{
+public:
+	TMsgRsiObjectFailed(const Security* const& security, const RsiData* const& rsiData):TMsgRsi(security, rsiData, TM_RSI_MH_CHART_FAILED, sizeof(TMsgRsiObjectFailed)){}
+};
+
+class TMsgRsiObjectRequested : public TMsgRsi
+{
+public:
+	TMsgRsiObjectRequested(const Security* const& security, const RsiData* const& rsiData):TMsgRsi(security, rsiData, TM_RSI_MH_CHART_REQUESTED, sizeof(TMsgRsiObjectRequested)){}
+};
+*/
+
+class TMsgMhRsiSecurityDataLoaded : public TMsgSecurity//security observers are notified
+{
+public:
+	TMsgMhRsiSecurityDataLoaded(const Security* const& security, const Price* priceArray, const unsigned short arraySize):
+		TMsgSecurity(security, TM_RSI_MH_SECURITY_DATA_LOADED, sizeof(TMsgMhRsiSecurityDataLoaded)),
+		m_priceArray(priceArray),
+		m_arraySize(arraySize)
+		{}
+	const Price* m_priceArray;
+	unsigned short m_arraySize;
+};
+
+class TMsgMhRsiObjectNew : public TMsgSecurity//observers of m_newRsiObservable are notified
+{
+public:
+	TMsgMhRsiObjectNew(const Security* const& security):TMsgSecurity(security, TM_RSI_MH_CHART_LOADED, sizeof(TMsgMhRsiObjectNew)){}
+};
+
+class TMsgMhRsiObjectFailed : public TMsgSecurity
+{
+public:
+	TMsgMhRsiObjectFailed(const Security* const& security):TMsgSecurity(security, TM_RSI_MH_CHART_FAILED, sizeof(TMsgMhRsiObjectFailed)){}
+};
+
+class TMsgMhRsiObjectRequested : public Message
+{
+public:
+	TMsgMhRsiObjectRequested():Message(TM_RSI_MH_CHART_REQUESTED, sizeof(TMsgMhRsiObjectRequested)){}
+};
+
+class TMsgMhRsiObjectsCleared : public Message
+{
+public:
+	TMsgMhRsiObjectsCleared():Message(TM_RSI_MH_CHARTS_CLEARED, sizeof(TMsgMhRsiObjectsCleared)){}
+};
+
+class TMsgMhRsiAllObjectsLoaded : public Message
+{
+public:
+	TMsgMhRsiAllObjectsLoaded():Message(TM_RSI_MH_ALL_CHARTS_LOADED, sizeof(TMsgMhRsiAllObjectsLoaded)){}
+};
+//RSI Days
+class TMsgDaysRsiSecurityDataLoaded : public TMsgSecurity//security observers are notified
+{
+public:
+	TMsgDaysRsiSecurityDataLoaded(const Security* const& security, const Price* priceArray, const unsigned short arraySize):
+		TMsgSecurity(security, TM_RSI_DAYS_SECURITY_DATA_LOADED, sizeof(TMsgDaysRsiSecurityDataLoaded)),
+		m_priceArray(priceArray),
+		m_arraySize(arraySize)
+		{}
+	const Price* m_priceArray;
+	unsigned short m_arraySize;
+};
+
+class TMsgDaysRsiObjectNew : public TMsgSecurity//observers of m_newRsiObservable are notified
+{
+public:
+	TMsgDaysRsiObjectNew(const Security* const& security):TMsgSecurity(security, TM_RSI_DAYS_CHART_LOADED, sizeof(TMsgDaysRsiObjectNew)){}
+};
+
+class TMsgDaysRsiObjectFailed : public TMsgSecurity
+{
+public:
+	TMsgDaysRsiObjectFailed(const Security* const& security):TMsgSecurity(security, TM_RSI_DAYS_CHART_FAILED, sizeof(TMsgDaysRsiObjectFailed)){}
+};
+
+class TMsgDaysRsiObjectRequested : public Message
+{
+public:
+	TMsgDaysRsiObjectRequested():Message(TM_RSI_DAYS_CHART_REQUESTED, sizeof(TMsgDaysRsiObjectRequested)){}
+};
+
+class TMsgDaysRsiObjectsCleared : public Message
+{
+public:
+	TMsgDaysRsiObjectsCleared():Message(TM_RSI_DAYS_CHARTS_CLEARED, sizeof(TMsgDaysRsiObjectsCleared)){}
+};
+
+class TMsgDaysRsiAllObjectsLoaded : public Message
+{
+public:
+	TMsgDaysRsiAllObjectsLoaded():Message(TM_RSI_DAYS_ALL_CHARTS_LOADED, sizeof(TMsgDaysRsiAllObjectsLoaded)){}
+};
+//
+class TMsgEquityObjectNew : public TMsgSecurity
+{
+public:
+	TMsgEquityObjectNew(const Security* const& security):TMsgSecurity(security, TM_NEW_EQUITY, sizeof(TMsgEquityObjectNew)){}
+};
+
+class TMsgStockObjectNew : public TMsgSecurity
+{
+public:
+	TMsgStockObjectNew(const Security* const& security):TMsgSecurity(security, TM_NEW_STOCK, sizeof(TMsgStockObjectNew)){}
+};
+
+class TMsgEquityObjectRefreshed : public TMsgSecurity
+{
+public:
+	TMsgEquityObjectRefreshed(const Security* const& security):TMsgSecurity(security, TM_REFRESHED_EQUITY, sizeof(TMsgEquityObjectRefreshed)){}
+};
+
+class TMsgEquityObjectUpdated : public TMsgSecurity
+{
+public:
+	TMsgEquityObjectUpdated(const Security* const& security):TMsgSecurity(security, TM_UPDATED_EQUITY, sizeof(TMsgEquityObjectUpdated)){}
 };
 
 class TMsgStockInvalid : public TMessageSymbol
 {
 public:
-	TMsgStockInvalid(const char* symbol):TMessageSymbol(symbol, TM_STOCK_INVALID, sizeof(TMsgStockInvalid)){}
+	TMsgStockInvalid(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_INVALID, sizeof(TMsgStockInvalid)){}
 	TMsgStockInvalid(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_INVALID, sizeof(TMsgStockInvalid)){}
 };
+
+class TMsgSortableSecurityInvalid : public TMessageSymbol
+{
+public:
+	TMsgSortableSecurityInvalid(const char* const& symbol):TMessageSymbol(symbol, TM_SORTABLE_SECURITY_INVALID, sizeof(TMsgSortableSecurityInvalid)){}
+	TMsgSortableSecurityInvalid(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_SORTABLE_SECURITY_INVALID, sizeof(TMsgSortableSecurityInvalid)){}
+};
+
 
 class TMsgAccountObject : public Message
 {
 public:
 	char m_accountId[MAX_ACCOUNT_SIZE];
 protected:
-	TMsgAccountObject(const char* accountName, unsigned short type, unsigned short length):
+	TMsgAccountObject(const char* const& accountName, const unsigned short& type, const unsigned short& length):
 		Message(type, length)
 	{
-		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountName, '\0');
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountName, '\0', true);
+	}
+};
+
+class TMsgAccountLoss90Percent : public TMsgAccountObject
+{
+public:
+	TMsgAccountLoss90Percent(const char* const& accountName):
+		TMsgAccountObject(accountName, TM_ACCOUNT_LOSS_90_PERCENT, sizeof(TMsgAccountLoss90Percent))
+	{
 	}
 };
 
@@ -2966,8 +4291,8 @@ class TMsgAccountStockPositionObject : public TMsgAccountObject
 public:
 	unsigned __int64 m_symbol;
 protected:
-	TMsgAccountStockPositionObject(const char* accountName, const unsigned __int64& symbol,
-		unsigned short type, unsigned short length):
+	TMsgAccountStockPositionObject(const char* const& accountName, const unsigned __int64& symbol,
+		const unsigned short& type, const unsigned short& length):
 		TMsgAccountObject(accountName, type, length),
 		m_symbol(symbol)
 	{
@@ -2982,11 +4307,11 @@ public:
 	unsigned __int64 m_optionBlock;
 #endif
 protected:
-	TMsgAccountPositionObject(const char* accountName, const unsigned __int64& symbol,
+	TMsgAccountPositionObject(const char* const& accountName, const unsigned __int64& symbol,
 #ifndef TAKION_NO_OPTIONS
 		const unsigned __int64& optionBlock,
 #endif
-		unsigned short type, unsigned short length):
+		const unsigned short& type, const unsigned short& length):
 		TMsgAccountStockPositionObject(accountName, symbol, type, length)
 #ifndef TAKION_NO_OPTIONS
 		,m_optionBlock(optionBlock)
@@ -2995,17 +4320,51 @@ protected:
 	}
 };
 
+class TMsgSendOrderDone : public TMsgAccountPositionObject
+{
+public:
+	TMsgSendOrderDone(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionBlock,
+#endif
+		const unsigned int& sendId,
+		const unsigned int& clientId,
+		const unsigned __int64& userId):
+		TMsgAccountPositionObject(accountName, symbol,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_SEND_ORDER_DONE, sizeof(TMsgSendOrderDone)),
+		m_sendId(sendId),
+		m_clientId(clientId),
+		m_userId(userId)
+	{}
+	TMsgSendOrderDone(const char* const& accountName, const unsigned int& sendId, const unsigned int& clientId, const unsigned __int64& userId):
+		TMsgAccountPositionObject(accountName, 0,
+#ifndef TAKION_NO_OPTIONS
+			0,
+#endif
+			TM_SEND_ORDER_DONE, sizeof(TMsgSendOrderDone)),
+		m_sendId(sendId),
+		m_clientId(clientId),
+		m_userId(userId)
+	{}
+	unsigned int m_sendId;
+	unsigned int m_clientId;
+	unsigned __int64 m_userId;
+};
+
 class TMsgPositionOpenPnlUpdate : public TMsgAccountPositionObject
 {
 public:
 	Price m_price;
 protected:
-	TMsgPositionOpenPnlUpdate(const char* accountName, const unsigned __int64& symbol,//const char* symbol,
+	TMsgPositionOpenPnlUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
 		const Price& level1Price,
 #ifndef TAKION_NO_OPTIONS
 		const unsigned __int64& optionBlock,
 #endif
-		unsigned short type, unsigned short length):
+		const unsigned short& type, const unsigned short& length):
 		TMsgAccountPositionObject(accountName, symbol,
 #ifndef TAKION_NO_OPTIONS
 			optionBlock,
@@ -3020,7 +4379,7 @@ protected:
 class TMsgPositionTCloseOpenPnlUpdate : public TMsgPositionOpenPnlUpdate
 {
 public:
-	TMsgPositionTCloseOpenPnlUpdate(const char* accountName, const unsigned __int64& symbol,//const char* symbol,
+	TMsgPositionTCloseOpenPnlUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
 		const Price& price
 #ifndef TAKION_NO_OPTIONS
 //		,unsigned char securityType
@@ -3038,8 +4397,8 @@ public:
 class TMsgPositionPrintOpenPnlUpdate : public TMsgPositionOpenPnlUpdate
 {
 public:
-	TMsgPositionPrintOpenPnlUpdate(const char* accountName, const unsigned __int64& symbol,//const char* symbol,
-		const Price& price, bool nbboPrint
+	TMsgPositionPrintOpenPnlUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+		const Price& price, const bool& nbboPrint, const bool& actionPrint, const unsigned char& stockState
 #ifndef TAKION_NO_OPTIONS
 //		, unsigned char securityType
 		,const unsigned __int64& optionBlock
@@ -3050,16 +4409,100 @@ public:
 			optionBlock,
 #endif
 			TM_POSITION_OPEN_PNL_PRINT, sizeof(TMsgPositionPrintOpenPnlUpdate)),
-		m_nbboPrint(nbboPrint)
+		m_nbboPrint(nbboPrint),
+		m_actionPrint(actionPrint),
+		m_stockState(stockState)
 	{}
 	bool m_nbboPrint;
+	bool m_actionPrint;
+	unsigned char m_stockState;//MSTATE_PREMARKET, MSTATE_MARKET, MSTATE_POSTMARKET
+};
+
+class TMsgPositionPrintTrailingOrdersUpdate : public TMsgPositionOpenPnlUpdate
+{
+public:
+	TMsgPositionPrintTrailingOrdersUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+		const Price& price//, bool nbboPrint
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock
+#endif
+		):
+		TMsgPositionOpenPnlUpdate(accountName, symbol, price,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_POSITION_TRAILING_ORDERS_PRINT, sizeof(TMsgPositionPrintTrailingOrdersUpdate))
+//		m_nbboPrint(nbboPrint)
+	{}
+//	bool m_nbboPrint;
+};
+
+class TMsgPositionLevel1TrailingOrdersUpdate : public TMsgPositionOpenPnlUpdate
+{
+public:
+	TMsgPositionLevel1TrailingOrdersUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+		const Price& bid,
+		const Price& ask,
+		unsigned char bidask//1 bid, 2 ask, 3 both
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock
+#endif
+		):
+		TMsgPositionOpenPnlUpdate(accountName, symbol, bid,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_POSITION_TRAILING_ORDERS_LEVEL1, sizeof(TMsgPositionLevel1TrailingOrdersUpdate)),
+		m_ask(ask),
+		m_bidask(bidask)
+	{}
+	Price m_ask;
+	unsigned char m_bidask;
+};
+
+class TMsgPositionClosingPriceUpdate : public TMsgPositionOpenPnlUpdate
+{
+public:
+	TMsgPositionClosingPriceUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+		const Price& price,
+		const unsigned int& todaysClosingPriceCompact
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock
+#endif
+		):
+		TMsgPositionOpenPnlUpdate(accountName, symbol, price,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_POSITION_CLOSING_PRICE, sizeof(TMsgPositionClosingPriceUpdate)),
+		m_todaysClosingPriceCompact(todaysClosingPriceCompact)
+	{}
+	unsigned int m_todaysClosingPriceCompact;
+};
+
+class TMsgPositionTodaysClosingPriceUpdate : public TMsgPositionOpenPnlUpdate
+{
+public:
+	TMsgPositionTodaysClosingPriceUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+		const Price& price
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock
+#endif
+		):
+		TMsgPositionOpenPnlUpdate(accountName, symbol, price,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_POSITION_TODAYS_CLOSING_PRICE, sizeof(TMsgPositionTodaysClosingPriceUpdate))
+	{}
 };
 
 class TMsgPositionLevel1OpenPnlUpdate : public TMsgPositionOpenPnlUpdate
 {
 public:
-	TMsgPositionLevel1OpenPnlUpdate(const char* accountName, const unsigned __int64& symbol,//const char* symbol,
-		const Price& price, bool bid
+	TMsgPositionLevel1OpenPnlUpdate(const char* const& accountName, const unsigned __int64& symbol,//const char* symbol,
+		const Price& price,
+		bool bid
 #ifndef TAKION_NO_OPTIONS
 //		, unsigned char securityType
 		,const unsigned __int64& optionBlock
@@ -3070,26 +4513,47 @@ public:
 			optionBlock,
 #endif
 			TM_POSITION_OPEN_PNL_LEVEL1, sizeof(TMsgPositionLevel1OpenPnlUpdate)),
+//		m_priceAsk(priceAsk)
 		m_bid(bid)
 	{}
+//	Price m_priceAsk;
 	bool m_bid;
+};
+
+class TMsgPositionImbExNearOpenPnlUpdate : public TMsgPositionOpenPnlUpdate
+{
+public:
+	TMsgPositionImbExNearOpenPnlUpdate(const char* const& accountName, const unsigned __int64& symbol,
+		const Price& price
+/*
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock
+#endif
+*/
+		):
+		TMsgPositionOpenPnlUpdate(accountName, symbol, price,
+#ifndef TAKION_NO_OPTIONS
+			0,//optionBlock,
+#endif
+			TM_POSITION_OPEN_PNL_IMBEXNEAR, sizeof(TMsgPositionImbExNearOpenPnlUpdate))
+	{}
 };
 
 class TMsgAutoAction : public TMsgAccountPositionObject
 {
 public:
-	TMsgAutoAction(const char* accountName, const unsigned __int64& symbol,
+	TMsgAutoAction(const char* const& accountName, const unsigned __int64& symbol,
 #ifndef TAKION_NO_OPTIONS
 		const unsigned __int64& optionBlock,
 #endif
-		const Money& loss, const Money& constrain, bool close):
+		const Money& loss, const Money& constraint, const bool& close):
 		TMsgAccountPositionObject(accountName, symbol,
 #ifndef TAKION_NO_OPTIONS
 			optionBlock,
 #endif
 			TM_AUTO_ACTION, sizeof(TMsgAutoAction)),
 		m_loss(loss),
-		m_constraint(constrain),
+		m_constraint(constraint),
 		m_close(close)
 	{
 //		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
@@ -3104,22 +4568,84 @@ public:
 class TMsgExecutionNew : public TMsgAccountObject
 {
 public:
-	TMsgExecutionNew(unsigned int remainingQuantity, unsigned int executionId, unsigned char side, const char* accountName):
-		TMsgAccountObject(accountName, TM_EXECUTION_NEW, sizeof(TMsgExecutionNew)), m_remainingQuantity(remainingQuantity), m_executionId(executionId), m_side(side)
+	TMsgExecutionNew(const unsigned int& remainingQuantity,
+		const unsigned int& cumulativeFilledQuantity,
+		const unsigned int& executionId,
+		const unsigned char& side,
+		const char* const& accountName):
+		TMsgAccountObject(accountName, TM_EXECUTION_NEW, sizeof(TMsgExecutionNew)),
+		m_remainingQuantity(remainingQuantity),
+		m_cumulativeFilledQuantity(cumulativeFilledQuantity),
+		m_executionId(executionId),
+		m_side(side)
 	{}
 	unsigned int m_remainingQuantity;
+	unsigned int m_cumulativeFilledQuantity;
 	unsigned int m_executionId;
 	unsigned char m_side;
+};
+
+enum NewOrderType : unsigned char
+{
+	NOT_SENT,
+	NOT_ACKNOWLEDGED,
+	NOT_UPDATED,
+	NOT_REPLACING,
+	NOT_HISTORICAL,
+
+	NOT_Count
 };
 
 class TMsgOrderNew : public TMsgAccountObject
 {
 public:
-	TMsgOrderNew(unsigned int clientId, unsigned int serverId, const char* accountName):
-		TMsgAccountObject(accountName, TM_ORDER_NEW, sizeof(TMsgOrderNew)), m_clientId(clientId), m_serverId(serverId)
+	TMsgOrderNew(const unsigned int& clientId,
+		const unsigned int& serverId,
+		const unsigned int& msgClientId,
+		const unsigned int& msgServerId,
+		const unsigned int& msgParentClientId,
+		const unsigned int& pendingShares,
+		const char* const& accountName,
+		const unsigned char& newOrderType):
+		TMsgAccountObject(accountName, TM_ORDER_NEW, sizeof(TMsgOrderNew)),
+		m_clientId(clientId),
+		m_serverId(serverId),
+		m_msgClientId(msgClientId),
+		m_msgServerId(msgServerId),
+		m_parentClientId(msgParentClientId),
+		m_pendingShares(pendingShares),
+		m_newOrderType(newOrderType)
 	{}
 	unsigned int m_clientId;
 	unsigned int m_serverId;
+	unsigned int m_msgClientId;
+	unsigned int m_msgServerId;
+	unsigned int m_parentClientId;
+	unsigned int m_pendingShares;
+	unsigned char m_newOrderType;
+};
+
+class TMsgStuckOrder : public TMsgAccountObject
+{
+public:
+	TMsgStuckOrder(const char* const& accountName = "", const unsigned int& clientId = 0, const bool& stuck = false):
+		TMsgAccountObject(accountName, TM_ORDER_STUCK, sizeof(TMsgStuckOrder)), m_clientId(clientId), m_stuck(stuck)
+	{}
+	unsigned int m_clientId;
+	bool m_stuck;
+};
+
+class TMsgOrderAlgorithmCancel : public Message
+{
+public:
+	TMsgOrderAlgorithmCancel(const char* const& accountName, const unsigned int& orderClientId):
+		Message(TM_ORDER_ALGORITHM_CANCEL, sizeof(TMsgOrderAlgorithmCancel)),
+		m_orderClientId(orderClientId)
+	{
+		U_CopyAndPad(m_accountName, sizeof(m_accountName), accountName, '\0', true);
+	}
+	char m_accountName[MAX_ACCOUNT_SIZE];
+	unsigned int m_orderClientId;
 };
 
 class TMsgPositionNew : public TMsgAccountObject
@@ -3127,9 +4653,9 @@ class TMsgPositionNew : public TMsgAccountObject
 public:
 	TMsgPositionNew(const unsigned __int64& symbol
 #ifndef TAKION_NO_OPTIONS
-		, unsigned __int64 optionBlock
+		, const unsigned __int64& optionBlock
 #endif
-		, const char* accountName):
+		, const char* const& accountName):
 		TMsgAccountObject(accountName, TM_POSITION_NEW, sizeof(TMsgPositionNew)), m_symbol(symbol)
 #ifndef TAKION_NO_OPTIONS
 		, m_optionBlock(optionBlock)
@@ -3144,38 +4670,52 @@ public:
 class TMsgStockUpdateLevel1 : public TMessageStockUpdate
 {
 public:
-	TMsgStockUpdateLevel1(const char* symbol, bool hasPrints, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL1, sizeof(TMsgStockUpdateLevel1)), m_hasPrints(hasPrints){}
-	TMsgStockUpdateLevel1(const unsigned __int64& symbol, bool hasPrints, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL1, sizeof(TMsgStockUpdateLevel1)), m_hasPrints(hasPrints){}
+	TMsgStockUpdateLevel1(const char* const& symbol, const bool& hasPrints, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL1, sizeof(TMsgStockUpdateLevel1)), m_hasPrints(hasPrints){}
+	TMsgStockUpdateLevel1(const unsigned __int64& symbol, const bool& hasPrints, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_LEVEL1, sizeof(TMsgStockUpdateLevel1)), m_hasPrints(hasPrints){}
 	bool m_hasPrints;
+};
+
+class TMsgStockUsedCountUpdate : public TMessageSymbol
+{
+public:
+	TMsgStockUsedCountUpdate(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_USED_COUNT_UPDATE, sizeof(TMsgStockUsedCountUpdate)){}
+	TMsgStockUsedCountUpdate(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_USED_COUNT_UPDATE, sizeof(TMsgStockUsedCountUpdate)){}
+};
+
+class TMsgStockLightSnapshot : public TMessageSymbol//For Light server
+{
+public:
+	TMsgStockLightSnapshot(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_LIGHT_SNAPSHOT, sizeof(TMsgStockLightSnapshot)){}
+	TMsgStockLightSnapshot(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_LIGHT_SNAPSHOT, sizeof(TMsgStockLightSnapshot)){}
 };
 
 class TMsgStockNewsHistoricSearchDone : public TMessageSymbol
 {
 public:
-	TMsgStockNewsHistoricSearchDone(const char* symbol, unsigned int newsCollectionId):TMessageSymbol(symbol, TM_STOCK_NEWS_HISTORIC_SEARCH_DONE, sizeof(TMsgStockNewsHistoricSearchDone)), m_newsCollectionId(newsCollectionId){}
-	TMsgStockNewsHistoricSearchDone(const unsigned __int64& symbol, unsigned int newsCollectionId):TMessageSymbol(symbol, TM_STOCK_NEWS_HISTORIC_SEARCH_DONE, sizeof(TMsgStockNewsHistoricSearchDone)), m_newsCollectionId(newsCollectionId){}
+	TMsgStockNewsHistoricSearchDone(const char* const& symbol, const unsigned int& newsCollectionId):TMessageSymbol(symbol, TM_STOCK_NEWS_HISTORIC_SEARCH_DONE, sizeof(TMsgStockNewsHistoricSearchDone)), m_newsCollectionId(newsCollectionId){}
+	TMsgStockNewsHistoricSearchDone(const unsigned __int64& symbol, const unsigned int& newsCollectionId):TMessageSymbol(symbol, TM_STOCK_NEWS_HISTORIC_SEARCH_DONE, sizeof(TMsgStockNewsHistoricSearchDone)), m_newsCollectionId(newsCollectionId){}
 	unsigned int m_newsCollectionId;
 };
 
 class TMsgStringNewsHistoricSearchDone : public Message
 {
 public:
-	TMsgStringNewsHistoricSearchDone(const char* str, unsigned short strLength, unsigned int newsCollectionId):Message(TM_STRING_NEWS_HISTORIC_SEARCH_DONE, sizeof(TMsgStringNewsHistoricSearchDone) + strLength), m_newsCollectionId(newsCollectionId){}
+	TMsgStringNewsHistoricSearchDone(const char* const& str, const unsigned short& strLength, const unsigned int& newsCollectionId):Message(TM_STRING_NEWS_HISTORIC_SEARCH_DONE, sizeof(TMsgStringNewsHistoricSearchDone) + strLength), m_newsCollectionId(newsCollectionId){}
 	unsigned int m_newsCollectionId;
 };
 
 class TMsgStockUpdateHeadlines : public TMessageStockUpdate
 {
 public:
-	TMsgStockUpdateHeadlines(const char* symbol, unsigned int newsCollectionId, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_HEADLINES, sizeof(TMsgStockUpdateHeadlines)), m_newsCollectionId(newsCollectionId){}
-	TMsgStockUpdateHeadlines(const unsigned __int64& symbol, unsigned int newsCollectionId, unsigned int updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_HEADLINES, sizeof(TMsgStockUpdateHeadlines)), m_newsCollectionId(newsCollectionId){}
+	TMsgStockUpdateHeadlines(const char* const& symbol, const unsigned int& newsCollectionId, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_HEADLINES, sizeof(TMsgStockUpdateHeadlines)), m_newsCollectionId(newsCollectionId){}
+	TMsgStockUpdateHeadlines(const unsigned __int64& symbol, const unsigned int& newsCollectionId, const unsigned int& updateOrdinal):TMessageStockUpdate(symbol, updateOrdinal, TM_STOCK_UPDATE_HEADLINES, sizeof(TMsgStockUpdateHeadlines)), m_newsCollectionId(newsCollectionId){}
 	unsigned int m_newsCollectionId;
 };
 
 class TMsgStringUpdateHeadlines : public Message
 {
 public:
-	TMsgStringUpdateHeadlines(const char* str, unsigned short strLength, unsigned int newsCollectionId, unsigned int updateOrdinal):Message(TM_STRING_UPDATE_HEADLINES, sizeof(TMsgStringUpdateHeadlines) + strLength), m_updateOrdinal(updateOrdinal), m_newsCollectionId(newsCollectionId){}
+	TMsgStringUpdateHeadlines(const char* const& str, const unsigned short& strLength, const unsigned int& newsCollectionId, const unsigned int& updateOrdinal):Message(TM_STRING_UPDATE_HEADLINES, sizeof(TMsgStringUpdateHeadlines) + strLength), m_updateOrdinal(updateOrdinal), m_newsCollectionId(newsCollectionId){}
 	unsigned int m_updateOrdinal;
 	unsigned int m_newsCollectionId;
 };
@@ -3183,7 +4723,13 @@ public:
 class TMsgHeadline : public Message
 {
 public:
-	TMsgHeadline(unsigned short additionalLength):Message(TM_HEADLINE, sizeof(TMsgHeadline) + additionalLength){}
+	TMsgHeadline(const unsigned short& additionalLength, const bool& historical, const unsigned __int64& dateTime):
+		Message(TM_HEADLINE, sizeof(TMsgHeadline) + additionalLength),
+		m_historical(historical),
+		m_dateTime(dateTime)
+		{}
+	bool m_historical;
+	unsigned __int64 m_dateTime;
 };
 
 /*
@@ -3198,7 +4744,7 @@ public:
 class TMsgUpdateLastNewsStory : public Message
 {
 public:
-	TMsgUpdateLastNewsStory(unsigned int updateOrdinal):Message(TM_UPDATE_LAST_NEWS_STORY, sizeof(TMsgUpdateLastNewsStory)), m_updateOrdinal(updateOrdinal){}
+	TMsgUpdateLastNewsStory(const unsigned int& updateOrdinal):Message(TM_UPDATE_LAST_NEWS_STORY, sizeof(TMsgUpdateLastNewsStory)), m_updateOrdinal(updateOrdinal){}
 	unsigned int m_updateOrdinal;
 };
 
@@ -3208,66 +4754,66 @@ public:
 	TMsgNewsProfilesLoaded():Message(TM_NEWS_PROFILES_LOADED, sizeof(TMsgNewsProfilesLoaded)){}
 };
 
-class NewsResourceAsNumberArray : public StrAsNumberArray<size_t, 64 / sizeof(size_t)>
+class NewsResourceAsNumberArray : public StrAsNumberArray<size_t, 128 / sizeof(size_t)>
 {
 public:
 	NewsResourceAsNumberArray():StrAsNumberArray(){}
-	NewsResourceAsNumberArray(const char* str):StrAsNumberArray(str){}
+	explicit NewsResourceAsNumberArray(const char* const& str):StrAsNumberArray(str){}
 	NewsResourceAsNumberArray(const char*& str, const char& del):StrAsNumberArray(str, del){}
-	NewsResourceAsNumberArray(const char*& str, unsigned short length, const char& del):StrAsNumberArray(str, length, del){}
-	NewsResourceAsNumberArray(unsigned short exactLength, const char* str):StrAsNumberArray(exactLength, str){}
-	NewsResourceAsNumberArray(const std::string& str):StrAsNumberArray(str){}
-	operator size_t() const{return m_numberArray[16 / sizeof(size_t) - 1];}
+	NewsResourceAsNumberArray(const char*& str, const unsigned short& length, const char& del):StrAsNumberArray(str, length, del){}
+	NewsResourceAsNumberArray(const unsigned short& exactLength, const char* const& str):StrAsNumberArray(exactLength, str){}
+	explicit NewsResourceAsNumberArray(const std::string& str):StrAsNumberArray(str){}
+//	operator size_t() const{return m_numberArray[16 / sizeof(size_t) - 1];}
+	size_t GetHashValue() const{return m_numberArray[16 / sizeof(size_t) - 1];}
 	DECLARE_NED_NEW
 };
 
-class FilterStringAsNumberArray : public StrAsVarNumberArray<size_t>
-{
-public:
-	FilterStringAsNumberArray():StrAsVarNumberArray(){}
-	FilterStringAsNumberArray(const char* str):StrAsVarNumberArray(str){}
-	FilterStringAsNumberArray(const char*& str, const char& del):StrAsVarNumberArray(str, del){}
-	FilterStringAsNumberArray(const char*& str, const unsigned short& length, const char& del):StrAsVarNumberArray(str, length, del){}
-	FilterStringAsNumberArray(unsigned short exactLength, const char* str):StrAsVarNumberArray(exactLength, str){}
-	FilterStringAsNumberArray(const std::string& str):StrAsVarNumberArray(str){}
-//	operator size_t() const{return (size_t)*m_numberArray + m_length;}
-	DECLARE_NED_NEW
-};
+template<> inline size_t std::hash_value(const NewsResourceAsNumberArray& key)
+{	// hash _Keyval to size_t value one-to-one
+	return key.GetHashValue();// ^ _HASH_SEED;//(((key.GetDollars() << 16) | key.GetDollarFraction()) ^ _HASH_SEED);
+}
 
 class NewsStory
 {
 public:
-//	NewsStory(const std::string& story, const std::string& resourceId, bool showChain):m_story(story),m_resourceId(resourceId),m_showChain(showChain){}
-	NewsStory(const std::string& story, const NewsResourceAsNumberArray& resourceId, bool showChain):m_story(story),m_resourceId(resourceId),m_showChain(showChain){}
+	NewsStory(const std::string& story, const NewsResourceAsNumberArray& resourceId, const bool& showChain, const bool& storyError):
+		m_story(story),
+		m_resourceId(resourceId),
+		m_showChain(showChain),
+		m_storyError(storyError)
+		{}
 	const std::string& GetStory() const{return m_story;}
-//	const std::string& GetResourceId() const{return m_resourceId;}
 	const NewsResourceAsNumberArray& GetResourceId() const{return m_resourceId;}
 	const char* GetResourceIdStr() const{return m_resourceId.GetString();}
 	bool isShowChain() const{return m_showChain;}
-	void SetStory(const std::string& story, const std::string& resourceId, bool showChain)
+	bool isStoryError() const{return m_storyError;}
+	void SetStory(const std::string& story, const std::string& resourceId, const bool& showChain, const bool& storyError)
 	{
 		m_story = story;
 		m_showChain = showChain;
+		m_storyError = storyError;
 	}
 	DECLARE_NED_NEW
 protected:
 	std::string m_story;
 	NewsResourceAsNumberArray m_resourceId;
 	bool m_showChain;
+	bool m_storyError;
 };
 
 class TMsgNewsStoryContents : public Message
 {
 public:
-	TMsgNewsStoryContents(const NewsStory* newsStory):Message(TM_NEWS_STORY_CONTENTS, sizeof(TMsgNewsStoryContents)), m_newsStory(newsStory){}
+	TMsgNewsStoryContents(const NewsStory* const& newsStory):Message(TM_NEWS_STORY_CONTENTS, sizeof(TMsgNewsStoryContents)), m_newsStory(newsStory){}
 	const NewsStory* m_newsStory;
 };
 
 enum SubscriptionTypes : unsigned char
 {
-    UpdatesOnly        = 0,
-    SubscribeSymbol    = 1,
-    UpdatesOnlyAll    = 0xfe,
+    UpdatesOnly	= 0,
+    SubscribeSymbol	= 1,
+	SnapshotSymbol	= 2,
+	UpdatesOnlyAll    = 0xfe,
     RefreshAll        = 0xff,
 };
 /*
@@ -3284,11 +4830,11 @@ public:
 class TMsgReqRefreshSymbol : public TMessageSymbol
 {
 public:
-	TMsgReqRefreshSymbol(const char* symbol, unsigned char flags = SubscribeSymbol, unsigned char blockSize = 1, unsigned int requestID = 0):
-		TMessageSymbol(symbol, M_REQ_REFRESH_SYMBOL, sizeof(TMsgReqRefreshSymbol))
-		, m_flags(flags)
-		, m_blockSize(blockSize)
-		, m_requestID(requestID)
+	TMsgReqRefreshSymbol(const char* const& symbol, const unsigned char& flags = SubscribeSymbol, const unsigned char& blockSize = 1, const unsigned int& requestID = 0):
+		TMessageSymbol(symbol, M_REQ_REFRESH_SYMBOL, sizeof(TMsgReqRefreshSymbol)),
+		m_flags(flags),
+		m_blockSize(blockSize),
+		m_requestID(requestID)
 	{}
     unsigned char m_flags;
     unsigned char m_blockSize;
@@ -3298,7 +4844,7 @@ public:
 class TMsgReqUnsubscribeSymbol : public TMessageSymbol
 {
 public:
-	TMsgReqUnsubscribeSymbol(const char* symbol):TMessageSymbol(symbol, M_REQ_UNSUBSCRIBE_SYMBOL, sizeof(TMsgReqUnsubscribeSymbol)){}
+	TMsgReqUnsubscribeSymbol(const char* const& symbol):TMessageSymbol(symbol, M_REQ_UNSUBSCRIBE_SYMBOL, sizeof(TMsgReqUnsubscribeSymbol)){}
 };
 
 class TMsgEndOfDaySummaryReportBase : public TMessageTimeSymbol
@@ -3308,13 +4854,13 @@ public:
 	unsigned int m_todaysClosePriceFraction;
     unsigned __int64 m_volume;
 protected:
-    TMsgEndOfDaySummaryReportBase(const char* symbol,
-		unsigned int time,
-		unsigned int todaysClosePriceDollar,
-		unsigned int todaysClosePriceFraction,
-		unsigned __int64 volume,
-		unsigned short type,
-		unsigned short length):
+    TMsgEndOfDaySummaryReportBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& todaysClosePriceDollar,
+		const unsigned int& todaysClosePriceFraction,
+		const unsigned __int64& volume,
+		const unsigned short& type,
+		const unsigned short& length):
 		
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_todaysClosePriceDollar(todaysClosePriceDollar),
@@ -3326,11 +4872,11 @@ protected:
 class TMsgEndOfDaySummaryReport : public TMsgEndOfDaySummaryReportBase
 {
 public:
-    TMsgEndOfDaySummaryReport(const char* symbol,
-		unsigned int time,
-		unsigned int todaysClosePriceDollar,
-		unsigned int todaysClosePriceFraction,
-		unsigned __int64 volume):
+    TMsgEndOfDaySummaryReport(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& todaysClosePriceDollar,
+		const unsigned int& todaysClosePriceFraction,
+		const unsigned __int64& volume):
 		
 		TMsgEndOfDaySummaryReportBase(symbol, time, todaysClosePriceDollar, todaysClosePriceFraction, volume, M_EOD_SUMMARY_REPORT, sizeof(TMsgEndOfDaySummaryReport))
     {}
@@ -3339,11 +4885,11 @@ public:
 class TMsgMsEndOfDaySummaryReport : public TMsgEndOfDaySummaryReportBase
 {
 public:
-    TMsgMsEndOfDaySummaryReport(const char* symbol,
-		unsigned int time,
-		unsigned int todaysClosePriceDollar,
-		unsigned int todaysClosePriceFraction,
-		unsigned __int64 volume):
+    TMsgMsEndOfDaySummaryReport(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& todaysClosePriceDollar,
+		const unsigned int& todaysClosePriceFraction,
+		const unsigned __int64& volume):
 		
 		TMsgEndOfDaySummaryReportBase(symbol, time, todaysClosePriceDollar, todaysClosePriceFraction, volume, M_MS_EOD_SUMMARY_REPORT, sizeof(TMsgMsEndOfDaySummaryReport))
     {}
@@ -3355,12 +4901,12 @@ public:
 	char m_shortSaleThresholdIndicator;//'Y', 'N'
 	char m_regSHOTestIndicator;//'0', '1', '2'
 protected:
-    TMsgShortSaleIndicatorsBase(const char* symbol,
-		unsigned int time,
-		char shortSaleThresholdIndicator,
-		char regSHOTestIndicator,
-		unsigned short type,
-		unsigned short length):
+    TMsgShortSaleIndicatorsBase(const char* const& symbol,
+		const unsigned int& time,
+		const char& shortSaleThresholdIndicator,
+		const char& regSHOTestIndicator,
+		const unsigned short& type,
+		const unsigned short& length):
 
 		TMessageTimeSymbol(symbol, time, type, length),
         m_shortSaleThresholdIndicator(shortSaleThresholdIndicator),
@@ -3372,10 +4918,10 @@ protected:
 class TMsgShortSaleIndicators : public TMsgShortSaleIndicatorsBase
 {
 public:
-    TMsgShortSaleIndicators(const char* symbol,
-		unsigned int time,
-		char shortSaleThresholdIndicator,
-		char regSHOTestIndicator):
+    TMsgShortSaleIndicators(const char* const& symbol,
+		const unsigned int& time,
+		const char& shortSaleThresholdIndicator,
+		const char& regSHOTestIndicator):
 
 		TMsgShortSaleIndicatorsBase(symbol, time, shortSaleThresholdIndicator, regSHOTestIndicator, M_SHORT_SALE_INDICATORS, sizeof(TMsgShortSaleIndicators))
     {}
@@ -3384,40 +4930,47 @@ public:
 class TMsgMsShortSaleIndicators : public TMsgShortSaleIndicatorsBase
 {
 public:
-    TMsgMsShortSaleIndicators(const char* symbol,
-		unsigned int time,
-		char shortSaleThresholdIndicator,
-		char regSHOTestIndicator):
+    TMsgMsShortSaleIndicators(const char* const& symbol,
+		const unsigned int& time,
+		const char& shortSaleThresholdIndicator,
+		const char& regSHOTestIndicator):
 
 		TMsgShortSaleIndicatorsBase(symbol, time, shortSaleThresholdIndicator, regSHOTestIndicator, M_MS_SHORT_SALE_INDICATORS, sizeof(TMsgMsShortSaleIndicators))
     {}
 };
 
-class TMsgPmiBase : public TMessageTimeSymbol
+class TMsgPmiBase : public TMsgHighLowBase
 {
 public:
-	unsigned int m_bidDollar;
-	unsigned int m_bidFraction;
-	unsigned int m_askDollar;
-	unsigned int m_askFraction;
 	unsigned char m_securityStatus;
 	unsigned char m_adjustment;
 protected:
-	TMsgPmiBase(const char* symbol,
-		unsigned int time,
-		unsigned int bidDollar,
-		unsigned int bidFraction,
-		unsigned int askDollar,
-		unsigned int askFraction,
-		unsigned char securityStatus,
-		unsigned char adjustment,
-		unsigned short type,
-		unsigned short length):
-		TMessageTimeSymbol(symbol, time, type, length),
-		m_bidDollar(bidDollar),
-		m_bidFraction(bidFraction),
-		m_askDollar(askDollar),
-		m_askFraction(askFraction),
+	TMsgPmiBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& bidDollar,
+		const unsigned int& bidFraction,
+		const unsigned int& askDollar,
+		const unsigned int& askFraction,
+		const unsigned char& securityStatus,
+		const unsigned char& adjustment,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgHighLowBase(symbol, time, bidDollar, bidFraction, askDollar, askFraction, type, length),
+        m_securityStatus(securityStatus),
+        m_adjustment(adjustment)
+    {
+	}
+	TMsgPmiBase(const unsigned __int64& symbol,
+		const unsigned int& time,
+		const unsigned int& bidDollar,
+		const unsigned int& bidFraction,
+		const unsigned int& askDollar,
+		const unsigned int& askFraction,
+		const unsigned char& securityStatus,
+		const unsigned char& adjustment,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgHighLowBase(symbol, time, bidDollar, bidFraction, askDollar, askFraction, type, length),
         m_securityStatus(securityStatus),
         m_adjustment(adjustment)
     {
@@ -3427,14 +4980,14 @@ protected:
 class TMsgPmi : public TMsgPmiBase
 {
 public:
-    TMsgPmi(const char* symbol,
-		unsigned int time,
-		unsigned int bidDollar,
-		unsigned int bidFraction,
-		unsigned int askDollar,
-		unsigned int askFraction,
-		unsigned char securityStatus,
-		unsigned char adjustment):
+    TMsgPmi(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& bidDollar = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollar = 0,
+		const unsigned int& askFraction = 0,
+		const unsigned char& securityStatus = 0,
+		const unsigned char& adjustment = 0):
 		TMsgPmiBase(symbol, time, bidDollar, bidFraction, askDollar, askFraction, securityStatus, adjustment, M_PMI, sizeof(TMsgPmi))
     {}
 };
@@ -3442,98 +4995,107 @@ public:
 class TMsgMsPmi : public TMsgPmiBase
 {
 public:
-    TMsgMsPmi(const char* symbol,
-		unsigned int time,
-		unsigned int bidDollar,
-		unsigned int bidFraction,
-		unsigned int askDollar,
-		unsigned int askFraction,
-		unsigned char securityStatus,
-		unsigned char adjustment):
+    TMsgMsPmi(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& bidDollar = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollar = 0,
+		const unsigned int& askFraction = 0,
+		const unsigned char& securityStatus = 0,
+		const unsigned char& adjustment = 0):
 		TMsgPmiBase(symbol, time, bidDollar, bidFraction, askDollar, askFraction, securityStatus, adjustment, M_MS_PMI, sizeof(TMsgMsPmi))
     {}
 };
 
-class TMsgLrpBase : public TMessageTimeSymbol
+class TMsgLrpBase : public TMsgHighLowBase
 {
 public:
-	unsigned int m_lowDollar;
-	unsigned int m_lowFraction;
-	unsigned int m_highDollar;
-	unsigned int m_highFraction;
 	unsigned char m_changeIndicator;
 protected:
-	TMsgLrpBase(const char* symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator,
-		unsigned short type,
-		unsigned short length):
-		TMessageTimeSymbol(symbol, time, type, length),
-		m_lowDollar(lowDollar),
-		m_lowFraction(lowFraction),
-		m_highDollar(highDollar),
-		m_highFraction(highFraction),
+	TMsgLrpBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned char& changeIndicator,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, m_highFraction, type, length),
+        m_changeIndicator(changeIndicator)
+    {
+	}
+	TMsgLrpBase(const unsigned __int64& symbol,
+		const unsigned int& time,
+		const unsigned int& lowDollar,
+		const unsigned int& lowFraction,
+		const unsigned int& highDollar,
+		const unsigned int& highFraction,
+		const unsigned char& changeIndicator,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgHighLowBase(symbol, time, lowDollar, lowFraction, highDollar, m_highFraction, type, length),
         m_changeIndicator(changeIndicator)
     {
 	}
 };
 
+#ifdef LRPS
 class TMsgLrp : public TMsgLrpBase
 {
 public:
-    TMsgLrp(const char* symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TMsgLrp(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TMsgLrpBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, changeIndicator, M_LRP, sizeof(TMsgLrp))
     {}
 };
+#endif
 
 class TMsgLuld : public TMsgLrpBase
 {
 public:
-    TMsgLuld(const char* symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TMsgLuld(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TMsgLrpBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, changeIndicator, M_LULD, sizeof(TMsgLuld))
     {}
 };
 
+#ifdef LRPS
 class TMsgMsLrp : public TMsgLrpBase
 {
 public:
-    TMsgMsLrp(const char* symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TMsgMsLrp(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TMsgLrpBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, changeIndicator, M_MS_LRP, sizeof(TMsgMsLrp))
     {}
 };
+#endif
 
 class TMsgMsLuld : public TMsgLrpBase
 {
 public:
-    TMsgMsLuld(const char* symbol,
-		unsigned int time,
-		unsigned int lowDollar,
-		unsigned int lowFraction,
-		unsigned int highDollar,
-		unsigned int highFraction,
-		unsigned char changeIndicator):
+    TMsgMsLuld(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned char& changeIndicator = 0):
 		TMsgLrpBase(symbol, time, lowDollar, lowFraction, highDollar, highFraction, changeIndicator, M_MS_LULD, sizeof(TMsgMsLuld))
     {}
 };
@@ -3543,11 +5105,11 @@ class TMsgTradeTimeBase : public TMessageTimeSymbol
 public:
 	unsigned int m_tradeTime;
 protected:
-	TMsgTradeTimeBase(const char* symbol,
-		unsigned int time,
-		unsigned int tradeTime,
-		unsigned short type,
-		unsigned short length):
+	TMsgTradeTimeBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& tradeTime,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_tradeTime(tradeTime)
     {
@@ -3557,9 +5119,9 @@ protected:
 class TMsgTradeTime : public TMsgTradeTimeBase
 {
 public:
-    TMsgTradeTime(const char* symbol,
-		unsigned int time,
-		unsigned int tradeTime):
+    TMsgTradeTime(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& tradeTime):
 		TMsgTradeTimeBase(symbol, time, tradeTime, M_T_TIME, sizeof(TMsgTradeTime))
     {}
 };
@@ -3567,9 +5129,9 @@ public:
 class TMsgMsTradeTime : public TMsgTradeTimeBase
 {
 public:
-    TMsgMsTradeTime(const char* symbol,
-		unsigned int time,
-		unsigned int tradeTime):
+    TMsgMsTradeTime(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& tradeTime):
 		TMsgTradeTimeBase(symbol, time, tradeTime, M_MS_T_TIME, sizeof(TMsgMsTradeTime))
     {}
 };
@@ -3579,11 +5141,20 @@ class TMsgRpiBase : public TMessageTimeSymbol
 public:
 	char m_indicator;
 protected:
-	TMsgRpiBase(const char* symbol,
-		unsigned int time,
-		char indicator,
-		unsigned short type,
-		unsigned short length):
+	TMsgRpiBase(const char* const& symbol,
+		const unsigned int& time,
+		const char& indicator,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTimeSymbol(symbol, time, type, length),
+		m_indicator(indicator)
+    {
+	}
+	TMsgRpiBase(const unsigned __int64& symbol,
+		const unsigned int& time,
+		const char& indicator,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_indicator(indicator)
     {
@@ -3593,9 +5164,14 @@ protected:
 class TMsgRpi : public TMsgRpiBase
 {
 public:
-    TMsgRpi(const char* symbol,
-		unsigned int time,
-		unsigned char indicator):
+    TMsgRpi(const char* const& symbol,
+		const unsigned int& time,
+		const char& indicator):
+		TMsgRpiBase(symbol, time, indicator, M_RPI, sizeof(TMsgRpi))
+    {}
+    TMsgRpi(const unsigned __int64& symbol,
+		const unsigned int& time,
+		const char& indicator):
 		TMsgRpiBase(symbol, time, indicator, M_RPI, sizeof(TMsgRpi))
     {}
 };
@@ -3603,11 +5179,46 @@ public:
 class TMsgMsRpi : public TMsgRpiBase
 {
 public:
-    TMsgMsRpi(const char* symbol,
-		unsigned int time,
-		unsigned char indicator):
+    TMsgMsRpi(const char* const& symbol,
+		const unsigned int& time,
+		const char& indicator):
 		TMsgRpiBase(symbol, time, indicator, M_MS_RPI, sizeof(TMsgMsRpi))
     {}
+    TMsgMsRpi(const unsigned __int64& symbol,
+		const unsigned int& time,
+		const char& indicator):
+		TMsgRpiBase(symbol, time, indicator, M_MS_RPI, sizeof(TMsgMsRpi))
+    {}
+};
+
+class TMsgSecurityType : public TMsgRpiBase
+{
+public:
+	TMsgSecurityType(const char* const& symbol,
+		const unsigned int& time = 0,
+		const char& securityType = 0):
+		TMsgRpiBase(symbol, time, securityType, M_SECURITY_TYPE, sizeof(TMsgSecurityType))
+	{}
+	TMsgSecurityType(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+		const char& securityType = 0):
+		TMsgRpiBase(symbol, time, securityType, M_SECURITY_TYPE, sizeof(TMsgSecurityType))
+	{}
+};
+
+class TMsgMsSecurityType : public TMsgRpiBase
+{
+public:
+	TMsgMsSecurityType(const char* const& symbol,
+		const unsigned int& time = 0,
+		const char& securityType = 0):
+		TMsgRpiBase(symbol, time, securityType, M_MS_SECURITY_TYPE, sizeof(TMsgMsSecurityType))
+	{}
+	TMsgMsSecurityType(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+		const char& securityType = 0):
+		TMsgRpiBase(symbol, time, securityType, M_MS_SECURITY_TYPE, sizeof(TMsgMsSecurityType))
+	{}
 };
 
 enum AggregatePrintFlags : unsigned char
@@ -3625,13 +5236,13 @@ enum AggregatePrintFlags : unsigned char
 class TMsgAggregatedPrint : public TMessageTimeSymbol
 {
 public:
-	TMsgAggregatedPrint(const char* symbol,
-		unsigned int time,
-		unsigned int priceDollar,
-		unsigned int priceFraction,
-		unsigned long size,
-		unsigned char flags,
-		unsigned char flagsL1):
+	TMsgAggregatedPrint(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& priceDollar,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned char& flags,
+		const unsigned char& flagsL1):
 		TMessageTimeSymbol(symbol, time, M_AGGREGATED_PRINT, sizeof(TMsgAggregatedPrint)),
 		m_priceDollar(priceDollar),
 		m_priceFraction(priceFraction),
@@ -3642,7 +5253,7 @@ public:
  
 	unsigned int m_priceDollar;
 	unsigned int m_priceFraction;
-	unsigned long m_size;
+	unsigned int m_size;
 	unsigned char m_flags;
 	unsigned char m_flagsL1;
 };
@@ -3650,13 +5261,13 @@ public:
 class TSmMsgAggregatedPrint : public TMessageTime
 {
 public:
-	TSmMsgAggregatedPrint(unsigned short symbol,
-		unsigned int time,
-		unsigned int priceDollar,
-		unsigned int priceFraction,
-		unsigned long size,
-		unsigned char flags,
-		unsigned char flagsL1):
+	TSmMsgAggregatedPrint(const unsigned short& symbol,
+		const unsigned int& time,
+		const unsigned int& priceDollar,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned char& flags,
+		const unsigned char& flagsL1):
 		TMessageTime(time, SM_M_AGGREGATED_PRINT, sizeof(TSmMsgAggregatedPrint)),
 		m_priceDollar(priceDollar),
 		m_priceFraction(priceFraction),
@@ -3668,7 +5279,7 @@ public:
  
 	unsigned int m_priceDollar;
 	unsigned int m_priceFraction;
-	unsigned long m_size;
+	unsigned int m_size;
 	unsigned short m_symbol;
 	unsigned char m_flags;
 	unsigned char m_flagsL1;
@@ -3678,10 +5289,10 @@ public:
 class TMsgMsAggregatedPrintShort : public TMessageSymbol
 {
 public:
-	TMsgMsAggregatedPrintShort(const char* symbol,
-		unsigned int price,
-		unsigned short size,
-		unsigned char flags):
+	TMsgMsAggregatedPrintShort(const char* const& symbol,
+		const unsigned int& price,
+		const unsigned short& size,
+		const unsigned char& flags):
 		TMessageSymbol(symbol, M_MS_AGGREGATED_PRINT_SHORT, sizeof(TMsgMsAggregatedPrintShort)),
 		m_price(price),
 		m_size(size),
@@ -3696,11 +5307,11 @@ public:
 class TMsgMsAggregatedPrintLong : public TMessageSymbol
 {
 public:
-	TMsgMsAggregatedPrintLong(const char* symbol,
-		unsigned int priceDollar,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned char flags):
+	TMsgMsAggregatedPrintLong(const char* const& symbol,
+		const unsigned int& priceDollar,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned char& flags):
 		TMessageSymbol(symbol, M_MS_AGGREGATED_PRINT_LONG, sizeof(TMsgMsAggregatedPrintLong)),
 		m_priceDollar(priceDollar),
 		m_priceFraction(priceFraction),
@@ -3713,36 +5324,14 @@ public:
 	unsigned int m_size;
 	unsigned char m_flags;
 };
-/*
-class TSmMsgMsTradeShort: public Message
-{
-public:
-	TSmMsgMsTradeShort(unsigned short symbol,
-		unsigned int price,
-		unsigned short size,
-		char saleCondition,
-		char marketCenter):
-		Message(SM_MS_TRADE_REPORT_SHORT, sizeof(TSmMsgMsTradeShort)),
-		m_symbol(symbol),
-		m_price(price),
-		m_size(size),
-		m_saleCondition(saleCondition),
-		m_marketCenterID(marketCenter)
-	{}
-	unsigned int m_price;//18 bits for dollar and 14 bits for 4 digits of fraction
-	unsigned short m_symbol;
-	unsigned short m_size;
-	char m_saleCondition;
-	char m_marketCenterID;
-};
-*/
+
 class TSmMsgMsAggregatedPrintShort : public Message
 {
 public:
-	TSmMsgMsAggregatedPrintShort(unsigned short symbol, 
-		unsigned int price,
-		unsigned short size,
-		unsigned char flags):
+	TSmMsgMsAggregatedPrintShort(const unsigned short& symbol, 
+		const unsigned int& price,
+		const unsigned short& size,
+		const unsigned char& flags):
 		Message(SM_MS_AGGREGATED_PRINT_SHORT, sizeof(TSmMsgMsAggregatedPrintShort)),
 		m_price(price),
 		m_size(size),
@@ -3759,11 +5348,11 @@ public:
 class TSmMsgMsAggregatedPrintLong : public Message
 {
 public:
-	TSmMsgMsAggregatedPrintLong(unsigned short symbol, 
-		unsigned int priceDollar,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned char flags):
+	TSmMsgMsAggregatedPrintLong(const unsigned short& symbol, 
+		const unsigned int& priceDollar,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned char& flags):
 		Message(SM_MS_AGGREGATED_PRINT_LONG, sizeof(TSmMsgMsAggregatedPrintLong)),
 		m_priceDollar(priceDollar),
 		m_priceFraction(priceFraction),
@@ -3788,15 +5377,15 @@ public:
     unsigned short m_splitDenominator;
 	char m_exDivDate[sizeof(unsigned int) + 1];
 protected:
-    TMsgDividendsAndSplitsBase(const char* symbol,
-		unsigned int time,
-		unsigned int dividendDollar,
-		unsigned int dividendFraction,
-	    unsigned short splitNumerator,
-		unsigned short splitDenominator,
-		unsigned int exDivDate,
-		unsigned short type,
-		unsigned short length):
+    TMsgDividendsAndSplitsBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& dividendDollar,
+		const unsigned int& dividendFraction,
+	    const unsigned short& splitNumerator,
+		const unsigned short& splitDenominator,
+		const unsigned int& exDivDate,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_dividendDollar(dividendDollar),
 		m_dividendFraction(dividendFraction),
@@ -3811,13 +5400,13 @@ protected:
 class TMsgDividendsAndSplits : public TMsgDividendsAndSplitsBase
 {
 public:
-    TMsgDividendsAndSplits(const char* symbol,
-		unsigned int time,
-		unsigned int dividendDollar,
-		unsigned int dividendFraction,
-	    unsigned short splitNumerator,
-		unsigned short splitDenominator,
-		unsigned int exDivDate):
+    TMsgDividendsAndSplits(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& dividendDollar,
+		const unsigned int& dividendFraction,
+	    const unsigned short& splitNumerator,
+		const unsigned short& splitDenominator,
+		const unsigned int& exDivDate):
 		TMsgDividendsAndSplitsBase(symbol,
 			time,
 			dividendDollar,
@@ -3833,13 +5422,13 @@ public:
 class TMsgMsDividendsAndSplits : public TMsgDividendsAndSplitsBase
 {
 public:
-    TMsgMsDividendsAndSplits(const char* symbol,
-		unsigned int time,
-		unsigned int dividendDollar,
-		unsigned int dividendFraction,
-	    unsigned short splitNumerator,
-		unsigned short splitDenominator,
-		unsigned int exDivDate):
+    TMsgMsDividendsAndSplits(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& dividendDollar,
+		const unsigned int& dividendFraction,
+	    const unsigned short& splitNumerator,
+		const unsigned short& splitDenominator,
+		const unsigned int& exDivDate):
 		TMsgDividendsAndSplitsBase(symbol,
 			time,
 			dividendDollar,
@@ -3858,12 +5447,12 @@ public:
 	unsigned int m_closePriceDollar;
 	unsigned int m_closePriceFraction;
 protected:
-    TMsgPreviousDayCloseBase(const char* symbol,
-		unsigned int time,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction,
-		unsigned short type,
-		unsigned short length):
+    TMsgPreviousDayCloseBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& closePriceDollar,
+		const unsigned int& closePriceFraction,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_closePriceDollar(closePriceDollar),
 		m_closePriceFraction(closePriceFraction)
@@ -3873,10 +5462,10 @@ protected:
 class TMsgPreviousDayClose : public TMsgPreviousDayCloseBase
 {
 public:
-    TMsgPreviousDayClose(const char* symbol,
-		unsigned int time,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction):
+    TMsgPreviousDayClose(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& closePriceDollar = 0,
+		const unsigned int& closePriceFraction = 0):
 		TMsgPreviousDayCloseBase(symbol,
 			time,
 			closePriceDollar,
@@ -3889,10 +5478,10 @@ public:
 class TMsgMsPreviousDayClose : public TMsgPreviousDayCloseBase
 {
 public:
-    TMsgMsPreviousDayClose(const char* symbol,
-		unsigned int time,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction):
+    TMsgMsPreviousDayClose(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& closePriceDollar = 0,
+		const unsigned int& closePriceFraction = 0):
 		TMsgPreviousDayCloseBase(symbol,
 			time,
 			closePriceDollar,
@@ -3914,84 +5503,838 @@ public:
 	TMsgMsResetImbalances():Message(M_MS_RESET_IMBALANCES, sizeof(TMsgMsResetImbalances)){}
 };
 
+
+////////
 class TMsgSymbolOrdinalValue : public TMessageSymbol
 {
 public:
-	unsigned short m_ordinal;
+	unsigned char m_ordinal;
 protected:
-	TMsgSymbolOrdinalValue(const char* symbol, unsigned short ordinal, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length), m_ordinal(ordinal){}
-	TMsgSymbolOrdinalValue(const unsigned __int64& symbol, unsigned short ordinal, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length), m_ordinal(ordinal){}
+	TMsgSymbolOrdinalValue(const char* const& symbol, const unsigned char& ordinal, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length), m_ordinal(ordinal){}
+	TMsgSymbolOrdinalValue(const unsigned __int64& symbol, const unsigned char& ordinal, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length), m_ordinal(ordinal){}
 };
 
 class TMsgSymbolOrdinalHtb : public TMsgSymbolOrdinalValue
 {
 public:
-//	bool m_htb;
 	unsigned char m_htb;
 protected:
-	TMsgSymbolOrdinalHtb(const char* symbol, unsigned short ordinal, unsigned char htb, unsigned short type, unsigned short length):TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_htb(htb){}
-	TMsgSymbolOrdinalHtb(const unsigned __int64& symbol, unsigned short ordinal, unsigned char htb, unsigned short type, unsigned short length):TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_htb(htb){}
-};
-
-class TMsgSymbolOrdinalPrice : public TMsgSymbolOrdinalValue
-{
-public:
-	Price m_price;
-protected:
-	TMsgSymbolOrdinalPrice(const char* symbol, unsigned short ordinal, const Price& price, unsigned short type, unsigned short length):TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_price(price){}
-	TMsgSymbolOrdinalPrice(const unsigned __int64& symbol, unsigned short ordinal, const Price& price, unsigned short type, unsigned short length):TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_price(price){}
-};
-
-class TMsgSymbolOrdinalStockLoanInfo : public TMsgSymbolOrdinalPrice
-{
-public:
-	unsigned int m_quantity;
-	unsigned char m_discountFlag;
-protected:
-	TMsgSymbolOrdinalStockLoanInfo(const char* symbol, unsigned short ordinal, const Price& price, unsigned int quantity, unsigned char discountFlag, unsigned short type, unsigned short length):TMsgSymbolOrdinalPrice(symbol, ordinal, price, type, length), m_quantity(quantity), m_discountFlag(discountFlag){}
-	TMsgSymbolOrdinalStockLoanInfo(const unsigned __int64& symbol, unsigned short ordinal, const Price& price, unsigned int quantity, unsigned char discountFlag, unsigned short type, unsigned short length):TMsgSymbolOrdinalPrice(symbol, ordinal, price, type, length), m_quantity(quantity),m_discountFlag(discountFlag){}
+	TMsgSymbolOrdinalHtb(const char* const& symbol, const unsigned char& ordinal, const unsigned char& htb, const unsigned short& type, const unsigned short& length):TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_htb(htb){}
+	TMsgSymbolOrdinalHtb(const unsigned __int64& symbol, const unsigned char& ordinal, const unsigned char& htb, const unsigned short& type, const unsigned short& length):TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_htb(htb){}
 };
 
 class TMsgStockHtb : public TMsgSymbolOrdinalHtb
 {
 public:
-	TMsgStockHtb(const char* symbol, unsigned short ordinal, unsigned char htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_STOCK_HTB, sizeof(TMsgStockHtb)){}
-	TMsgStockHtb(const unsigned __int64& symbol, unsigned short ordinal, unsigned char htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_STOCK_HTB, sizeof(TMsgStockHtb)){}
+	TMsgStockHtb(const char* const& symbol, const unsigned char& ordinal, const unsigned char& htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_STOCK_HTB, sizeof(TMsgStockHtb)){}
+	TMsgStockHtb(const unsigned __int64& symbol, const unsigned char& ordinal, const unsigned char& htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_STOCK_HTB, sizeof(TMsgStockHtb)){}
 };
 
 class TMsgEquityHtb : public TMsgSymbolOrdinalHtb
 {
 public:
-	TMsgEquityHtb(const char* symbol, unsigned short ordinal, unsigned char htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_EQUITY_HTB, sizeof(TMsgEquityHtb)){}
-	TMsgEquityHtb(const unsigned __int64& symbol, unsigned short ordinal, unsigned char htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_EQUITY_HTB, sizeof(TMsgEquityHtb)){}
+	TMsgEquityHtb(const char* const& symbol, const unsigned char& ordinal, const unsigned char& htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_EQUITY_HTB, sizeof(TMsgEquityHtb)){}
+	TMsgEquityHtb(const unsigned __int64& symbol, const unsigned char& ordinal, const unsigned char& htb):TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_EQUITY_HTB, sizeof(TMsgEquityHtb)){}
+};
+/*
+class TMsgSymbolOrdinalPrice : public TMsgSymbolOrdinalValue
+{
+public:
+	unsigned int m_compactPrice;
+protected:
+	TMsgSymbolOrdinalPrice(const char* const& symbol, const unsigned char& ordinal, const unsigned int& price, const unsigned short& type, const unsigned short& length) :TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_compactPrice(price) {}
+	TMsgSymbolOrdinalPrice(const unsigned __int64& symbol, const unsigned char& ordinal, const unsigned int& price, const unsigned short& type, const unsigned short& length) :TMsgSymbolOrdinalValue(symbol, ordinal, type, length), m_compactPrice(price) {}
+};
+*/
+
+class TMsgSymbolOrdinalBetaAndRetailInfo : public TMsgSymbolOrdinalValue//TMsgSymbolOrdinalPrice
+{
+public:
+//	unsigned int m_compactPrice;
+//	unsigned int m_quantity;
+//	unsigned char m_discountFlag;
+//	unsigned char m_htb;
+
+//07/02/2019
+	unsigned char m_PM_EL_Rate;
+	unsigned char m_PM_ES_Rate;
+	unsigned char m_PM_HL_Rate;
+	unsigned char m_PM_HS_Rate;
+	unsigned char m_EL_Rate;
+	unsigned char m_ES_Rate;
+	unsigned char m_HL_Rate;
+	unsigned char m_HS_Rate;
+	unsigned char m_Fed_Req;
+	unsigned char m_Asset_Type;
+	bool m_Marginable;
+	unsigned char m_Sec_Type;
+	unsigned char m_Status;
+
+	unsigned char m_margin;
+	int m_compactBeta;
+
+protected:
+	TMsgSymbolOrdinalBetaAndRetailInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+
+		const unsigned char& margin,
+		const int& compactBeta,
+
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgSymbolOrdinalValue(symbol, ordinal, type, length),
+		m_PM_EL_Rate(PM_EL_Rate),
+		m_PM_ES_Rate(PM_ES_Rate),
+		m_PM_HL_Rate(PM_HL_Rate),
+		m_PM_HS_Rate(PM_HS_Rate),
+		m_EL_Rate(EL_Rate),
+		m_ES_Rate(ES_Rate),
+		m_HL_Rate(HL_Rate),
+		m_HS_Rate(HS_Rate),
+		m_Fed_Req(Fed_Req),
+		m_Asset_Type(Asset_Type),
+		m_Marginable(Marginable),
+		m_Sec_Type(Sec_Type),
+		m_Status(Status),
+		m_margin(margin),
+		m_compactBeta(compactBeta)
+	{}
+	TMsgSymbolOrdinalBetaAndRetailInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+
+		const unsigned char& margin,
+		const int& compactBeta,
+
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgSymbolOrdinalValue(symbol, ordinal, type, length),
+//		TMsgSymbolOrdinalPrice(symbol, ordinal, price, type, length),
+		m_PM_EL_Rate(PM_EL_Rate),
+		m_PM_ES_Rate(PM_ES_Rate),
+		m_PM_HL_Rate(PM_HL_Rate),
+		m_PM_HS_Rate(PM_HS_Rate),
+		m_EL_Rate(EL_Rate),
+		m_ES_Rate(ES_Rate),
+		m_HL_Rate(HL_Rate),
+		m_HS_Rate(HS_Rate),
+		m_Fed_Req(Fed_Req),
+		m_Asset_Type(Asset_Type),
+		m_Marginable(Marginable),
+		m_Sec_Type(Sec_Type),
+		m_Status(Status),
+		m_margin(margin),
+		m_compactBeta(compactBeta)
+	{}
+};
+
+//////
+class TMsgStockBetaAndRetailInfo : public TMsgSymbolOrdinalBetaAndRetailInfo
+{
+public:
+	TMsgStockBetaAndRetailInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+		const unsigned char& margin,
+		const int& compactBeta):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol,
+			ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			TM_STOCK_BETA_AND_RETAIL_INFO,
+			sizeof(TMsgStockBetaAndRetailInfo))
+	{}
+	TMsgStockBetaAndRetailInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+		const unsigned char& margin,
+		const int& compactBeta):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol,
+			ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			TM_STOCK_BETA_AND_RETAIL_INFO,
+			sizeof(TMsgStockBetaAndRetailInfo))
+	{}
+};
+
+class TMsgEquityBetaAndRetailInfo : public TMsgSymbolOrdinalBetaAndRetailInfo
+{
+public:
+	TMsgEquityBetaAndRetailInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+		const unsigned char& margin,
+		const int& compactBeta):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol,
+			ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			TM_EQUITY_BETA_AND_RETAIL_INFO,
+			sizeof(TMsgEquityBetaAndRetailInfo))
+	{}
+	TMsgEquityBetaAndRetailInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+		const unsigned char& margin,
+		const int& compactBeta):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol,
+			ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			TM_EQUITY_BETA_AND_RETAIL_INFO,
+			sizeof(TMsgEquityBetaAndRetailInfo))
+	{}
+};
+
+class TMsgPositionBetaAndRetailInfo : public TMsgSymbolOrdinalBetaAndRetailInfo
+{
+public:
+	TMsgPositionBetaAndRetailInfo(const char* const& accountId,
+		const char* const& symbol,
+		const unsigned char& ordinal,
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+		const unsigned char& margin,
+		const int& compactBeta):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol,
+			ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			TM_POSITION_BETA_AND_RETAIL_INFO,
+			sizeof(TMsgPositionBetaAndRetailInfo))
+	{
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
+	}
+	TMsgPositionBetaAndRetailInfo(const char* const& accountId,
+		const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+		const unsigned char& margin,
+		const int& compactBeta):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol,
+			ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			TM_POSITION_BETA_AND_RETAIL_INFO,
+			sizeof(TMsgPositionBetaAndRetailInfo))
+	{
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
+	}
+	char m_accountId[MAX_ACCOUNT_SIZE];
+};
+
+//////
+
+class TMsgSymbolOrdinalBorrowInfo : public TMsgSymbolOrdinalValue//07/02/2019
+{
+public:
+//	unsigned char m_htb;
+	unsigned char m_discountFlag;
+	unsigned int m_compactPrice;
+	unsigned int m_quantity;
+protected:
+	TMsgSymbolOrdinalBorrowInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgSymbolOrdinalValue(symbol, ordinal, type, length),
+//		m_htb(htb),
+		m_discountFlag(discountFlag),
+		m_compactPrice(price),
+		m_quantity(quantity)
+	{}
+	TMsgSymbolOrdinalBorrowInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgSymbolOrdinalValue(symbol, ordinal, type, length),
+//		m_htb(htb),
+		m_discountFlag(discountFlag),
+		m_compactPrice(price),
+		m_quantity(quantity)
+	{}
+};
+////
+class TMsgStockBorrowInfo : public TMsgSymbolOrdinalBorrowInfo
+{
+public:
+	TMsgStockBorrowInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity):
+		TMsgSymbolOrdinalBorrowInfo(symbol,
+			ordinal,
+//			htb,
+			discountFlag,
+			price,
+			quantity,
+			TM_STOCK_BORROW_INFO,
+			sizeof(TMsgStockBorrowInfo))
+	{}
+	TMsgStockBorrowInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity):
+		TMsgSymbolOrdinalBorrowInfo(symbol,
+			ordinal,
+//			htb,
+			discountFlag,
+			price,
+			quantity,
+			TM_STOCK_BORROW_INFO,
+			sizeof(TMsgStockBorrowInfo))
+	{}
+};
+
+class TMsgEquityBorrowInfo : public TMsgSymbolOrdinalBorrowInfo
+{
+public:
+	TMsgEquityBorrowInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity):
+		TMsgSymbolOrdinalBorrowInfo(symbol,
+			ordinal,
+//			htb,
+			discountFlag,
+			price,
+			quantity,
+			TM_EQUITY_BORROW_INFO,
+			sizeof(TMsgEquityBorrowInfo))
+	{}
+	TMsgEquityBorrowInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity):
+		TMsgSymbolOrdinalBorrowInfo(symbol,
+			ordinal,
+//			htb,
+			discountFlag,
+			price,
+			quantity,
+			TM_EQUITY_BORROW_INFO,
+			sizeof(TMsgEquityBorrowInfo))
+	{}
+};
+
+class TMsgPositionBorrowInfo : public TMsgSymbolOrdinalBorrowInfo
+{
+public:
+	TMsgPositionBorrowInfo(const char* const& accountId,
+		const char* const& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity):
+		TMsgSymbolOrdinalBorrowInfo(symbol,
+			ordinal,
+//			htb,
+			discountFlag,
+			price,
+			quantity,
+			TM_POSITION_BORROW_INFO,
+			sizeof(TMsgPositionBorrowInfo))
+	{
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
+	}
+	TMsgPositionBorrowInfo(const char* const& accountId,
+		const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+//		const unsigned char& htb,
+		const unsigned char& discountFlag,
+		const unsigned int& price,
+		const unsigned int& quantity):
+		TMsgSymbolOrdinalBorrowInfo(symbol,
+			ordinal,
+//			htb,
+			discountFlag,
+			price,
+			quantity,
+			TM_POSITION_BORROW_INFO,
+			sizeof(TMsgPositionBorrowInfo))
+	{
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
+	}
+	char m_accountId[MAX_ACCOUNT_SIZE];
+};
+
+////
+class TMsgSymbolOrdinalStockLoanInfo : public TMsgSymbolOrdinalBetaAndRetailInfo//TMsgSymbolOrdinalPrice//07/02/2019
+{
+public:
+	unsigned char m_htb;
+	unsigned char m_discountFlag;
+	unsigned int m_compactPrice;
+	unsigned int m_quantity;
+protected:
+	TMsgSymbolOrdinalStockLoanInfo(const char* const& symbol,
+		const unsigned char& ordinal,
+		const unsigned int& price,
+		const unsigned int& quantity,
+		const unsigned char& discountFlag,
+		const int& compactBeta,
+		const unsigned char& margin,
+		const unsigned char& htb,
+
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol, ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			type, length),
+//		TMsgSymbolOrdinalPrice(symbol, ordinal, price, type, length),
+		m_htb(htb),
+		m_discountFlag(discountFlag),
+		m_compactPrice(price),
+		m_quantity(quantity)
+	{}
+	TMsgSymbolOrdinalStockLoanInfo(const unsigned __int64& symbol,
+		const unsigned char& ordinal,
+		const unsigned int& price,
+		const unsigned int& quantity,
+		const unsigned char& discountFlag,
+		const int& compactBeta,
+		const unsigned char& margin,
+		const unsigned char& htb,
+
+		const unsigned char& PM_EL_Rate,
+		const unsigned char& PM_ES_Rate,
+		const unsigned char& PM_HL_Rate,
+		const unsigned char& PM_HS_Rate,
+		const unsigned char& EL_Rate,
+		const unsigned char& ES_Rate,
+		const unsigned char& HL_Rate,
+		const unsigned char& HS_Rate,
+		const unsigned char& Fed_Req,
+		const unsigned char& Asset_Type,
+		const bool& Marginable,
+		const unsigned char& Sec_Type,
+		const unsigned char& Status,
+
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgSymbolOrdinalBetaAndRetailInfo(symbol, ordinal,
+			PM_EL_Rate,
+			PM_ES_Rate,
+			PM_HL_Rate,
+			PM_HS_Rate,
+			EL_Rate,
+			ES_Rate,
+			HL_Rate,
+			HS_Rate,
+			Fed_Req,
+			Asset_Type,
+			Marginable,
+			Sec_Type,
+			Status,
+			margin,
+			compactBeta,
+			type, length),
+//		TMsgSymbolOrdinalPrice(symbol, ordinal, price, type, length),
+		m_htb(htb),
+		m_discountFlag(discountFlag),
+		m_compactPrice(price),
+		m_quantity(quantity)
+	{}
 };
 
 class TMsgStockBorrowPrice : public TMsgSymbolOrdinalStockLoanInfo
 {
 public:
-	TMsgStockBorrowPrice(const char* symbol, unsigned short ordinal, const StockLoanInfo& price):TMsgSymbolOrdinalStockLoanInfo(symbol, ordinal, price, price.GetQuantity(), price.GetDiscountFlag(), TM_STOCK_BORROW_PRICE, sizeof(TMsgStockBorrowPrice)){}
-	TMsgStockBorrowPrice(const unsigned __int64& symbol, unsigned short ordinal, const StockLoanInfo& price):TMsgSymbolOrdinalStockLoanInfo(symbol, ordinal, price, price.GetQuantity(), price.GetDiscountFlag(), TM_STOCK_BORROW_PRICE, sizeof(TMsgStockBorrowPrice)){}
+	TMsgStockBorrowPrice(const char* const& symbol, const unsigned char& ordinal, const StockLoanInfo& price) :
+		TMsgSymbolOrdinalStockLoanInfo(symbol,
+			ordinal,
+			price.GetCompactBorrowPrice(),
+			price.GetAvailableQuantity(),
+			price.GetDiscountFlag(),
+			price.GetCompactBeta(),
+			price.GetMargin(),
+			price.GetHTB(),
+			price.GetPmElRate(),
+			price.GetPmEsRate(),
+			price.GetPmHlRate(),
+			price.GetPmHsRate(),
+			price.GetElRate(),
+			price.GetEsRate(),
+			price.GetHlRate(),
+			price.GetHsRate(),
+			price.GetFedReq(),
+			price.GetAssetType(),
+			price.isMarginable(),
+			price.GetSecType(),
+			price.GetStatus(),
+
+			TM_STOCK_BORROW_PRICE,
+			sizeof(TMsgStockBorrowPrice))
+	{}
+	TMsgStockBorrowPrice(const unsigned __int64& symbol, const unsigned char& ordinal, const StockLoanInfo& price):
+		TMsgSymbolOrdinalStockLoanInfo(symbol,
+			ordinal,
+			price.GetCompactBorrowPrice(),
+			price.GetAvailableQuantity(),
+			price.GetDiscountFlag(),
+			price.GetCompactBeta(),
+			price.GetMargin(),
+			price.GetHTB(),
+			price.GetPmElRate(),
+			price.GetPmEsRate(),
+			price.GetPmHlRate(),
+			price.GetPmHsRate(),
+			price.GetElRate(),
+			price.GetEsRate(),
+			price.GetHlRate(),
+			price.GetHsRate(),
+			price.GetFedReq(),
+			price.GetAssetType(),
+			price.isMarginable(),
+			price.GetSecType(),
+			price.GetStatus(),
+
+			TM_STOCK_BORROW_PRICE,
+			sizeof(TMsgStockBorrowPrice))
+	{}
 };
 
 class TMsgEquityBorrowPrice : public TMsgSymbolOrdinalStockLoanInfo
 {
 public:
-	TMsgEquityBorrowPrice(const char* symbol, unsigned short ordinal, const StockLoanInfo& price):TMsgSymbolOrdinalStockLoanInfo(symbol, ordinal, price, price.GetQuantity(), price.GetDiscountFlag(), TM_EQUITY_BORROW_PRICE, sizeof(TMsgEquityBorrowPrice)){}
-	TMsgEquityBorrowPrice(const unsigned __int64& symbol, unsigned short ordinal, const StockLoanInfo& price):TMsgSymbolOrdinalStockLoanInfo(symbol, ordinal, price, price.GetQuantity(), price.GetDiscountFlag(), TM_EQUITY_BORROW_PRICE, sizeof(TMsgEquityBorrowPrice)){}
+	TMsgEquityBorrowPrice(const char* const& symbol, const unsigned char& ordinal, const StockLoanInfo& price):
+		TMsgSymbolOrdinalStockLoanInfo(symbol,
+			ordinal,
+			price.GetCompactBorrowPrice(),
+			price.GetAvailableQuantity(),
+			price.GetDiscountFlag(),
+			price.GetCompactBeta(),
+			price.GetMargin(),
+			price.GetHTB(),
+
+			price.GetPmElRate(),
+			price.GetPmEsRate(),
+			price.GetPmHlRate(),
+			price.GetPmHsRate(),
+			price.GetElRate(),
+			price.GetEsRate(),
+			price.GetHlRate(),
+			price.GetHsRate(),
+			price.GetFedReq(),
+			price.GetAssetType(),
+			price.isMarginable(),
+			price.GetSecType(),
+			price.GetStatus(),
+
+			TM_EQUITY_BORROW_PRICE,
+			sizeof(TMsgEquityBorrowPrice))
+	{}
+	TMsgEquityBorrowPrice(const unsigned __int64& symbol, const unsigned char& ordinal, const StockLoanInfo& price):
+		TMsgSymbolOrdinalStockLoanInfo(symbol,
+			ordinal,
+			price.GetCompactBorrowPrice(),
+			price.GetAvailableQuantity(),
+			price.GetDiscountFlag(),
+			price.GetCompactBeta(),
+			price.GetMargin(),
+			price.GetHTB(),
+
+			price.GetPmElRate(),
+			price.GetPmEsRate(),
+			price.GetPmHlRate(),
+			price.GetPmHsRate(),
+			price.GetElRate(),
+			price.GetEsRate(),
+			price.GetHlRate(),
+			price.GetHsRate(),
+			price.GetFedReq(),
+			price.GetAssetType(),
+			price.isMarginable(),
+			price.GetSecType(),
+			price.GetStatus(),
+
+			TM_EQUITY_BORROW_PRICE,
+			sizeof(TMsgEquityBorrowPrice))
+	{}
 };
 
 class TMsgPositionBorrowPrice : public TMsgSymbolOrdinalStockLoanInfo
 {
 public:
-	TMsgPositionBorrowPrice(const char* accountId, const char* symbol, unsigned short ordinal, const StockLoanInfo& price):
-		TMsgSymbolOrdinalStockLoanInfo(symbol, ordinal, price, price.GetQuantity(), price.GetDiscountFlag(), TM_POSITION_BORROW_PRICE, sizeof(TMsgPositionBorrowPrice))
+	TMsgPositionBorrowPrice(const char* const& accountId, const char* const& symbol, const unsigned char& ordinal, const StockLoanInfo& price):
+		TMsgSymbolOrdinalStockLoanInfo(symbol,
+			ordinal,
+			price.GetCompactBorrowPrice(),
+			price.GetAvailableQuantity(),
+			price.GetDiscountFlag(),
+			price.GetCompactBeta(),
+			price.GetMargin(),
+			price.GetHTB(),
+
+			price.GetPmElRate(),
+			price.GetPmEsRate(),
+			price.GetPmHlRate(),
+			price.GetPmHsRate(),
+			price.GetElRate(),
+			price.GetEsRate(),
+			price.GetHlRate(),
+			price.GetHsRate(),
+			price.GetFedReq(),
+			price.GetAssetType(),
+			price.isMarginable(),
+			price.GetSecType(),
+			price.GetStatus(),
+
+			TM_POSITION_BORROW_PRICE,
+			sizeof(TMsgPositionBorrowPrice))
 	{
-		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0');
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
 	}
-	TMsgPositionBorrowPrice(const char* accountId, const unsigned __int64& symbol, unsigned short ordinal, const StockLoanInfo& price):
-		TMsgSymbolOrdinalStockLoanInfo(symbol, ordinal, price, price.GetQuantity(), price.GetDiscountFlag(), TM_POSITION_BORROW_PRICE, sizeof(TMsgPositionBorrowPrice))
+	TMsgPositionBorrowPrice(const char* const& accountId, const unsigned __int64& symbol, const unsigned char& ordinal, const StockLoanInfo& price):
+		TMsgSymbolOrdinalStockLoanInfo(symbol,
+			ordinal,
+			price.GetCompactBorrowPrice(),
+			price.GetAvailableQuantity(),
+			price.GetDiscountFlag(),
+			price.GetCompactBeta(),
+			price.GetMargin(),
+			price.GetHTB(),
+
+			price.GetPmElRate(),
+			price.GetPmEsRate(),
+			price.GetPmHlRate(),
+			price.GetPmHsRate(),
+			price.GetElRate(),
+			price.GetEsRate(),
+			price.GetHlRate(),
+			price.GetHsRate(),
+			price.GetFedReq(),
+			price.GetAssetType(),
+			price.isMarginable(),
+			price.GetSecType(),
+			price.GetStatus(),
+
+			TM_POSITION_BORROW_PRICE,
+			sizeof(TMsgPositionBorrowPrice))
 	{
-		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0');
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
 	}
 	char m_accountId[MAX_ACCOUNT_SIZE];
 };
@@ -3999,31 +6342,113 @@ public:
 class TMsgPositionHtb : public TMsgSymbolOrdinalHtb
 {
 public:
-	TMsgPositionHtb(const char* accountId, const char* symbol, unsigned short ordinal, unsigned char htb):
+	TMsgPositionHtb(const char* const& accountId, const char* const& symbol, const unsigned char& ordinal, const unsigned char& htb):
 		TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_POSITION_HTB, sizeof(TMsgPositionHtb))
 	{
-		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0');
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
 	}
-	TMsgPositionHtb(const char* accountId, const unsigned __int64& symbol, unsigned short ordinal, unsigned char htb):
+	TMsgPositionHtb(const char* const& accountId, const unsigned __int64& symbol, const unsigned char& ordinal, const unsigned char& htb):
 		TMsgSymbolOrdinalHtb(symbol, ordinal, htb, TM_POSITION_HTB, sizeof(TMsgPositionHtb))
 	{
-		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0');
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountId, '\0', true);
 	}
 	char m_accountId[MAX_ACCOUNT_SIZE];
+};
+////////
+
+enum InventoryNotify : unsigned char
+{
+	IN_NONE,
+	IN_NOTIFY,
+	IN_NOTIFY_AND_LEAVE,
+};
+
+class InventoryNode
+{
+public:
+	InventoryNode(const unsigned __int64& symbol = 0,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionBlock = 0,
+		const unsigned char& suffix = 0,
+#endif
+		const bool& inventoryFloating = false,
+		const int& inventorySize = 0,
+		const Price& inventoryCost = Price::priceZero):
+		m_symbol(symbol),
+#ifndef TAKION_NO_OPTIONS
+		m_optionBlock(optionBlock),
+		m_suffix(suffix),
+#endif
+		m_inventoryFloating(inventoryFloating),
+		m_inventorySize(inventorySize),
+		m_inventoryCost(inventoryCost)
+	{}
+	unsigned __int64 m_symbol;
+#ifndef TAKION_NO_OPTIONS
+	unsigned __int64 m_optionBlock;
+	unsigned char m_suffix;
+#endif
+	bool m_inventoryFloating;
+	int m_inventorySize;
+	Price m_inventoryCost;
+};
+
+class TMsgInventory : public TMsgAccountObject
+{
+public:
+	TMsgInventory(const char* const& accountName = "",
+		const unsigned char& notifyLayout = 0,
+		const unsigned char& securityTypeHidden = 0,
+		const bool allPositions = false,
+		const int& size = 0,
+		const unsigned short& nodes = 0):
+		TMsgAccountObject(accountName, TM_ACCOUNT_COMMAND_INVENTORY, sizeof(TMsgInventory) + nodes * sizeof(InventoryNode)),
+		m_notifyLayout(notifyLayout),
+		m_securityTypeHidden(securityTypeHidden),
+		m_allPositions(allPositions),
+		m_size(size)
+	{}
+	unsigned char m_notifyLayout;
+	unsigned char m_securityTypeHidden;
+	bool m_allPositions;
+//	bool m_remove;//has a meaning only if it is applied to the whole account - no InventoryNode's follow.
+	int m_size;//has a meaning only if it is applied to the whole account - no InventoryNode's follow.
+// Followed by InventoryNode's.
+};
+
+class TMsgPositionCost : public TMsgAccountPositionObject
+{
+public:
+	TMsgPositionCost(const char* const& accountName = "", const unsigned __int64& symbol = 0,//const char* symbol,
+		const Price& cost = Price::priceZero
+//		unsigned char securityType
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock = 0
+#endif
+		):
+		TMsgAccountPositionObject(accountName, symbol,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_POSITION_COST, sizeof(TMsgPositionCost)),
+		m_price(cost)
+	{
+	}
+	Price m_price;
 };
 
 
 class TMsgStockResetImbalances : public TMessageSymbol
 {
 public:
-	TMsgStockResetImbalances(const char* symbol):TMessageSymbol(symbol, TM_STOCK_RESET_IMBALANCES, sizeof(TMsgStockResetImbalances)){}
+	TMsgStockResetImbalances(const char* const& symbol):TMessageSymbol(symbol, TM_STOCK_RESET_IMBALANCES, sizeof(TMsgStockResetImbalances)){}
 	TMsgStockResetImbalances(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_RESET_IMBALANCES, sizeof(TMsgStockResetImbalances)){}
 };
 
 class TMsgEquityResetImbalances : public TMessageSymbol
 {
 public:
-	TMsgEquityResetImbalances(const char* symbol):TMessageSymbol(symbol, TM_EQUITY_RESET_IMBALANCES, sizeof(TMsgEquityResetImbalances)){}
+	TMsgEquityResetImbalances(const char* const& symbol):TMessageSymbol(symbol, TM_EQUITY_RESET_IMBALANCES, sizeof(TMsgEquityResetImbalances)){}
 	TMsgEquityResetImbalances(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_EQUITY_RESET_IMBALANCES, sizeof(TMsgEquityResetImbalances)){}
 };
 
@@ -4031,8 +6456,9 @@ public:
 class TMsgEquityChartLoaded : public TMessageSymbol
 {
 public:
-	TMsgEquityChartLoaded(const char* symbol):TMessageSymbol(symbol, TM_EQUITY_CHART_LOADED, sizeof(TMsgEquityChartLoaded)){}
-	TMsgEquityChartLoaded(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_EQUITY_CHART_LOADED, sizeof(TMsgEquityChartLoaded)){}
+	TMsgEquityChartLoaded(const char* const& symbol, const bool& chartReloaded):TMessageSymbol(symbol, TM_EQUITY_CHART_LOADED, sizeof(TMsgEquityChartLoaded)), m_chartReloaded(chartReloaded){}
+	TMsgEquityChartLoaded(const unsigned __int64& symbol, const bool& chartReloaded):TMessageSymbol(symbol, TM_EQUITY_CHART_LOADED, sizeof(TMsgEquityChartLoaded)), m_chartReloaded(chartReloaded){}
+	bool m_chartReloaded;
 };
 
 class TMsgSymbolRequestDone : public TMessageSymbol
@@ -4041,37 +6467,10 @@ public:
 	unsigned int m_requestId;
 	bool m_failed;
 protected:
-	TMsgSymbolRequestDone(const char* symbol, unsigned int requestId, bool failed, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length), m_requestId(requestId), m_failed(failed){}
-	TMsgSymbolRequestDone(const unsigned __int64& symbol, unsigned int requestId, bool failed, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length), m_requestId(requestId), m_failed(failed){}
-};
-/*
-class TMsgEquityHistoricalChartLoaded : public TMsgSymbolRequestDone
-{
-public:
-	TMsgEquityHistoricalChartLoaded(const char* symbol, unsigned int requestId, bool failed):TMsgSymbolRequestDone(symbol, requestId, failed, TM_EQUITY_HISTORICAL_CHART_LOADED, sizeof(TMsgEquityHistoricalChartLoaded)){}
-	TMsgEquityHistoricalChartLoaded(const unsigned __int64& symbol, unsigned int requestId, bool failed):TMsgSymbolRequestDone(symbol, requestId, failed, TM_EQUITY_HISTORICAL_CHART_LOADED, sizeof(TMsgEquityHistoricalChartLoaded)){}
+	TMsgSymbolRequestDone(const char* const& symbol, const unsigned int& requestId, const bool& failed, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length), m_requestId(requestId), m_failed(failed){}
+	TMsgSymbolRequestDone(const unsigned __int64& symbol, const unsigned int& requestId, const bool& failed, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length), m_requestId(requestId), m_failed(failed){}
 };
 
-class TMsgEquityHistoricalIntradayChartLoaded : public TMsgSymbolRequestDone
-{
-public:
-	TMsgEquityHistoricalIntradayChartLoaded(const char* symbol, unsigned int requestId, bool failed):TMsgSymbolRequestDone(symbol, requestId, failed, TM_EQUITY_HISTORICAL_INTRADAY_CHART_LOADED, sizeof(TMsgEquityHistoricalChartLoaded)){}
-	TMsgEquityHistoricalIntradayChartLoaded(const unsigned __int64& symbol, unsigned int requestId, bool failed):TMsgSymbolRequestDone(symbol, requestId, failed, TM_EQUITY_HISTORICAL_INTRADAY_CHART_LOADED, sizeof(TMsgEquityHistoricalChartLoaded)){}
-};
-*/
-/*
-enum BookID : unsigned char
-{
-	NasdaqItch		= 0x01,
-	NyseArca		= 0x02,
-	BATSBook		= 0x03,
-	EDGABook		= 0x04,
-	EDGXBook		= 0x05,
-	UQDFCQSBook		= 0x06,
-
-	AllBooks		= 0xff,
-};
-*/
 enum StockRefreshSteps : unsigned char
 {
 	SRS_DESCRIPTION = 1 << 0,
@@ -4092,13 +6491,13 @@ enum StockRefreshStatus : unsigned char
 class TMsgRespRefreshSymbol : public Message
 {
 public:
-	TMsgRespRefreshSymbol(unsigned short dataSize,
-		unsigned int requestId,
-		const char* symbol,
-		unsigned char steps,
-		unsigned char flags,
-		unsigned char bookID,
-		char marketStatus):
+	TMsgRespRefreshSymbol(const unsigned short& dataSize = 0,
+		const unsigned int& requestId = 0,
+		const char* const& symbol = "",
+		const unsigned char& steps = 0,
+		const unsigned char& flags = 0,
+		const unsigned char& bookID = 0,
+		const char& marketStatus = 0):
 		Message(M_RESP_REFRESH_SYMBOL, dataSize),
 		m_requestID(requestId),
 		m_steps(steps),
@@ -4116,10 +6515,116 @@ public:
 	char m_marketStatus;
 };
 
+class TMsgSnapshot : public TMessageTimeSymbol
+{
+public:
+	TMsgSnapshot(const char* const& symbol,
+		const unsigned int& time = 0,
+
+		const unsigned int& bidDollar = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollar = 0,
+		const unsigned int& askFraction = 0,
+/*
+		const unsigned int& lastDollar = 0,
+		const unsigned int& lastFraction = 0,
+		const unsigned int& lowDollar = 0,
+		const unsigned int& lowFraction = 0,
+		const unsigned int& highDollar = 0,
+		const unsigned int& highFraction = 0,
+		const unsigned __int64& volume = 0,
+*/
+		const unsigned long& bidSize = 0,
+		const unsigned long& askSize = 0,
+//		const unsigned long& lastSize = 0,
+//		const unsigned int& lastTime = 0,
+
+		const char& bidMarketCenter = 0,
+		const char& askMarketCenter = 0,
+//		const char& lastMarketCenter = 0,
+		const char& quoteCondition = 0,
+
+		const unsigned char& quoteNodeSize = 0,
+//		const unsigned char& printNodeSize = 0,
+		const unsigned char& bidQuoteCount = 0,
+		const unsigned char& askQuoteCount = 0):
+//		const unsigned char& printCount = 0):
+
+		TMessageTimeSymbol(symbol, time, M_SNAPSHOT, sizeof(TMsgSnapshot) + ((unsigned short)bidQuoteCount + (unsigned short)askQuoteCount) * quoteNodeSize),// + (unsigned short)printCount * printNodeSize),
+
+		m_bidDollar(bidDollar),
+		m_bidFraction(bidFraction),
+		m_askDollar(askDollar),
+		m_askFraction(askFraction),
+/*
+		m_lastDollar(lastDollar),
+		m_lastFraction(lastFraction),
+		m_lowDollar(lowDollar),
+		m_lowFraction(lowFraction),
+		m_highDollar(highDollar),
+		m_highFraction(highFraction),
+		m_volume(volume),
+*/
+		m_bidSize(bidSize),
+		m_askSize(askSize),
+//		m_lastSize(lastSize),
+//		m_lastTime(lastTime),
+
+		m_bidMarketCenter(bidMarketCenter),
+		m_askMarketCenter(askMarketCenter),
+//		m_lastMarketCenter(lastMarketCenter),
+		m_quoteCondition(quoteCondition),
+
+		m_quoteNodeSize(quoteNodeSize),
+//		m_printNodeSize(printNodeSize),
+		m_bidQuoteCount(bidQuoteCount),
+		m_askQuoteCount(askQuoteCount),
+//		m_printCount(printCount),
+		m_reserved1(0),
+		m_quotesOffset(sizeof(TMsgSnapshot))
+	{}
+
+//	unsigned int					m_time;
+//	Symbol							m_symbol;
+
+	unsigned int m_bidDollar;
+	unsigned int m_bidFraction;
+	unsigned int m_askDollar;
+	unsigned int m_askFraction;
+/*
+	unsigned int m_lastDollar;
+	unsigned int m_lastFraction;
+	unsigned int m_lowDollar;
+	unsigned int m_lowFraction;
+	unsigned int m_highDollar;
+	unsigned int m_highFraction;
+
+	unsigned __int64 m_volume;
+*/
+	unsigned long m_bidSize;
+	unsigned long m_askSize;
+//	unsigned long m_lastSize;
+//	unsigned int m_lastTime;
+
+	char m_bidMarketCenter;
+	char m_askMarketCenter;
+//	char m_lastMarketCenter;
+	char m_quoteCondition;
+
+	unsigned char m_quoteNodeSize;//BYTE
+//	unsigned char m_printNodeSize;//BYTE
+	unsigned char m_bidQuoteCount;//BYTE
+	unsigned char m_askQuoteCount;//BYTE
+//	unsigned char m_printCount;
+
+	unsigned char m_reserved1;//char
+	unsigned char m_quotesOffset;//uint16_t
+};
+
 class TMsgIndexValue : public TMessageSymbol
 {
 public:
-	TMsgIndexValue(const char* symbol, int whole, int fraction):
+	TMsgIndexValue(const char* const& symbol, const int& whole, const int& fraction):
 		TMessageSymbol(symbol, M_INDEX, sizeof(TMsgIndexValue)),
 		m_whole(whole),
 		m_fraction(fraction)
@@ -4131,11 +6636,11 @@ public:
 class TMsgReqRefreshIndex : public TMessageSymbol
 {
 public:
-	TMsgReqRefreshIndex(const char* symbol, unsigned char flags = SubscribeSymbol, unsigned char blockSize = 1, unsigned int requestID = 0):
-		TMessageSymbol(symbol, M_REQ_REFRESH_INDEX, sizeof(TMsgReqRefreshIndex))
-		, m_flags(flags)
-		, m_blockSize(blockSize)
-		, m_requestID(requestID)
+	TMsgReqRefreshIndex(const char* const& symbol, const unsigned char& flags = SubscribeSymbol, const unsigned char& blockSize = 1, const unsigned int& requestID = 0):
+		TMessageSymbol(symbol, M_REQ_REFRESH_INDEX, sizeof(TMsgReqRefreshIndex)),
+		m_flags(flags),
+		m_blockSize(blockSize),
+		m_requestID(requestID)
 	{}
     unsigned char m_flags;
     unsigned char m_blockSize;
@@ -4145,69 +6650,63 @@ public:
 class TMsgRespRefreshIndex : public Message
 {
 public:
-	TMsgRespRefreshIndex(unsigned short dataSize)
-		: Message(M_RESP_REFRESH_INDEX, dataSize)
-		, m_requestID( 0 )
-		, m_steps( 0 )
-		, m_flags( 0 )
-//		, m_bookID( AllBooks )
+	TMsgRespRefreshIndex(const unsigned int& requestId, const unsigned char& steps, const unsigned char& flags, unsigned short& dataSize):
+		Message(M_RESP_REFRESH_INDEX, dataSize),
+		m_requestID(requestId),
+		m_steps(steps),
+		m_flags(flags)
 	{}
 
-	unsigned int	m_requestID;
-	Symbol			m_symbol;
-	unsigned char	m_steps;
-	unsigned char	m_flags;
-//	unsigned char	m_bookID;
-//	char m_marketStatus;
+	unsigned int m_requestID;
+	Symbol m_symbol;
+	unsigned char m_steps;
+	unsigned char m_flags;
 };
 
 class TMsgReqIndexChart : public TMessageSymbol
 {
 public:
-	TMsgReqIndexChart(const char* symbol, unsigned long requestId = 0):TMessageSymbol(symbol, M_REQ_INDEX_CHART, sizeof(TMsgReqIndexChart)), m_requestId(requestId){}
-	unsigned long m_requestId;
+	TMsgReqIndexChart(const char* const& symbol, const unsigned int& requestId = 0):TMessageSymbol(symbol, M_REQ_INDEX_CHART, sizeof(TMsgReqIndexChart)), m_requestId(requestId){}
+	unsigned int m_requestId;
 };
 
 class TMsgRespIndexChart : public TMessageSymbol
 {
 public:
-	TMsgRespIndexChart(const char* symbol, unsigned long requestId, unsigned short minute, unsigned char tickSize, unsigned short ticks, bool done):
+	TMsgRespIndexChart(const char* const& symbol,
+		const unsigned int& requestId,
+		const unsigned short& minute,
+		const unsigned char& tickSize,
+		const unsigned short& ticks,
+		const bool& done):
 		TMessageSymbol(symbol, M_RESP_INDEX_CHART, sizeof(TMsgRespIndexChart) + (unsigned int)tickSize * ticks),
 		m_requestId(requestId),
 		m_minute(minute),
 		m_tickSize(tickSize),
 		m_done(done)
 	{}
-	unsigned long m_requestId;
+	unsigned int m_requestId;
 	unsigned short m_minute;
 	unsigned char m_tickSize;
 	unsigned char m_done;
 };
 
-class TMsgSystemEvent : public Message
-{
-public:
-	TMsgSystemEvent(unsigned char eventCode, unsigned char source):Message(M_SYSTEM_EVENT, sizeof(TMsgSystemEvent)), m_eventCode(eventCode), m_source(source){}
-	unsigned char m_eventCode;
-	unsigned char m_source;
-};
-
 class TMsgStockDirectory : public TMessageTimeSymbol
 {
 public:
-	TMsgStockDirectory(const char* symbol,
-		unsigned int time,
-		unsigned long roundLotSize,
-		bool roundLotsOnly,
-		char marketCategory,
-		char financialStatusIndicator):
+	TMsgStockDirectory(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& roundLotSize,
+		const bool& roundLotsOnly,
+		const char& marketCategory,
+		const char& financialStatusIndicator):
 		TMessageTimeSymbol(symbol, time, M_STOCK_DIRECTORY, sizeof(TMsgStockDirectory)),
 		m_roundLotSize(roundLotSize),
 		m_roundLotsOnly(roundLotsOnly),
 		m_marketCategory(marketCategory),
 		m_financialStatusIndicator(financialStatusIndicator)
 	{}
-	unsigned long m_roundLotSize;
+	unsigned int m_roundLotSize;
 	bool m_roundLotsOnly;
 	char m_marketCategory;
 	char m_financialStatusIndicator;
@@ -4219,12 +6718,12 @@ public:
 	char m_tradingState;
 	char m_tradingActionReason[4];
 protected:
-	TMsgStockTradingActionBase(const char* symbol,
-		unsigned int time,
-		char tradingState,
-		unsigned int tradingActionReason,
-		unsigned short type,
-		unsigned short length):
+	TMsgStockTradingActionBase(const char* const& symbol,
+		const unsigned int& time,
+		const char& tradingState,
+		const unsigned int& tradingActionReason,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_tradingState(tradingState)
 	{
@@ -4235,10 +6734,10 @@ protected:
 class TMsgStockTradingAction : public TMsgStockTradingActionBase
 {
 public:
-	TMsgStockTradingAction(const char* symbol,
-		unsigned int time,
-		char tradingState,
-		unsigned int tradingActionReason):
+	TMsgStockTradingAction(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const char& tradingState = 0,
+		const unsigned int& tradingActionReason = 0):
 		TMsgStockTradingActionBase(symbol,
 			time,
 			tradingState,
@@ -4252,10 +6751,10 @@ public:
 class TMsgMsStockTradingAction : public TMsgStockTradingActionBase
 {
 public:
-	TMsgMsStockTradingAction(const char* symbol,
-		unsigned int time,
-		char tradingState,
-		unsigned int tradingActionReason):
+	TMsgMsStockTradingAction(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const char& tradingState = 0,
+		const unsigned int& tradingActionReason = 0):
 		TMsgStockTradingActionBase(symbol,
 			time,
 			tradingState,
@@ -4269,27 +6768,21 @@ public:
 class ReqChartBase : public TMessageSymbol
 {
 public:
-	unsigned long m_requestId;
-	ReqChartBase(const char* symbol, unsigned short type, unsigned short length, unsigned long requestId = 0):TMessageSymbol(symbol, type, length), m_requestId(requestId){}
+	unsigned int m_requestId;
+	ReqChartBase(const char* const& symbol, const unsigned short& type, const unsigned short& length, const unsigned int& requestId = 0):TMessageSymbol(symbol, type, length), m_requestId(requestId){}
 };
 
 class TMsgReqChart : public ReqChartBase
 {
 public:
-	TMsgReqChart(const char* symbol, unsigned long requestId = 0):ReqChartBase(symbol, M_REQ_CHART, sizeof(TMsgReqChart), requestId){}
+	TMsgReqChart(const char* const& symbol, const unsigned int& requestId = 0):ReqChartBase(symbol, M_REQ_CHART, sizeof(TMsgReqChart), requestId){}
 };
-/*
-class TSmMsgReqChart : public ReqChartBase
-{
-public:
-	TSmMsgReqChart(const char* symbol, unsigned long requestId = 0):ReqChartBase(symbol, SM_REQ_CHART, sizeof(TSmMsgReqChart), requestId){}
-};
-*/
+
 class TSmMsgReqChart : public Message
 {
 public:
-	TSmMsgReqChart(unsigned short symbol, unsigned long requestId = 0):Message(SM_REQ_CHART, sizeof(TSmMsgReqChart)), m_requestId(requestId), m_symbol(symbol){}
-	unsigned long m_requestId;
+	TSmMsgReqChart(const unsigned short& symbol, const unsigned int& requestId = 0):Message(SM_REQ_CHART, sizeof(TSmMsgReqChart)), m_requestId(requestId), m_symbol(symbol){}
+	unsigned int m_requestId;
 	unsigned short m_symbol;
 };
 
@@ -4316,14 +6809,14 @@ public:
 class TMsgRespChart : public TMessageSymbol
 {
 public:
-	TMsgRespChart(const char* symbol, unsigned long requestId, unsigned short minute, unsigned char tickSize, unsigned short ticks, bool done):
+	TMsgRespChart(const char* const& symbol, const unsigned int& requestId, const unsigned short& minute, const unsigned char& tickSize, const unsigned short& ticks, const bool& done):
 		TMessageSymbol(symbol, M_RESP_CHART, sizeof(TMsgRespChart) + (unsigned int)tickSize * ticks),
 		m_requestId(requestId),
 		m_minute(minute),
 		m_tickSize(tickSize),
 		m_done(done)
 	{}
-	unsigned long m_requestId;
+	unsigned int m_requestId;
 	unsigned short m_minute;
 	unsigned char m_tickSize;
 	unsigned char m_done;
@@ -4334,33 +6827,33 @@ class TMsgNewTick : public TMessageSymbol
 public:
 	unsigned short m_minute;
 protected:
-	TMsgNewTick(const char* symbol, unsigned short minute, unsigned short type, unsigned short size):TMessageSymbol(symbol, type, size), m_minute(minute){}
+	TMsgNewTick(const char* const& symbol, const unsigned short& minute, const unsigned short& type, const unsigned short& size):TMessageSymbol(symbol, type, size), m_minute(minute){}
 };
 
 class TMsgEquityNewTick : public TMsgNewTick
 {
 public:
-	TMsgEquityNewTick(const char* symbol, unsigned short minute):TMsgNewTick(symbol, minute, M_NEW_TICK, sizeof(TMsgEquityNewTick)){}
+	TMsgEquityNewTick(const char* const& symbol, const unsigned short& minute):TMsgNewTick(symbol, minute, M_NEW_TICK, sizeof(TMsgEquityNewTick)){}
 };
 
 class TMsgIndexNewTick : public TMsgNewTick
 {
 public:
-	TMsgIndexNewTick(const char* symbol, unsigned short minute):TMsgNewTick(symbol, minute, M_INDEX_NEW_TICK, sizeof(TMsgIndexNewTick)){}
+	TMsgIndexNewTick(const char* const& symbol, const unsigned short& minute):TMsgNewTick(symbol, minute, M_INDEX_NEW_TICK, sizeof(TMsgIndexNewTick)){}
 };
 
 class TMsgTickCorrection : public TMessageSymbol
 {
 public:
-	TMsgTickCorrection(const char* symbol,
-		unsigned int volume,
-		unsigned int moneyDollars,
-		unsigned int moneyFraction,
-		unsigned int first,
-		unsigned int last,
-		unsigned int high,
-		unsigned int low,
-		unsigned short minute):
+	TMsgTickCorrection(const char* const& symbol = "",
+		const unsigned int& volume = 0,
+		const unsigned int& moneyDollars = 0,
+		const unsigned int& moneyFraction = 0,
+		const unsigned int& first = 0,
+		const unsigned int& last = 0,
+		const unsigned int& high = 0,
+		const unsigned int& low = 0,
+		const unsigned short& minute = 0):
 		TMessageSymbol(symbol, M_TICK_CORRECTION, sizeof(TMsgTickCorrection)),
 		m_volume(volume),
 		m_moneyDollars(moneyDollars),
@@ -4381,59 +6874,27 @@ public:
 	unsigned short m_minute;
 };
 
-/*
-class TMsgMsEquityAddPrintLong : public Message
-{
-public:
-	TMsgMsEquityAddPrintLong(unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned char source):
-		Message(TM_EQUITY_ADD_PRINT_LONG, sizeof(TMsgMsEquityAddPrintLong)),
-		m_dollars(dollars),
-		m_dollarFraction(dollarFraction),
-		m_quantity(quantity),
-		m_source(source)
-	{
-	}
-	unsigned int m_dollars;
-	unsigned int m_dollarFraction;
-	unsigned int m_quantity;
-	unsigned char m_source;
-};
-
-class TMsgMsEquityAddPrintShort : public Message
-{
-public:
-	TMsgMsEquityAddPrintShort(unsigned int price, unsigned short quantity, unsigned char source):
-		Message(TM_EQUITY_ADD_PRINT_SHORT, sizeof(TMsgMsEquityAddPrintShort)),
-		m_price(price),
-		m_quantity(quantity),
-		m_source(source)
-	{
-	}
-	unsigned int m_price;//18 bytes for dollars, 14 bytes for 4 digits
-	unsigned short m_quantity;
-	unsigned char m_source;
-};
-*/
 class TMsgImbalance : public TMessageSymbol
 {
 public:
-	TMsgImbalance(const char* symbol,
-		unsigned int farPriceDollar,
-		unsigned int farPriceFraction,
-		unsigned int nearPriceDollar,
-		unsigned int nearPriceFraction,
-		unsigned int currentReferencePriceDollar,
-		unsigned int currentReferencePriceFraction,
-		unsigned int pairedShares,
-		unsigned int imbalanceShares,
-		unsigned int marketImbalanceShares,
-		unsigned int time,
-		unsigned int auctionTime,
-		char imbalanceDirection,
-		char crossType,
-		char priceVariationIndicator,
-		unsigned char bookId,
-		bool regulatory):
+	TMsgImbalance(const char* const& symbol = "",
+		const unsigned int& farPriceDollar = 0,
+		const unsigned int& farPriceFraction = 0,
+		const unsigned int& nearPriceDollar = 0,
+		const unsigned int& nearPriceFraction = 0,
+		const unsigned int& currentReferencePriceDollar = 0,
+		const unsigned int& currentReferencePriceFraction = 0,
+		const unsigned int& pairedShares = 0,
+		const unsigned int& imbalanceShares = 0,
+		const unsigned int& marketImbalanceShares = 0,
+		const unsigned int& time = 0,
+		const unsigned int& auctionTime = 0,
+		const char& imbalanceDirection = 0,
+		const char& crossType = 0,
+		const char& priceVariationIndicator = 0,
+		const unsigned char& bookId = 0,
+		const bool& regulatory = false,
+		const bool& freezeStatus = false):
 	
 		TMessageSymbol(symbol, M_STOCK_IMBALANCE_INDICATOR, sizeof(TMsgImbalance)),
 		m_farPriceDollar(farPriceDollar),
@@ -4451,7 +6912,8 @@ public:
 		m_crossType(crossType),
 		m_priceVariationIndicator(priceVariationIndicator),
 		m_bookID(bookId),
-		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0)
+		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0),
+		m_freezeStatus(freezeStatus ? 1 : 0)
 	{}
 	unsigned int m_farPriceDollar;
 	unsigned int m_farPriceFraction;
@@ -4469,22 +6931,23 @@ public:
 	char m_priceVariationIndicator;
 	unsigned char m_bookID : 4;
 	unsigned char m_regulatoryImbalance_StockOpen : 1;
+	unsigned char m_freezeStatus : 1;
 };
 
 class TMsgBookNewQuote : public TMessageSymbol
 {
 public:
-	TMsgBookNewQuote(const char* symbol = "",
-		unsigned char side = Buy,
-		unsigned __int64 referenceNumber = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned int size = 0,
-		unsigned int mmid = 0,
-		unsigned int millisecond = 0,
-		unsigned char bookID = 0,//	: 8;
-		unsigned char quoteCondition = 0,//	: 8;
-		unsigned short flags = 0)://		: 24;
+	TMsgBookNewQuote(const char* const& symbol = "",
+		const unsigned char& side = Buy,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& mmid = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned char& bookID = 0,//	: 8;
+		const unsigned char& quoteCondition = 0,//	: 8;
+		const unsigned short& flags = 0)://		: 24;
 		TMessageSymbol(symbol, M_BOOK_NEW_QUOTE, sizeof(TMsgBookNewQuote)),
 		m_side(side),
 		m_quote(referenceNumber, priceDollars, priceFraction, size, mmid, millisecond, bookID, quoteCondition, flags)
@@ -4496,17 +6959,17 @@ public:
 class TMsgBookModifyQuote : public TMessageSymbol
 {
 public:
-	TMsgBookModifyQuote(const char* symbol = "",
-		unsigned char side = Buy,
-		unsigned __int64 referenceNumber = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned int size = 0,
-		unsigned int mmid = 0,
-		unsigned int millisecond = 0,
-		unsigned char bookID = 0,//	: 8;
-		unsigned char quoteCondition = 0,//	: 8;
-		unsigned short flags = 0)://		: 24;
+	TMsgBookModifyQuote(const char* const& symbol = "",
+		const unsigned char& side = Buy,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& mmid = 0,
+		const unsigned int& millisecond = 0,
+		const unsigned char& bookID = 0,//	: 8;
+		const unsigned char& quoteCondition = 0,//	: 8;
+		const unsigned short& flags = 0)://		: 24;
 		TMessageSymbol(symbol, M_BOOK_MODIFY_QUOTE, sizeof(TMsgBookModifyQuote)),
 		m_side(side),
 		m_quote(referenceNumber, priceDollars, priceFraction, size, mmid, millisecond, bookID, quoteCondition, flags)
@@ -4518,11 +6981,11 @@ public:
 class TMsgBookDeleteQuote : public TMessageTimeSymbol
 {
 public:
-	TMsgBookDeleteQuote(const char* symbol = "",
-		unsigned int millisecond = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TMsgBookDeleteQuote(const char* const& symbol = "",
+		const unsigned int& millisecond = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTimeSymbol(symbol, millisecond, M_BOOK_DELETE_QUOTE, sizeof(TMsgBookDeleteQuote)),
 		m_referenceNumber(referenceNumber),
 		m_side(side),
@@ -4536,13 +6999,13 @@ public:
 class TMsgBookOrderExecuted : public TMessageTimeSymbol
 {
 public:
-	TMsgBookOrderExecuted(const char* symbol = "",
-		unsigned int millisecond = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TMsgBookOrderExecuted(const char* const& symbol = "",
+		const unsigned int& millisecond = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTimeSymbol(symbol, millisecond, M_BOOK_ORDER_EXECUTED, sizeof(TMsgBookOrderExecuted)),
 		m_referenceNumber(referenceNumber),
 		m_matchNumber(matchNumber),
@@ -4560,17 +7023,17 @@ public:
 class TMsgBookOrderExecutedWithPrice : public TMessageTimeSymbol
 {
 public:
-	TMsgBookOrderExecutedWithPrice(const char* symbol = "",
-		unsigned int millisecond = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		unsigned int remainingShares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0,
-		bool bPrintable = false):
+	TMsgBookOrderExecutedWithPrice(const char* const& symbol = "",
+		const unsigned int& millisecond = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned int& remainingShares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0,
+		const bool& bPrintable = false):
 		TMessageTimeSymbol(symbol, millisecond, M_BOOK_ORDER_EXECUTED_WITH_PRICE, sizeof(TMsgBookOrderExecutedWithPrice)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -4596,14 +7059,14 @@ public:
 class TMsgBookTrade : public TMessageTimeSymbol
 {
 public:
-	TMsgBookTrade(const char* symbol = "",
-		unsigned int millisecond = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TMsgBookTrade(const char* const& symbol = "",
+		const unsigned int& millisecond = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTimeSymbol(symbol, millisecond, M_BOOK_TRADE, sizeof(TMsgBookTrade)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -4624,14 +7087,14 @@ public:
 class TMsgBookCrossTrade : public TMessageTimeSymbol
 {
 public:
-	TMsgBookCrossTrade(const char* symbol = "",
-		unsigned int millisecond = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned __int64 matchNumber = 0,
-		unsigned int shares = 0,
-		char crossType = 0,
-		unsigned char bookID = 0):
+	TMsgBookCrossTrade(const char* const& symbol = "",
+		const unsigned int& millisecond = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned __int64& matchNumber = 0,
+		const unsigned int& shares = 0,
+		const char& crossType = 0,
+		const unsigned char& bookID = 0):
 		TMessageTimeSymbol(symbol, millisecond, M_BOOK_CROSS_TRADE, sizeof(TMsgBookCrossTrade)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -4651,12 +7114,12 @@ public:
 class TMsgBookOrderCanceled : public TMessageTimeSymbol
 {
 public:
-	TMsgBookOrderCanceled(const char* symbol = "",
-		unsigned int millisecond = 0,
-		unsigned __int64 referenceNumber = 0,
-		unsigned int shares = 0,
-		unsigned char side = Buy,
-		unsigned char bookID = 0):
+	TMsgBookOrderCanceled(const char* const& symbol = "",
+		const unsigned int& millisecond = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& shares = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& bookID = 0):
 		TMessageTimeSymbol(symbol, millisecond, M_BOOK_ORDER_CANCELED, sizeof(TMsgBookOrderCanceled)),
 		m_referenceNumber(referenceNumber),
 		m_shares(shares),
@@ -4672,33 +7135,33 @@ public:
 class TMsgResetBook: public Message
 {
 public:
-	TMsgResetBook(unsigned char bookId = AllBooks):Message(M_RESET_BOOK, sizeof(TMsgResetBook)),m_bookId(bookId){}
+	TMsgResetBook(const unsigned char& bookId = AllBooks):Message(M_RESET_BOOK, sizeof(TMsgResetBook)),m_bookId(bookId){}
     unsigned char m_bookId;
 };
 
 class TMsgResetSymbol: public TMessageSymbol
 {
 public:
-	TMsgResetSymbol(const char* symbol, unsigned char bookId = AllBooks):TMessageSymbol(symbol, M_RESET_SYMBOL, sizeof(TMsgResetSymbol)), m_bookId(bookId){}
-	TMsgResetSymbol(const unsigned __int64& symbol, unsigned char bookId = AllBooks):TMessageSymbol(symbol, M_RESET_SYMBOL, sizeof(TMsgResetSymbol)), m_bookId(bookId){}
+	TMsgResetSymbol(const char* const& symbol, const unsigned char& bookId = AllBooks):TMessageSymbol(symbol, M_RESET_SYMBOL, sizeof(TMsgResetSymbol)), m_bookId(bookId){}
+	TMsgResetSymbol(const unsigned __int64& symbol = 0, const unsigned char& bookId = AllBooks):TMessageSymbol(symbol, M_RESET_SYMBOL, sizeof(TMsgResetSymbol)), m_bookId(bookId){}
     unsigned char m_bookId;
 };
 
 class TMsgLevel1: public TMessageTimeSymbol
 {
 public:
-	TMsgLevel1(const char* symbol,
-		unsigned int time,
-		unsigned int bidDollars,
-		unsigned int bidFraction,
-		unsigned int askDollars,
-		unsigned int askFraction,
-		unsigned int bidSize,
-		unsigned int askSize,
-		char primaryListingMarket,
-		char bidMarketCenter,
-		char askMarketCenter,
-		char quoteCondition):
+	TMsgLevel1(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& bidDollars = 0,
+		const unsigned int& bidFraction = 0,
+		const unsigned int& askDollars = 0,
+		const unsigned int& askFraction = 0,
+		const unsigned int& bidSize = 0,
+		const unsigned int& askSize = 0,
+		const char& primaryListingMarket = 0,
+		const char& bidMarketCenter = 0,
+		const char& askMarketCenter = 0,
+		const char& quoteCondition = 0):
 		TMessageTimeSymbol(symbol, time, M_LEVEL1, sizeof(TMsgLevel1)),
 		m_bidDollars(bidDollars),
 		m_bidFraction(bidFraction),
@@ -4726,19 +7189,19 @@ public:
 class TMsgTrade: public TMessageTimeSymbol
 {
 public:
-	TMsgTrade(const char* symbol,
-		unsigned int time,
-		unsigned __int64 referenceNumber,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		char saleCondition1,
-		char saleCondition2,
-		char saleCondition3,
-		char saleCondition4,
-		char marketCenterID,
-		char primaryListingMarket,
-		unsigned char flags):
+	TMsgTrade(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned __int64& referenceNumber = 0,
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const char& saleCondition1 = 0,
+		const char& saleCondition2 = 0,
+		const char& saleCondition3 = 0,
+		const char& saleCondition4 = 0,
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TMessageTimeSymbol(symbol, time, M_TRADE_REPORT, sizeof(TMsgTrade)),
 		m_referenceNumber(referenceNumber),
 		m_priceDollars(priceDollars),
@@ -4767,11 +7230,11 @@ public:
 class TMsgMsTradeShort: public TMessageSymbol
 {
 public:
-	TMsgMsTradeShort(const char* symbol,
-		unsigned int price,
-		unsigned short size,
-		char saleCondition,
-		char marketCenter):
+	TMsgMsTradeShort(const char* const& symbol = "",
+		const unsigned int& price = 0,
+		const unsigned short& size = 0,
+		const char& saleCondition = 0,
+		const char& marketCenter = 0):
 		TMessageSymbol(symbol, M_MS_TRADE_REPORT_SHORT, sizeof(TMsgMsTradeShort)),
 		m_price(price),
 		m_size(size),
@@ -4787,12 +7250,12 @@ public:
 class TMsgMsTradeLong: public TMessageSymbol
 {
 public:
-	TMsgMsTradeLong(const char* symbol,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned int saleCondition,
-		char marketCenter):
+	TMsgMsTradeLong(const char* const& symbol = "",
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& saleCondition = 0,
+		const char& marketCenter = 0):
 		TMessageSymbol(symbol, M_MS_TRADE_REPORT_LONG, sizeof(TMsgMsTradeLong)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -4811,16 +7274,17 @@ public:
 class TMsgMsTradeLongInternal: public Message
 {
 public:
-	TMsgMsTradeLongInternal(unsigned int bid, unsigned int ask,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned int saleCondition,
-		char marketCenter,
-		unsigned char printFlags,
-		bool priceApplicableToChart,
-		unsigned char roundLot,
-		unsigned char level1):
+	TMsgMsTradeLongInternal(const unsigned int& bid,
+		const unsigned int& ask,
+		const unsigned int& priceDollars,
+		const unsigned int& priceFraction,
+		const unsigned int& size,
+		const unsigned int& saleCondition,
+		const char& marketCenter,
+		const unsigned char& printFlags,
+		const bool& priceApplicableToChart,
+		const unsigned char& roundLot,
+		const unsigned char& level1):
 		Message(TM_MS_TRADE_LONG_INTERNAL, sizeof(TMsgMsTradeLongInternal)),
 		m_l1Bid(bid),
 		m_l1Ask(ask),
@@ -4845,21 +7309,22 @@ public:
 	unsigned char m_printFlags;
 	bool m_priceApplicableToChart;
 	unsigned char m_roundLot;
-	unsigned char m_level1;
+	unsigned char m_level1;//TradeLevel1
 };
 
 class TMsgMsTradeShortInternal: public Message
 {
 public:
-	TMsgMsTradeShortInternal(unsigned int bid, unsigned int ask,
-		unsigned int price,
-		unsigned short size,
-		char saleCondition,
-		char marketCenter,
-		unsigned char printFlags,
-		bool priceApplicableToChart,
-		unsigned char roundLot,
-		unsigned char level1):
+	TMsgMsTradeShortInternal(const unsigned int& bid,
+		const unsigned int& ask,
+		const unsigned int& price,
+		const unsigned short& size,
+		const char& saleCondition,
+		const char& marketCenter,
+		const unsigned char& printFlags,
+		const bool& priceApplicableToChart,
+		const unsigned char& roundLot,
+		const unsigned char& level1):
 		Message(TM_MS_TRADE_SHORT_INTERNAL, sizeof(TMsgMsTradeShortInternal)),
 		m_l1Bid(bid),
 		m_l1Ask(ask),
@@ -4887,13 +7352,13 @@ public:
 class HistoricalTrade
 {
 public:
-	HistoricalTrade(unsigned int priceDollar,
-		unsigned int priceFraction,
-		unsigned int time,
-		unsigned int size,
-		unsigned int saleCondition,
-		char marketCenter,
-		unsigned char printFlags):
+	HistoricalTrade(const unsigned int& priceDollar,
+		const unsigned int& priceFraction,
+		const unsigned int& time,
+		const unsigned int& size,
+		const unsigned int& saleCondition,
+		const char& marketCenter,
+		const unsigned char& printFlags):
 //		Message(TM_MS_TRADE_SHORT_INTERNAL, sizeof(TMsgMsTradeShortInternal)),
 		m_priceDollar(priceDollar),
 		m_priceFraction(priceFraction),
@@ -4918,35 +7383,36 @@ class TMsgNewMinute: public Message
 public:
 	unsigned short m_minute;
 protected:
-	TMsgNewMinute(unsigned short minute, unsigned short type, unsigned short size): Message(type, size), m_minute(minute){}
+	TMsgNewMinute(const unsigned short& minute, const unsigned short& type, const unsigned short& size): Message(type, size), m_minute(minute){}
 };
 
 class TMsgEquityNewMinute: public TMsgNewMinute
 {
 public:
-	TMsgEquityNewMinute(unsigned short minute):TMsgNewMinute(minute, TM_EQUITY_NEW_MINUTE, sizeof(TMsgEquityNewMinute)){}
+	TMsgEquityNewMinute(const unsigned short& minute, const bool& fromServer):TMsgNewMinute(minute, TM_EQUITY_NEW_MINUTE, sizeof(TMsgEquityNewMinute)), m_fromServer(fromServer){}
+	bool m_fromServer;
 };
 
 class TMsgEquityNewTimeFrame: public TMsgNewMinute
 {
 public:
-	TMsgEquityNewTimeFrame(unsigned short timeFrame):TMsgNewMinute(timeFrame, TM_EQUITY_NEW_TIME_FRAME, sizeof(TMsgEquityNewTimeFrame)){}
+	TMsgEquityNewTimeFrame(const unsigned short& timeFrame):TMsgNewMinute(timeFrame, TM_EQUITY_NEW_TIME_FRAME, sizeof(TMsgEquityNewTimeFrame)){}
 //	unsigned int m_timeFrame;
 };
 
 class TMsgIndexNewMinute: public TMsgNewMinute
 {
 public:
-	TMsgIndexNewMinute(unsigned short minute):TMsgNewMinute(minute, TM_INDEX_NEW_MINUTE, sizeof(TMsgIndexNewMinute)){}
+	TMsgIndexNewMinute(const unsigned short& minute):TMsgNewMinute(minute, TM_INDEX_NEW_MINUTE, sizeof(TMsgIndexNewMinute)){}
 };
 
 class TMsgMsLevel1Short: public TMessageSymbol
 {
 public:
-	TMsgMsLevel1Short(const char* symbol,
-		unsigned int price,
-		unsigned char side,
-		char quoteCondition):
+	TMsgMsLevel1Short(const char* const& symbol = "",
+		const unsigned int& price = 0,
+		const unsigned char& side = 0,
+		const char& quoteCondition = 0):
 		TMessageSymbol(symbol, M_MS_LEVEL1_SHORT, sizeof(TMsgMsLevel1Short)),
 		m_price(price),
 		m_side(side),
@@ -4960,11 +7426,11 @@ public:
 class TMsgMsLevel1Long: public TMessageSymbol
 {
 public:
-	TMsgMsLevel1Long(const char* symbol,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned char side,
-		char quoteCondition):
+	TMsgMsLevel1Long(const char* const& symbol = "",
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned char& side = 0,
+		const char& quoteCondition = 0):
 		TMessageSymbol(symbol, M_MS_LEVEL1_LONG, sizeof(TMsgMsLevel1Long)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -4980,23 +7446,24 @@ public:
 class TMsgMsImbalanceLong : public TMessageSymbol
 {
 public:
-	TMsgMsImbalanceLong(const char* symbol,
-		unsigned int farPriceDollar,
-		unsigned int farPriceFraction,
-		unsigned int nearPriceDollar,
-		unsigned int nearPriceFraction,
-		unsigned int currentReferencePriceDollar,
-		unsigned int currentReferencePriceFraction,
-		unsigned int pairedShares,
-		unsigned int imbalanceShares,
-//		unsigned int marketImbalanceShares,
-		unsigned int time,
-		unsigned int auctionTime,
-		char imbalanceDirection,
-		char crossType,
-		char priceVariationIndicator,
-		unsigned char bookId,
-		bool regulatory):
+	TMsgMsImbalanceLong(const char* const& symbol = "",
+		const unsigned int& farPriceDollar = 0,
+		const unsigned int& farPriceFraction = 0,
+		const unsigned int& nearPriceDollar = 0,
+		const unsigned int& nearPriceFraction = 0,
+		const unsigned int& currentReferencePriceDollar = 0,
+		const unsigned int& currentReferencePriceFraction = 0,
+		const unsigned int& pairedShares = 0,
+		const unsigned int& imbalanceShares = 0,
+		const unsigned int& marketImbalanceShares = 0,
+		const unsigned int& time = 0,
+		const unsigned int& auctionTime = 0,
+		const char& imbalanceDirection = 0,
+		const char& crossType = 0,
+		const char& priceVariationIndicator = 0,
+		const unsigned char& bookId = 0,
+		const bool& regulatory = false,
+		const bool& freezeStatus = false):
 	
 		TMessageSymbol(symbol, M_MS_IMBALANCE_LONG, sizeof(TMsgMsImbalanceLong)),
 		m_farPriceDollar(farPriceDollar),
@@ -5007,14 +7474,15 @@ public:
 		m_currentReferencePriceFraction(currentReferencePriceFraction),
 		m_pairedShares(pairedShares),
 		m_imbalanceShares(imbalanceShares),
-//		m_marketImbalanceShares(marketImbalanceShares),
+		m_marketImbalanceShares(marketImbalanceShares),
 		m_time(time),
 		m_auctionTime(auctionTime),
 		m_imbalanceDirection(imbalanceDirection),
 		m_crossType(crossType),
 		m_priceVariationIndicator(priceVariationIndicator),
 		m_bookID(bookId),
-		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0)
+		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0),
+		m_freezeStatus(freezeStatus ? 1 : 0)
 	{}
 	unsigned int m_farPriceDollar;
 	unsigned int m_farPriceFraction;
@@ -5024,7 +7492,6 @@ public:
 	unsigned int m_currentReferencePriceFraction;
 	unsigned int m_pairedShares;
 	unsigned int m_imbalanceShares;
-//	unsigned int m_marketImbalanceShares;??????
 	unsigned int m_marketImbalanceShares;
 	unsigned int m_time;
 	unsigned int m_auctionTime;
@@ -5033,25 +7500,27 @@ public:
 	char m_priceVariationIndicator;
 	unsigned char m_bookID : 4;
 	unsigned char m_regulatoryImbalance_StockOpen : 1;//for ARCA : 1 if market imbalance, 0 if non market imbalance
+	unsigned char m_freezeStatus : 1;
 };
 
 class TMsgMsImbalanceShort : public TMessageSymbol
 {
 public:
-	TMsgMsImbalanceShort(const char* symbol,
-		unsigned int farPrice,//18 bits for dollar and 14 bits for 4 digits of fraction
-		unsigned int nearPrice,//18 bits for dollar and 14 bits for 4 digits of fraction
-		unsigned int currentReferencePrice,//18 bits for dollar and 14 bits for 4 digits of fraction
-		unsigned int pairedShares,
-		unsigned int imbalanceShares,
-//		unsigned int marketImbalanceShares,
-		unsigned int time,
-		unsigned int auctionTime,
-		char imbalanceDirection,
-		char crossType,
-		char priceVariationIndicator,
-		unsigned char bookId,
-		bool regulatory):
+	TMsgMsImbalanceShort(const char* const& symbol = "",
+		const unsigned int& farPrice = 0,//18 bits for dollar and 14 bits for 4 digits of fraction
+		const unsigned int& nearPrice = 0,//18 bits for dollar and 14 bits for 4 digits of fraction
+		const unsigned int& currentReferencePrice = 0,//18 bits for dollar and 14 bits for 4 digits of fraction
+		const unsigned int& pairedShares = 0,
+		const unsigned int& imbalanceShares = 0,
+		const unsigned int& marketImbalanceShares = 0,
+		const unsigned int& time = 0,
+		const unsigned int& auctionTime = 0,
+		const char& imbalanceDirection = 0,
+		const char& crossType = 0,
+		const char& priceVariationIndicator = 0,
+		const unsigned char& bookId = 0,
+		const bool& regulatory = false,
+		const bool& freezeStatus = false):
 	
 		TMessageSymbol(symbol, M_MS_IMBALANCE_SHORT, sizeof(TMsgMsImbalanceShort)),
 		m_farPrice(farPrice),
@@ -5059,21 +7528,21 @@ public:
 		m_currentReferencePrice(currentReferencePrice),
 		m_pairedShares(pairedShares),
 		m_imbalanceShares(imbalanceShares),
-//		m_marketImbalanceShares(marketImbalanceShares),
+		m_marketImbalanceShares(marketImbalanceShares),
 		m_time(time),
 		m_auctionTime(auctionTime),
 		m_imbalanceDirection(imbalanceDirection),
 		m_crossType(crossType),
 		m_priceVariationIndicator(priceVariationIndicator),
 		m_bookID(bookId),
-		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0)//for ARCA : 1 if market imbalance, 0 if non market imbalance
+		m_regulatoryImbalance_StockOpen(regulatory ? 1 : 0),//for ARCA : 1 if market imbalance, 0 if non market imbalance
+		m_freezeStatus(freezeStatus ? 1 : 0)
 	{}
 	unsigned int m_farPrice;
 	unsigned int m_nearPrice;
 	unsigned int m_currentReferencePrice;
 	unsigned int m_pairedShares;
 	unsigned int m_imbalanceShares;
-//	unsigned int m_marketImbalanceShares;?????
 	unsigned int m_marketImbalanceShares;
 	unsigned int m_time;
 	unsigned int m_auctionTime;
@@ -5082,6 +7551,7 @@ public:
 	char m_priceVariationIndicator;
 	unsigned char m_bookID : 4;
 	unsigned char m_regulatoryImbalance_StockOpen : 1;//for ARCA : 1 if market imbalance, 0 if non market imbalance
+	unsigned char m_freezeStatus : 1;
 };
 
 class TMsgTradeErrorBase: public TMessageTimeSymbol
@@ -5103,33 +7573,33 @@ public:
 
 	char m_marketCenterID;
 	char m_primaryListingMarket;
-	char m_flags;
+	unsigned char m_flags;
 protected:
-	TMsgTradeErrorBase(const char* symbol,
-		unsigned int time,
-		unsigned __int64 originalReferenceNumber,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int originalSize,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
+	TMsgTradeErrorBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned __int64& originalReferenceNumber,
+		const unsigned int& originalPriceDollars,
+		const unsigned int& originalPriceFraction,
+		const unsigned int& originalSize,
+		const char& originalSaleCondition1,
+		const char& originalSaleCondition2,
+		const char& originalSaleCondition3,
+		const char& originalSaleCondition4,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars,
+		const unsigned int& lastPriceFraction,
+		const unsigned int& highPriceDollars,
+		const unsigned int& highPriceFraction,
+		const unsigned int& lowPriceDollars,
+		const unsigned int& lowPriceFraction,
+		const unsigned __int64& volume,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags,
+		const char& marketCenterID,
+		const char& primaryListingMarket,
+		const unsigned char& flags,
 
-		unsigned short type,
-		unsigned short length):
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_originalReferenceNumber(originalReferenceNumber),
 		m_originalPriceDollars(originalPriceDollars),
@@ -5157,28 +7627,28 @@ protected:
 class TMsgTradeError: public TMsgTradeErrorBase
 {
 public:
-	TMsgTradeError(const char* symbol,
-		unsigned int time,
-		unsigned __int64 originalReferenceNumber,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int originalSize,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
+	TMsgTradeError(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TMsgTradeErrorBase(symbol,
 			time,
 			originalReferenceNumber,
@@ -5209,28 +7679,28 @@ public:
 class TMsgMsTradeError: public TMsgTradeErrorBase
 {
 public:
-	TMsgMsTradeError(const char* symbol,
-		unsigned int time,
-		unsigned __int64 originalReferenceNumber,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int originalSize,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
+	TMsgMsTradeError(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TMsgTradeErrorBase(symbol,
 			time,
 			originalReferenceNumber,
@@ -5283,39 +7753,39 @@ public:
 	char m_flags;
 protected:
 //	TMsgTradeCorrectionBase(const char* symbol, unsigned int time, unsigned short type, unsigned short length):TMessageTimeSymbol(symbol, time, type, length){}
-	TMsgTradeCorrectionBase(const char* symbol,
-		unsigned int time,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int correctedPriceDollars,
-		unsigned int correctedPriceFraction,
-		unsigned int originalSize,
-		unsigned int correctedSize,
-		unsigned __int64 originalReferenceNumber,
-		unsigned __int64 correctedReferenceNumber,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
-		char correctedSaleCondition1,
-		char correctedSaleCondition2,
-		char correctedSaleCondition3,
-		char correctedSaleCondition4,
+	TMsgTradeCorrectionBase(const char* const& symbol,
+		const unsigned int& time,
+		const unsigned int& originalPriceDollars,
+		const unsigned int& originalPriceFraction,
+		const unsigned int& correctedPriceDollars,
+		const unsigned int& correctedPriceFraction,
+		const unsigned int& originalSize,
+		const unsigned int& correctedSize,
+		const unsigned __int64& originalReferenceNumber,
+		const unsigned __int64& correctedReferenceNumber,
+		const char& originalSaleCondition1,
+		const char& originalSaleCondition2,
+		const char& originalSaleCondition3,
+		const char& originalSaleCondition4,
+		const char& correctedSaleCondition1,
+		const char& correctedSaleCondition2,
+		const char& correctedSaleCondition3,
+		const char& correctedSaleCondition4,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars,
+		const unsigned int& lastPriceFraction,
+		const unsigned int& highPriceDollars,
+		const unsigned int& highPriceFraction,
+		const unsigned int& lowPriceDollars,
+		const unsigned int& lowPriceFraction,
+		const unsigned __int64& volume,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags,
+		const char& marketCenterID,
+		const char& primaryListingMarket,
+		const unsigned char& flags,
 
-		unsigned short type,
-		unsigned short length):
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_originalPriceDollars(originalPriceDollars),
 		m_originalPriceFraction(originalPriceFraction),
@@ -5353,36 +7823,36 @@ protected:
 class TMsgTradeCorrection: public TMsgTradeCorrectionBase
 {
 public:
-	TMsgTradeCorrection(const char* symbol,
-		unsigned int time,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int correctedPriceDollars,
-		unsigned int correctedPriceFraction,
-		unsigned int originalSize,
-		unsigned int correctedSize,
-		unsigned __int64 originalReferenceNumber,
-		unsigned __int64 correctedReferenceNumber,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
-		char correctedSaleCondition1,
-		char correctedSaleCondition2,
-		char correctedSaleCondition3,
-		char correctedSaleCondition4,
+	TMsgTradeCorrection(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& correctedPriceDollars = 0,
+		const unsigned int& correctedPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const unsigned int& correctedSize = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned __int64& correctedReferenceNumber = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
+		const char& correctedSaleCondition1 = 0,
+		const char& correctedSaleCondition2 = 0,
+		const char& correctedSaleCondition3 = 0,
+		const char& correctedSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TMsgTradeCorrectionBase(symbol,
 			time,
 			originalPriceDollars,
@@ -5421,36 +7891,36 @@ public:
 class TMsgMsTradeCorrection: public TMsgTradeCorrectionBase
 {
 public:
-	TMsgMsTradeCorrection(const char* symbol,
-		unsigned int time,
-		unsigned int originalPriceDollars,
-		unsigned int originalPriceFraction,
-		unsigned int correctedPriceDollars,
-		unsigned int correctedPriceFraction,
-		unsigned int originalSize,
-		unsigned int correctedSize,
-		unsigned __int64 originalReferenceNumber,
-		unsigned __int64 correctedReferenceNumber,
-		char originalSaleCondition1,
-		char originalSaleCondition2,
-		char originalSaleCondition3,
-		char originalSaleCondition4,
-		char correctedSaleCondition1,
-		char correctedSaleCondition2,
-		char correctedSaleCondition3,
-		char correctedSaleCondition4,
+	TMsgMsTradeCorrection(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const unsigned int& originalPriceDollars = 0,
+		const unsigned int& originalPriceFraction = 0,
+		const unsigned int& correctedPriceDollars = 0,
+		const unsigned int& correctedPriceFraction = 0,
+		const unsigned int& originalSize = 0,
+		const unsigned int& correctedSize = 0,
+		const unsigned __int64& originalReferenceNumber = 0,
+		const unsigned __int64& correctedReferenceNumber = 0,
+		const char& originalSaleCondition1 = 0,
+		const char& originalSaleCondition2 = 0,
+		const char& originalSaleCondition3 = 0,
+		const char& originalSaleCondition4 = 0,
+		const char& correctedSaleCondition1 = 0,
+		const char& correctedSaleCondition2 = 0,
+		const char& correctedSaleCondition3 = 0,
+		const char& correctedSaleCondition4 = 0,
 
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned __int64 volume,
+		const unsigned int& lastPriceDollars = 0,
+		const unsigned int& lastPriceFraction = 0,
+		const unsigned int& highPriceDollars = 0,
+		const unsigned int& highPriceFraction = 0,
+		const unsigned int& lowPriceDollars = 0,
+		const unsigned int& lowPriceFraction = 0,
+		const unsigned __int64& volume = 0,
 
-		char marketCenterID,
-		char primaryListingMarket,
-		char flags):
+		const char& marketCenterID = 0,
+		const char& primaryListingMarket = 0,
+		const unsigned char& flags = 0):
 		TMsgTradeCorrectionBase(symbol,
 			time,
 			originalPriceDollars,
@@ -5496,7 +7966,7 @@ public:
 class TMsgMarketSorterChunkLoaded : public Message
 {
 public:
-	TMsgMarketSorterChunkLoaded(unsigned int requestId):Message(TM_MARKET_SORTER_CHUNK_LOADED, sizeof(TMsgMarketSorterChunkLoaded)), m_requestId(requestId){}
+	TMsgMarketSorterChunkLoaded(const unsigned int& requestId):Message(TM_MARKET_SORTER_CHUNK_LOADED, sizeof(TMsgMarketSorterChunkLoaded)), m_requestId(requestId){}
 	unsigned int m_requestId;
 };
 
@@ -5510,7 +7980,7 @@ public:
 class TMsgMarketSorterIndexChunkLoaded : public Message
 {
 public:
-	TMsgMarketSorterIndexChunkLoaded(unsigned int requestId):Message(TM_MARKET_SORTER_INDEX_CHUNK_LOADED, sizeof(TMsgMarketSorterIndexChunkLoaded)), m_requestId(requestId){}
+	TMsgMarketSorterIndexChunkLoaded(const unsigned int& requestId):Message(TM_MARKET_SORTER_INDEX_CHUNK_LOADED, sizeof(TMsgMarketSorterIndexChunkLoaded)), m_requestId(requestId){}
 	unsigned int m_requestId;
 };
 
@@ -5532,18 +8002,18 @@ class PrintData
 {
 public:
 	PrintData(
-		unsigned __int64 referenceNumber,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int time,
-		unsigned int size,
-		char saleCondition1,
-		char saleCondition2,
-		char saleCondition3,
-		char saleCondition4,
-		char marketCenterId,
-		char flags,
-		char primaryListingMarket):
+		const unsigned __int64& referenceNumber,
+		const unsigned int& priceDollars,
+		const unsigned int& priceFraction,
+		const unsigned int& time,
+		const unsigned int& size,
+		const char& saleCondition1,
+		const char& saleCondition2,
+		const char& saleCondition3,
+		const char& saleCondition4,
+		const char& marketCenterId,
+		const unsigned char& flags,
+		const char& primaryListingMarket):
 		m_referenceNumber(referenceNumber),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -5569,20 +8039,20 @@ public:
 	char m_saleCondition3;
 	char m_saleCondition4;
 	char m_marketCenterID;
-	char m_flags;
+	unsigned char m_flags;
 	char m_primaryListingMarket;
 };
 
 class HistoricalTick
 {
 public:
-	HistoricalTick(unsigned int volume = 0,
-		unsigned int open = 0,
-		unsigned int close = 0,
-		unsigned int high = 0,
-		unsigned int low = 0,
-		unsigned int adjustedClose = 0,
-		unsigned int date = 0):
+	HistoricalTick(const unsigned int& volume = 0,
+		const unsigned int& open = 0,
+		const unsigned int& close = 0,
+		const unsigned int& high = 0,
+		const unsigned int& low = 0,
+		const unsigned int& adjustedClose = 0,
+		const unsigned int& date = 0):
 
 		m_volume(volume),
 		m_open(open),
@@ -5607,14 +8077,14 @@ public:
 class HistoricalIntraDayTick
 {
 public:
-	HistoricalIntraDayTick(unsigned int moneyDollar,
-		unsigned int moneyFraction,
-		unsigned int volume = 0,
-		unsigned int first = 0,
-		unsigned int last = 0,
-		unsigned int high = 0,
-		unsigned int low = 0,
-		unsigned int minute = 0):
+	HistoricalIntraDayTick(const unsigned int& moneyDollar,
+		const unsigned int& moneyFraction,
+		const unsigned int& volume = 0,
+		const unsigned int& first = 0,
+		const unsigned int& last = 0,
+		const unsigned int& high = 0,
+		const unsigned int& low = 0,
+		const unsigned int& minute = 0):
 		
 		m_moneyDollar(moneyDollar),
 		m_moneyFraction(moneyFraction),
@@ -5650,7 +8120,7 @@ enum HistoricalPrintRequestFlags : unsigned char
 class TMsgReqPrints : public TMessageSymbol
 {
 public:
-	TMsgReqPrints(const char* symbol, unsigned int requestId, unsigned short minute, unsigned __int64 referenceNumber, unsigned char flags):
+	TMsgReqPrints(const char* const& symbol, const unsigned int& requestId, const unsigned short& minute, const unsigned __int64& referenceNumber, const unsigned char& flags):
 		TMessageSymbol(symbol, M_REQ_PRINTS, sizeof(TMsgReqPrints)),
 		m_requestId(requestId),
 		m_minute(minute),
@@ -5666,7 +8136,7 @@ public:
 class TMsgPrints : public TMessageSymbol
 {
 public:
-	TMsgPrints(const char* symbol, unsigned long requestId, unsigned __int64 nextReferenceNumber, unsigned short minute, unsigned char tickSize, unsigned short ticks, unsigned char flags):
+	TMsgPrints(const char* const& symbol, const unsigned int& requestId, const unsigned __int64& nextReferenceNumber, const unsigned short& minute, const unsigned char& tickSize, const unsigned short& ticks, const unsigned char& flags):
 		TMessageSymbol(symbol, M_RESP_PRINTS, sizeof(TMsgPrints) + (unsigned int)tickSize * ticks),
 		m_requestId(requestId),
 		m_nextReferenceNumber(nextReferenceNumber),
@@ -5703,7 +8173,13 @@ public:
 	unsigned int m_endDate;
 	unsigned char m_frequency;
 protected:
-	TMsgReqCandleData(const char* symbol, unsigned short type, unsigned short length, unsigned int requestId, unsigned int startDate, unsigned int endDate, unsigned char frequency):
+	TMsgReqCandleData(const char* const& symbol,
+		const unsigned short& type,
+		const unsigned short& length,
+		const unsigned int& requestId,
+		const unsigned int& startDate,
+		const unsigned int& endDate,
+		const unsigned char& frequency):
 		TMessageSymbol(symbol, type, length),
 		m_requestId(requestId),
 		m_startDate(startDate),
@@ -5715,7 +8191,11 @@ protected:
 class TMsgReqHistoricalData : public TMsgReqCandleData
 {
 public:
-	TMsgReqHistoricalData(const char* symbol, unsigned int requestId, unsigned int startDate, unsigned int endDate, unsigned char frequency):// 'd' - daily, 'w' - weekly, 'm' - monthly
+	TMsgReqHistoricalData(const char* const& symbol,
+		const unsigned int& requestId,
+		const unsigned int& startDate,
+		const unsigned int& endDate,
+		const unsigned char& frequency):// 'd' - daily, 'w' - weekly, 'm' - monthly
 		TMsgReqCandleData(symbol, M_REQ_CANDLE_HISTORICAL_DATA, sizeof(TMsgReqHistoricalData), requestId, startDate, endDate, frequency)
 	{}
 };
@@ -5725,7 +8205,10 @@ class TMsgCandleRequestId : public TMessageSymbol
 public:
 	unsigned int m_requestId;
 protected:
-	TMsgCandleRequestId(const char* symbol, unsigned int requestId, unsigned short type, unsigned short length):
+	TMsgCandleRequestId(const char* const& symbol,
+		const unsigned int& requestId,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageSymbol(symbol, type, length),
 		m_requestId(requestId)
 	{}
@@ -5734,7 +8217,12 @@ protected:
 class TMsgCandleHistoricalData : public TMsgCandleRequestId
 {
 public:
-	TMsgCandleHistoricalData(const char* symbol, unsigned int requestId, unsigned char tickSize, unsigned short ticks, unsigned char primaryExchange, unsigned char flags):
+	TMsgCandleHistoricalData(const char* const& symbol,
+		const unsigned int& requestId,
+		const unsigned char& tickSize,
+		const unsigned short& ticks,
+		const unsigned char& primaryExchange,
+		const unsigned char& flags):
 		TMsgCandleRequestId(symbol, requestId, M_RESP_CANDLE_HISTORICAL_DATA, sizeof(TMsgCandleHistoricalData) + (unsigned int)tickSize * ticks),
 //		m_requestId(requestId),
 		m_tickSize(tickSize),
@@ -5751,7 +8239,11 @@ public:
 class TMsgReqIntradayData : public TMsgReqCandleData
 {
 public:
-	TMsgReqIntradayData(const char* symbol, unsigned int requestId, unsigned int startDate, unsigned int endDate, unsigned char frequency)://'1' - 1 minute, '2' - 5 minutes, '3' - 15 minutes, '4' - 30 minutes, '5' - 1 hour
+	TMsgReqIntradayData(const char* const& symbol,
+		const unsigned int& requestId,
+		const unsigned int& startDate,
+		const unsigned int& endDate,
+		const unsigned char& frequency)://'1' - 1 minute, '2' - 5 minutes, '3' - 15 minutes, '4' - 30 minutes, '5' - 1 hour
 		TMsgReqCandleData(symbol, M_REQ_CANDLE_INTRADAY_DATA, sizeof(TMsgReqIntradayData), requestId, startDate, endDate, frequency)
 	{}
 };
@@ -5759,7 +8251,12 @@ public:
 class TMsgCandleIntradayData : public TMsgCandleRequestId
 {
 public:
-	TMsgCandleIntradayData(const char* symbol, unsigned int requestId, unsigned int date, unsigned char tickSize, unsigned short ticks, unsigned char flags):
+	TMsgCandleIntradayData(const char* const& symbol,
+		const unsigned int& requestId,
+		const unsigned int& date,
+		const unsigned char& tickSize,
+		const unsigned short& ticks,
+		const unsigned char& flags):
 		TMsgCandleRequestId(symbol, requestId, M_RESP_CANDLE_INTRADAY_DATA, sizeof(TMsgCandleIntradayData) + (unsigned int)tickSize * ticks),
 //		m_requestId(requestId),
 		m_date(date),
@@ -5774,26 +8271,209 @@ public:
 	unsigned char m_flags;
 };
 
+class TMsgAccountOcoOrders : public TMsgAccountObject
+{
+public:
+	unsigned int m_ocoId;
+protected:
+	TMsgAccountOcoOrders(const char* const& accountName, const unsigned int& ocoId, const unsigned short& type, const unsigned short& length):
+		TMsgAccountObject(accountName, type, length),
+		m_ocoId(ocoId)
+	{}
+};
+
+class TMsgAccountSetCurrentOcoId : public TMsgAccountOcoOrders
+{
+public:
+	TMsgAccountSetCurrentOcoId(const char* const& accountName, const unsigned int& ocoId):
+		TMsgAccountOcoOrders(accountName, ocoId, TM_ACCOUNT_SET_CURRENT_OCO_ID, sizeof(TMsgAccountSetCurrentOcoId))
+	{}
+};
+
+class TMsgAccountResetCurrentOcoId : public TMsgAccountObject
+{
+public:
+	TMsgAccountResetCurrentOcoId(const char* const& accountName):
+		TMsgAccountObject(accountName, TM_ACCOUNT_RESET_CURRENT_OCO_ID, sizeof(TMsgAccountResetCurrentOcoId))
+	{}
+};
+
 #ifndef TAKION_NO_OPTIONS
+
+class TMsgOptionAdd : public TMessageOptionBlock
+{
+public:
+	TMsgOptionAdd(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ADD, sizeof(TMsgOptionAdd)){}
+	TMsgOptionAdd(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ADD, sizeof(TMsgOptionAdd)){}
+	TMsgOptionAdd():TMessageOptionBlock(TM_OPTION_ADD, sizeof(TMsgOptionAdd)){}
+};
+
+class TMsgOptionRemove : public TMessageOptionBlock
+{
+public:
+	TMsgOptionRemove(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_REMOVE, sizeof(TMsgOptionRemove)){}
+	TMsgOptionRemove(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_REMOVE, sizeof(TMsgOptionRemove)){}
+	TMsgOptionRemove():TMessageOptionBlock(TM_OPTION_REMOVE, sizeof(TMsgOptionRemove)){}
+};
+
+class TMsgOptionL2Add : public TMessageOptionBlock
+{
+public:
+	TMsgOptionL2Add(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_L2_ADD, sizeof(TMsgOptionL2Add)){}
+	TMsgOptionL2Add(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_L2_ADD, sizeof(TMsgOptionL2Add)){}
+	TMsgOptionL2Add():TMessageOptionBlock(TM_OPTION_L2_ADD, sizeof(TMsgOptionL2Add)){}
+};
+
+class TMsgOptionL2Remove : public TMessageOptionBlock
+{
+public:
+	TMsgOptionL2Remove(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_L2_REMOVE, sizeof(TMsgOptionL2Remove)){}
+	TMsgOptionL2Remove(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_L2_REMOVE, sizeof(TMsgOptionL2Remove)){}
+	TMsgOptionL2Remove():TMessageOptionBlock(TM_OPTION_L2_REMOVE, sizeof(TMsgOptionL2Remove)){}
+};
+
+class TMsgOptionAddIdle : public TMessageOptionBlock
+{
+public:
+	TMsgOptionAddIdle(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ADD_IDLE, sizeof(TMsgOptionAddIdle)){}
+	TMsgOptionAddIdle(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ADD_IDLE, sizeof(TMsgOptionAddIdle)){}
+	TMsgOptionAddIdle():TMessageOptionBlock(TM_OPTION_ADD_IDLE, sizeof(TMsgOptionAddIdle)){}
+};
+
+class TMsgOptionRemoveIdle : public TMessageOptionBlock
+{
+public:
+	TMsgOptionRemoveIdle(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_REMOVE_IDLE, sizeof(TMsgOptionRemoveIdle)){}
+	TMsgOptionRemoveIdle(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_REMOVE_IDLE, sizeof(TMsgOptionRemoveIdle)){}
+	TMsgOptionRemoveIdle():TMessageOptionBlock(TM_OPTION_REMOVE_IDLE, sizeof(TMsgOptionRemoveIdle)){}
+};
+
+class TMsgUnderlierAdd : public TMessageSymbol
+{
+public:
+	TMsgUnderlierAdd(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_ADD, sizeof(TMsgUnderlierAdd)){}
+	TMsgUnderlierAdd(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_ADD, sizeof(TMsgUnderlierAdd)){}
+	TMsgUnderlierAdd():TMessageSymbol(TM_UNDERLIER_ADD, sizeof(TMsgUnderlierAdd)){}
+};
+
+class TMsgUnderlierRemove : public TMessageSymbol
+{
+public:
+	TMsgUnderlierRemove(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REMOVE, sizeof(TMsgUnderlierRemove)){}
+	TMsgUnderlierRemove(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REMOVE, sizeof(TMsgUnderlierRemove)){}
+	TMsgUnderlierRemove():TMessageSymbol(TM_UNDERLIER_REMOVE, sizeof(TMsgUnderlierRemove)){}
+};
+
+class TMsgUnderlierAddIdle : public TMessageSymbol
+{
+public:
+	TMsgUnderlierAddIdle(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_ADD_IDLE, sizeof(TMsgUnderlierAddIdle)){}
+	TMsgUnderlierAddIdle(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_ADD_IDLE, sizeof(TMsgUnderlierAddIdle)){}
+	TMsgUnderlierAddIdle():TMessageSymbol(TM_UNDERLIER_ADD_IDLE, sizeof(TMsgUnderlierAddIdle)){}
+};
+
+class TMsgUnderlierRemoveIdle : public TMessageSymbol
+{
+public:
+	TMsgUnderlierRemoveIdle(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REMOVE_IDLE, sizeof(TMsgUnderlierRemoveIdle)){}
+	TMsgUnderlierRemoveIdle(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REMOVE_IDLE, sizeof(TMsgUnderlierRemoveIdle)){}
+	TMsgUnderlierRemoveIdle():TMessageSymbol(TM_UNDERLIER_REMOVE_IDLE, sizeof(TMsgUnderlierRemoveIdle)){}
+};
+
+class TMsgUnderlierAddRemovable : public TMessageSymbol
+{
+public:
+	TMsgUnderlierAddRemovable(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_ADD_REMOVABLE, sizeof(TMsgUnderlierAddRemovable)){}
+	TMsgUnderlierAddRemovable(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_ADD_REMOVABLE, sizeof(TMsgUnderlierAddRemovable)){}
+	TMsgUnderlierAddRemovable():TMessageSymbol(TM_UNDERLIER_ADD_REMOVABLE, sizeof(TMsgUnderlierAddRemovable)){}
+};
+
+class TMsgUnderlierRemoveRemovable : public TMessageSymbol
+{
+public:
+	TMsgUnderlierRemoveRemovable(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REMOVE_REMOVABLE, sizeof(TMsgUnderlierRemoveRemovable)){}
+	TMsgUnderlierRemoveRemovable(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REMOVE_REMOVABLE, sizeof(TMsgUnderlierRemoveRemovable)){}
+	TMsgUnderlierRemoveRemovable():TMessageSymbol(TM_UNDERLIER_REMOVE_REMOVABLE, sizeof(TMsgUnderlierRemoveRemovable)){}
+};
+
+class TMsgUnderlierUnsubscribed : public TMessageSymbol
+{
+public:
+	TMsgUnderlierUnsubscribed(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_UNSUBSCRIBED, sizeof(TMsgUnderlierUnsubscribed)) {}
+	TMsgUnderlierUnsubscribed(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_UNSUBSCRIBED, sizeof(TMsgUnderlierUnsubscribed)) {}
+	TMsgUnderlierUnsubscribed():TMessageSymbol(TM_UNDERLIER_UNSUBSCRIBED, sizeof(TMsgUnderlierUnsubscribed)) {}
+};
+
+class TMsgUnderlierSubscriptionQueued : public TMessageSymbol
+{
+public:
+	TMsgUnderlierSubscriptionQueued(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_SUBSCRIPTION_QUEUED, sizeof(TMsgUnderlierSubscriptionQueued)){}
+	TMsgUnderlierSubscriptionQueued(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_SUBSCRIPTION_QUEUED, sizeof(TMsgUnderlierSubscriptionQueued)){}
+	TMsgUnderlierSubscriptionQueued():TMessageSymbol(TM_UNDERLIER_SUBSCRIPTION_QUEUED, sizeof(TMsgUnderlierSubscriptionQueued)){}
+};
+
+class TMsgOptionSubscriptionQueued : public TMessageOptionBlock
+{
+public:
+	TMsgOptionSubscriptionQueued(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_SUBSCRIPTION_QUEUED, sizeof(TMsgOptionSubscriptionQueued)){}
+	TMsgOptionSubscriptionQueued(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_SUBSCRIPTION_QUEUED, sizeof(TMsgOptionSubscriptionQueued)){}
+	TMsgOptionSubscriptionQueued():TMessageOptionBlock(TM_OPTION_SUBSCRIPTION_QUEUED, sizeof(TMsgOptionSubscriptionQueued)){}
+};
+
+class TMsgUnderlierSubscriptionUnQueued : public TMessageSymbol
+{
+public:
+	TMsgUnderlierSubscriptionUnQueued(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_SUBSCRIPTION_UNQUEUED, sizeof(TMsgUnderlierSubscriptionUnQueued)){}
+	TMsgUnderlierSubscriptionUnQueued(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_SUBSCRIPTION_UNQUEUED, sizeof(TMsgUnderlierSubscriptionUnQueued)){}
+	TMsgUnderlierSubscriptionUnQueued():TMessageSymbol(TM_UNDERLIER_SUBSCRIPTION_UNQUEUED, sizeof(TMsgUnderlierSubscriptionUnQueued)){}
+};
+
+class TMsgOptionSubscriptionUnQueued : public TMessageOptionBlock
+{
+public:
+	TMsgOptionSubscriptionUnQueued(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_SUBSCRIPTION_UNQUEUED, sizeof(TMsgOptionSubscriptionUnQueued)){}
+	TMsgOptionSubscriptionUnQueued(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_SUBSCRIPTION_UNQUEUED, sizeof(TMsgOptionSubscriptionUnQueued)){}
+	TMsgOptionSubscriptionUnQueued():TMessageOptionBlock(TM_OPTION_SUBSCRIPTION_UNQUEUED, sizeof(TMsgOptionSubscriptionUnQueued)){}
+};
+
+class TMsgOptionSubscriptionStuck : public TMessageOptionBlock
+{
+public:
+	TMsgOptionSubscriptionStuck(const char* const& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_SUBSCRIPTION_STUCK, sizeof(TMsgOptionSubscriptionStuck)){}
+	TMsgOptionSubscriptionStuck(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageOptionBlock(symbol, optionBlock, TM_OPTION_SUBSCRIPTION_STUCK, sizeof(TMsgOptionSubscriptionStuck)){}
+	TMsgOptionSubscriptionStuck():TMessageOptionBlock(TM_OPTION_SUBSCRIPTION_STUCK, sizeof(TMsgOptionSubscriptionStuck)){}
+};
+
+class TMsgOptionSubscriptionQueueCleared : public Message
+{
+public:
+	TMsgOptionSubscriptionQueueCleared():Message(TM_OPTION_SUBSCRIPTION_QUEUE_CLEARED, sizeof(TMsgOptionSubscriptionQueueCleared)) {}
+};
 
 class TMsgUnderlier : public Message
 {
 public:
 	Underlier* m_underlier;
 protected:
-	TMsgUnderlier(Underlier* underlier, unsigned short type, unsigned short length):Message(type, length), m_underlier(underlier){}
+	TMsgUnderlier(Underlier* const& underlier, const unsigned short& type, const unsigned short& length):Message(type, length), m_underlier(underlier){}
 };
 
 class TMsgUnderlierDelete : public TMsgUnderlier
 {
 public:
-	TMsgUnderlierDelete(Underlier* underlier):TMsgUnderlier(underlier, TM_UNDERLIER_DELETE, sizeof(TMsgUnderlierDelete)){}
+	TMsgUnderlierDelete(Underlier* const& underlier):TMsgUnderlier(underlier, TM_UNDERLIER_DELETE, sizeof(TMsgUnderlierDelete)){}
+};
+
+class TMsgUnderlierObject : public TMsgUnderlier//For additionalInfo only
+{
+public:
+	TMsgUnderlierObject(Underlier* const& underlier) :TMsgUnderlier(underlier, TM_UNDERLIER_OBJECT, sizeof(TMsgUnderlierObject)) {}
 };
 
 class TMsgUnderlierNewDay : public TMessageSymbol
 {
 public:
-	TMsgUnderlierNewDay(const char* symbol):TMessageSymbol(symbol, TM_UNDERLIER_NEW_DAY, sizeof(TMsgUnderlierNewDay)){}
+	TMsgUnderlierNewDay(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_NEW_DAY, sizeof(TMsgUnderlierNewDay)){}
 	TMsgUnderlierNewDay(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_UNDERLIER_NEW_DAY, sizeof(TMsgUnderlierNewDay)){}
 };
 
@@ -5848,11 +8528,11 @@ public:
 	bool operator>(const OptionBlock& other) const{return m_optionBlock > other.m_optionBlock;}
 	bool operator>=(const OptionBlock& other) const{return m_optionBlock >= other.m_optionBlock;}
 
-	void SetStrikePrice(unsigned int price){m_strikePrice = price;}
-	void SetReserved(unsigned char reserved){m_reserved = reserved;}
-	void SetExpirationDay(unsigned char expirationDay){m_expirationDay = expirationDay;}
-	void SetExpirationMonth(unsigned char expirationMonth){m_expirationMonth = expirationMonth;}
-	void SetExpirationYear(unsigned char expirationYear){m_expirationYear = expirationYear;}
+	void SetStrikePrice(const unsigned int& price){m_strikePrice = price;}
+	void SetReserved(const unsigned char& reserved){m_reserved = reserved;}
+	void SetExpirationDay(const unsigned char& expirationDay){m_expirationDay = expirationDay;}
+	void SetExpirationMonth(const unsigned char& expirationMonth){m_expirationMonth = expirationMonth;}
+	void SetExpirationYear(const unsigned char& expirationYear){m_expirationYear = expirationYear;}
 
 	const unsigned int& GetStrikePrice() const{return m_strikePrice;}
 	const unsigned char& GetReserved() const{return m_reserved;}
@@ -5862,14 +8542,12 @@ public:
 	unsigned char GetExpirationMonth() const{return m_expirationMonth < 'M' ? m_expirationMonth - ('A' - 1) : m_expirationMonth - 'L';}
 	static unsigned int GetNormalizedStrikePriceStatic(const unsigned int& strikePrice)
 	{
-		unsigned int dollars = strikePrice / 1000;
-		return (dollars << 14) | (strikePrice * 10 - 10000 * dollars);
+//		unsigned int dollars = strikePrice / 1000;
+//		return (dollars << 14) | (strikePrice * 10 - 10000 * dollars);
+//		return Price::CalculateCompactPrice(dollars, strikePrice * 10 - 10000 * dollars);
+		return Price::CalculateCompactPriceFromStrikePrice(strikePrice);
 	}
-	unsigned int GetNormalizedStrikePrice() const
-	{
-		unsigned int dollars = m_strikePrice / 1000;
-		return (dollars << 14) | (m_strikePrice * 10 - 10000 * dollars);
-	}
+	unsigned int GetNormalizedStrikePrice() const{return GetNormalizedStrikePriceStatic(m_strikePrice);}
 private:
 	union
 	{
@@ -5890,7 +8568,11 @@ class TMessageOption : public TMessageTimeSymbol
 public:
 	OptionBlock	m_optionBlock;
 protected:
-	TMessageOption(const char* symbol, unsigned int time, const OptionBlock& optionBlock, unsigned short type, unsigned short length):
+	TMessageOption(const char* const& symbol,
+		const unsigned int& time,
+		const OptionBlock& optionBlock,
+		const unsigned short& type,
+		const unsigned short& length):
 		TMessageTimeSymbol(symbol, time, type, length),
 		m_optionBlock(optionBlock)
 	{}
@@ -5899,16 +8581,16 @@ protected:
 class TMsgOptLevel2 : public TMessageOption
 {
 public:
-	TMsgOptLevel2(const char* symbol = "",
-		unsigned int time = 0,
+	TMsgOptLevel2(const char* const& symbol = "",
+		const unsigned int& time = 0,
 		const OptionBlock& optionBlock = 0,
-		unsigned int priceDollars = 0,
-		unsigned int priceFraction = 0,
-		unsigned int size = 0,
-		unsigned char side = Buy,
-		unsigned char marketCenterID = 0,
-		unsigned char quoteCondition = 0,
-		unsigned char flags = 0):
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned char& side = Buy,
+		const unsigned char& marketCenterID = 0,
+		const unsigned char& quoteCondition = 0,
+		const unsigned char& flags = 0):
 		TMessageOption(symbol, time, optionBlock, M_OPT_LEVEL2, sizeof(TMsgOptLevel2)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -5930,17 +8612,19 @@ public:
 class TMsgOptLevel1 : public TMessageOption
 {
 public:
-	TMsgOptLevel1(const char* symbol, unsigned int time, const OptionBlock& optionBlock,
-		unsigned int bidPriceDollars,
-		unsigned int bidPriceFraction,
-		unsigned int askPriceDollars,
-		unsigned int askPriceFraction,
-		unsigned int bidSize,
-		unsigned int askSize,
-		unsigned char bidMarketCenter,
-		unsigned char askMarketCenter,
-		unsigned char quoteCondition,
-		unsigned char flags):
+	TMsgOptLevel1(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const OptionBlock& optionBlock = OptionBlock(0),
+		const unsigned int& bidPriceDollars = 0,
+		const unsigned int& bidPriceFraction = 0,
+		const unsigned int& askPriceDollars = 0,
+		const unsigned int& askPriceFraction = 0,
+		const unsigned int& bidSize = 0,
+		const unsigned int& askSize = 0,
+		const unsigned char& bidMarketCenter = 0,
+		const unsigned char& askMarketCenter = 0,
+		const unsigned char& quoteCondition = 0,
+		const unsigned char& flags = 0):
 		TMessageOption(symbol, time, optionBlock, M_OPT_LEVEL1, sizeof(TMsgOptLevel1)),
 		m_bidPriceDollars(bidPriceDollars),
 		m_bidPriceFraction(bidPriceFraction),
@@ -5978,13 +8662,15 @@ enum OptTradeReportFlags : unsigned char
 class TMsgOptTrade : public TMessageOption
 {
 public:
-	TMsgOptTrade(const char* symbol, unsigned int time, const OptionBlock& optionBlock,
-		unsigned int priceDollars,
-		unsigned int priceFraction,
-		unsigned int size,
-		unsigned int tradeId,
-		unsigned char marketCenterId,
-		unsigned char tradeCondition):
+	TMsgOptTrade(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const OptionBlock& optionBlock = OptionBlock(0),
+		const unsigned int& priceDollars = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& tradeId = 0,
+		const unsigned char& marketCenterId = 0,
+		const unsigned char& tradeCondition = 0):
 		TMessageOption(symbol, time, optionBlock, M_OPT_TRADE_REPORT, sizeof(TMsgOptTrade)),
 		m_priceDollars(priceDollars),
 		m_priceFraction(priceFraction),
@@ -6004,7 +8690,10 @@ public:
 class TMsgOptOpenInterest : public TMessageOption
 {
 public:
-	TMsgOptOpenInterest(const char* symbol, unsigned int time, const OptionBlock& optionBlock, unsigned int openInterestVolume):
+	TMsgOptOpenInterest(const char* const& symbol,
+		const unsigned int& time,
+		const OptionBlock& optionBlock,
+		const unsigned int& openInterestVolume):
 		TMessageOption(symbol, time, optionBlock, M_OPT_OPEN_INTEREST, sizeof(TMsgOptOpenInterest)),
 		m_openInterestVolume(openInterestVolume)
 	{}
@@ -6023,13 +8712,13 @@ enum SubscriptionTypes : unsigned char
 class TMsgReqOptRefreshSymbol : public TMessageSymbol
 {
 public:
-	TMsgReqOptRefreshSymbol(const char* symbol, unsigned char flags, unsigned char blockSize, unsigned int requestId):
+	TMsgReqOptRefreshSymbol(const char* const& symbol, const unsigned char& flags, const unsigned char& blockSize, const unsigned int& requestId):
 		TMessageSymbol(symbol, M_REQ_OPT_REFRESH_SYMBOL, sizeof(TMsgReqOptRefreshSymbol)),
 		m_flags(flags),
 		m_blockSize(blockSize),
 		m_requestId(requestId)
 	{}
-	TMsgReqOptRefreshSymbol(const unsigned __int64& symbol, unsigned char flags, unsigned char blockSize, unsigned int requestId):
+	TMsgReqOptRefreshSymbol(const unsigned __int64& symbol, const unsigned char& flags, const unsigned char& blockSize, const unsigned int& requestId):
 		TMessageSymbol(symbol, M_REQ_OPT_REFRESH_SYMBOL, sizeof(TMsgReqOptRefreshSymbol)),
 		m_flags(flags),
 		m_blockSize(blockSize),
@@ -6045,15 +8734,15 @@ class TMsgOptionSymbol : public TMessageSymbol
 public:
 	OptionBlock m_optionBlock;
 protected:
-	TMsgOptionSymbol(const char* symbol, const unsigned __int64& optionBlock, unsigned short type, unsigned short length):
+	TMsgOptionSymbol(const char* const& symbol, const unsigned __int64& optionBlock, const unsigned short& type, const unsigned short& length):
 		TMessageSymbol(symbol, type, length),
 		m_optionBlock(optionBlock)
 	{}
-	TMsgOptionSymbol(const unsigned __int64& symbol, const unsigned __int64& optionBlock, unsigned short type, unsigned short length):
+	TMsgOptionSymbol(const unsigned __int64& symbol, const unsigned __int64& optionBlock, const unsigned short& type, const unsigned short& length):
 		TMessageSymbol(symbol, type, length),
 		m_optionBlock(optionBlock)
 	{}
-	TMsgOptionSymbol(const unsigned __int64& symbol, const OptionBlock& optionBlock, unsigned short type, unsigned short length):
+	TMsgOptionSymbol(const unsigned __int64& symbol, const OptionBlock& optionBlock, const unsigned short& type, const unsigned short& length):
 		TMessageSymbol(symbol, type, length),
 		m_optionBlock(optionBlock)
 	{}
@@ -6064,17 +8753,17 @@ class TMsgOptionSymbolRoot : public TMsgOptionSymbol
 public:
 	Symbol m_rootSymbol;
 protected:
-	TMsgOptionSymbolRoot(const char* symbol, const unsigned __int64& optionBlock, const char* rootSymbol, unsigned short type, unsigned short length):
+	TMsgOptionSymbolRoot(const char* const& symbol, const unsigned __int64& optionBlock, const char* const& rootSymbol, const unsigned short& type, const unsigned short& length):
 		TMsgOptionSymbol(symbol, optionBlock, type, length)
 	{
 		U_CopyAndPad(m_rootSymbol, sizeof(m_rootSymbol), rootSymbol, '\0');
 	}
-	TMsgOptionSymbolRoot(const unsigned __int64& symbolNum, const unsigned __int64& optionBlock, const unsigned __int64& rootSymbolNum, unsigned short type, unsigned short length):
+	TMsgOptionSymbolRoot(const unsigned __int64& symbolNum, const unsigned __int64& optionBlock, const unsigned __int64& rootSymbolNum, const unsigned short& type, const unsigned short& length):
 		TMsgOptionSymbol(symbolNum, optionBlock, type, length)
 	{
 		*(unsigned __int64*)m_rootSymbol = rootSymbolNum;
 	}
-	TMsgOptionSymbolRoot(const unsigned __int64& symbolNum, const OptionBlock& optionBlock, const unsigned __int64& rootSymbolNum, unsigned short type, unsigned short length):
+	TMsgOptionSymbolRoot(const unsigned __int64& symbolNum, const OptionBlock& optionBlock, const unsigned __int64& rootSymbolNum, const unsigned short& type, const unsigned short& length):
 		TMsgOptionSymbol(symbolNum, optionBlock, type, length)
 	{
 		*(unsigned __int64*)m_rootSymbol = rootSymbolNum;
@@ -6084,7 +8773,7 @@ protected:
 class TMsgReqRefreshOption : public TMsgOptionSymbolRoot
 {
 public:
-	TMsgReqRefreshOption(const unsigned __int64& symbolNum, const unsigned __int64& optionBlock, const unsigned __int64& rootSymbolNum, unsigned int requestID = 0):
+	TMsgReqRefreshOption(const unsigned __int64& symbolNum, const unsigned __int64& optionBlock, const unsigned __int64& rootSymbolNum, const unsigned int& requestID = 0):
 		TMsgOptionSymbolRoot(symbolNum, optionBlock, rootSymbolNum, M_REQ_REFRESH_OPTION, sizeof(TMsgReqRefreshOption)),
 		m_requestID(requestID)
 	{
@@ -6095,24 +8784,25 @@ public:
 class TMsgRespRefreshOption : public TMessageOption//m_time is m_requestId
 {
 public:
-	TMsgRespRefreshOption(const char* symbol, unsigned int requestId, const OptionBlock& optionBlock, const char* rootSymbol, unsigned short dataSize, unsigned char steps, unsigned char flags):
+	TMsgRespRefreshOption(const char* const& symbol = "",
+		const unsigned int& requestId = 0,
+		const OptionBlock& optionBlock = OptionBlock(0),
+		const char* const& rootSymbol = "",
+		const unsigned short& dataSize = 0,
+		const unsigned char& steps = 0,
+		const unsigned char& flags = 0,
+		const unsigned short& optionType = eoNum)://*(unsigned short*)"EU")://"EU" - equity option, "IU" - index option
 		TMessageOption(symbol, requestId, optionBlock, M_RESP_REFRESH_OPTION, dataSize),
 		m_steps(steps),
-		m_flags(flags)
+		m_flags(flags),
+		m_optionType(optionType)
 	{
 		U_CopyAndPad(m_rootSymbol, sizeof(m_rootSymbol), rootSymbol, '\0');
 	}
-/*
-//	bool IsEndOfRefresh() const{return REFRESH_EndOfRefresh == (REFRESH_EndOfRefresh & m_flags);}
-//	bool IsEndOfBlock() const{ return REFRESH_EndOfBlock == (REFRESH_EndOfBlock & m_flags );}
-//	bool IsRefreshFailed() const{ return REFRESH_RefreshFailed == (REFRESH_RefreshFailed & m_flags );}
-	bool IsEndOfRefresh() const{return (REFRESH_EndOfRefresh & m_flags) != 0;}
-	bool IsEndOfBlock() const{ return (REFRESH_EndOfBlock & m_flags) != 0;}
-	bool IsRefreshFailed() const{ return (REFRESH_RefreshFailed & m_flags) != 0;}
-*/
 	Symbol m_rootSymbol;
 	unsigned char m_steps;
 	unsigned char m_flags;
+	unsigned short m_optionType;//"EU" - equity option, "IU" - index option
 };
 
 class TMsgReqUnsubscribeOption : public TMsgOptionSymbolRoot
@@ -6138,34 +8828,33 @@ enum StockRefreshStatus : unsigned char
 class TMsgRespOptRefreshSymbol : public TMessageTimeSymbol//m_time is m_requestId
 {
 public:
-	TMsgRespOptRefreshSymbol(const char* symbol, unsigned int requestId, unsigned short dataSize, unsigned char steps, unsigned char flags):
+	TMsgRespOptRefreshSymbol(const char* const& symbol = "",
+		const unsigned int& requestId = 0,
+		const unsigned short& dataSize = 0,
+		const unsigned char& steps = 0,
+		const unsigned char& flags = 0,
+		const unsigned short& optionType = eoNum)://*(unsigned short*)"EU")://"EU" - equity option, "IU" - index option
 		TMessageTimeSymbol(symbol, requestId, M_RESP_OPT_REFRESH_SYMBOL, dataSize),
 		m_steps(steps),
-		m_flags(flags)
+		m_flags(flags),
+		m_optionType(optionType)
 	{}
-/*
-//	bool IsEndOfRefresh() const{return REFRESH_EndOfRefresh == (REFRESH_EndOfRefresh & m_flags);}
-//	bool IsEndOfBlock() const{ return REFRESH_EndOfBlock == (REFRESH_EndOfBlock & m_flags );}
-//	bool IsRefreshFailed() const{ return REFRESH_RefreshFailed == (REFRESH_RefreshFailed & m_flags );}
-	bool IsEndOfRefresh() const{return (REFRESH_EndOfRefresh & m_flags) != 0;}
-	bool IsEndOfBlock() const{ return (REFRESH_EndOfBlock & m_flags) != 0;}
-	bool IsRefreshFailed() const{ return (REFRESH_RefreshFailed & m_flags) != 0;}
-*/
 	unsigned char m_steps;
 	unsigned char m_flags;
+	unsigned short m_optionType;//"EU" - equity option, "IU" - index option
 };
 
 class TMsgReqOptUnsubscribeSymbol : public TMessageSymbol
 {
 public:
-	TMsgReqOptUnsubscribeSymbol(const char* symbol):TMessageSymbol(symbol, M_REQ_OPT_UNSUBSCRIBE_SYMBOL, sizeof(TMsgReqUnsubscribeSymbol)){}
+	TMsgReqOptUnsubscribeSymbol(const char* const& symbol):TMessageSymbol(symbol, M_REQ_OPT_UNSUBSCRIBE_SYMBOL, sizeof(TMsgReqUnsubscribeSymbol)){}
 	TMsgReqOptUnsubscribeSymbol(const unsigned __int64& symbol):TMessageSymbol(symbol, M_REQ_OPT_UNSUBSCRIBE_SYMBOL, sizeof(TMsgReqUnsubscribeSymbol)){}
 };
 
 class TMsgOptResetSymbol : public TMsgOptionSymbol
 {
 public:
-	TMsgOptResetSymbol(const char* symbol, const unsigned __int64& optionBlock):
+	TMsgOptResetSymbol(const char* const& symbol, const unsigned __int64& optionBlock):
 		TMsgOptionSymbol(symbol, optionBlock, M_OPT_RESET_SYMBOL, sizeof(TMsgOptResetSymbol))
 	{}
 	TMsgOptResetSymbol(const unsigned __int64& symbol, const unsigned __int64& optionBlock):
@@ -6176,26 +8865,28 @@ public:
 class TMsgOptEndOfDaySummaryReport : public TMessageOption
 {
 public:
-	TMsgOptEndOfDaySummaryReport(const char* symbol, unsigned int time, const OptionBlock& optionBlock,
-		unsigned int openPriceDollars,
-		unsigned int openPriceFraction,
-		unsigned int highPriceDollars,
-		unsigned int highPriceFraction,
-		unsigned int lowPriceDollars,
-		unsigned int lowPriceFraction,
-		unsigned int lastPriceDollars,
-		unsigned int lastPriceFraction,
+	TMsgOptEndOfDaySummaryReport(const char* const& symbol,
+		const unsigned int& time,
+		const OptionBlock& optionBlock,
+		const unsigned int& openPriceDollars,
+		const unsigned int& openPriceFraction,
+		const unsigned int& highPriceDollars,
+		const unsigned int& highPriceFraction,
+		const unsigned int& lowPriceDollars,
+		const unsigned int& lowPriceFraction,
+		const unsigned int& lastPriceDollars,
+		const unsigned int& lastPriceFraction,
 
-		int netChangeDollars,
-		int netChangeFraction,
-		unsigned int underlyingPriceDollars,
-		unsigned int underlyingPriceFraction,
-		unsigned int bidPriceDollars,
-		unsigned int bidPriceFraction,
-		unsigned int askPriceDollars,
-		unsigned int askPriceFraction,
-		unsigned int volume,
-		unsigned int openInterestVolume):
+		const int& netChangeDollars,
+		const int& netChangeFraction,
+		const unsigned int& underlyingPriceDollars,
+		const unsigned int& underlyingPriceFraction,
+		const unsigned int& bidPriceDollars,
+		const unsigned int& bidPriceFraction,
+		const unsigned int& askPriceDollars,
+		const unsigned int& askPriceFraction,
+		const unsigned int& volume,
+		const unsigned int& openInterestVolume):
 		TMessageOption(symbol, time, optionBlock, M_OPT_EOD_SUMMARY_REPORT, sizeof(TMsgEndOfDaySummaryReport)),
 		m_openPriceDollars(openPriceDollars),
 		m_openPriceFraction(openPriceFraction),
@@ -6242,10 +8933,12 @@ public:
 class TMsgOptPreviousDayClose : public TMessageOption
 {
 public:
-	TMsgOptPreviousDayClose(const char* symbol, unsigned int time, const OptionBlock& optionBlock,
-		unsigned int closePriceDollar,
-		unsigned int closePriceFraction):
-		TMessageOption(symbol, time, optionBlock, M_OPT_PREVIOUS_DAY_CLOSE, sizeof(TMsgPreviousDayClose)),
+	TMsgOptPreviousDayClose(const char* const& symbol = "",
+		const unsigned int& time = 0,
+		const OptionBlock& optionBlock = OptionBlock(0),
+		const unsigned int& closePriceDollar = 0,
+		const unsigned int& closePriceFraction = 0):
+		TMessageOption(symbol, time, optionBlock, M_OPT_PREVIOUS_DAY_CLOSE, sizeof(TMsgOptPreviousDayClose)),
 		m_closePriceDollar(closePriceDollar),
 		m_closePriceFraction(closePriceFraction)
 	{}
@@ -6256,14 +8949,14 @@ public:
 class TMsgUnderlierInvalid : public TMessageSymbol
 {
 public:
-	TMsgUnderlierInvalid(const char* symbol):TMessageSymbol(symbol, TM_UNDERLIER_INVALID, sizeof(TMsgUnderlierInvalid)){}
+	TMsgUnderlierInvalid(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_INVALID, sizeof(TMsgUnderlierInvalid)){}
 	TMsgUnderlierInvalid(const unsigned __int64& symbol = 0):TMessageSymbol(symbol, TM_UNDERLIER_INVALID, sizeof(TMsgUnderlierInvalid)){}
 };
 
 class TMsgUnderlierRefreshed : public TMessageSymbol
 {
 public:
-	TMsgUnderlierRefreshed(const char* symbol):TMessageSymbol(symbol, TM_UNDERLIER_REFRESHED, sizeof(TMsgUnderlierRefreshed)){}
+	TMsgUnderlierRefreshed(const char* const& symbol):TMessageSymbol(symbol, TM_UNDERLIER_REFRESHED, sizeof(TMsgUnderlierRefreshed)){}
 	TMsgUnderlierRefreshed(const unsigned __int64& symbol = 0):TMessageSymbol(symbol, TM_UNDERLIER_REFRESHED, sizeof(TMsgUnderlierRefreshed)){}
 };
 
@@ -6275,8 +8968,8 @@ public:
 protected:
 //	TMsgOptionUpdate(const char* symbol, const OptionKey& optionKey, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageStockUpdate(symbol, updateOrdinal, type, length), m_optionKey(optionKey){}
 //	TMsgOptionUpdate(const unsigned __int64& symbol, const OptionKey& optionKey, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageStockUpdate(symbol, updateOrdinal, type, length), m_optionKey(optionKey){}
-	TMsgOptionUpdate(const char* symbol, const unsigned __int64& optionBlock, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageStockUpdate(symbol, updateOrdinal, type, length), m_optionBlock(optionBlock){}
-	TMsgOptionUpdate(const unsigned __int64& symbol, const unsigned __int64& optionBlock, unsigned int updateOrdinal, unsigned short type, unsigned short length):TMessageStockUpdate(symbol, updateOrdinal, type, length), m_optionBlock(optionBlock){}
+	TMsgOptionUpdate(const char* const& symbol, const unsigned __int64& optionBlock, const unsigned int& updateOrdinal, const unsigned short& type, const unsigned short& length):TMessageStockUpdate(symbol, updateOrdinal, type, length), m_optionBlock(optionBlock){}
+	TMsgOptionUpdate(const unsigned __int64& symbol, const unsigned __int64& optionBlock, const unsigned int& updateOrdinal, const unsigned short& type, const unsigned short& length):TMessageStockUpdate(symbol, updateOrdinal, type, length), m_optionBlock(optionBlock){}
 };
 
 class TMsgOptionUpdateLevel2 : public TMsgOptionUpdate
@@ -6284,8 +8977,8 @@ class TMsgOptionUpdateLevel2 : public TMsgOptionUpdate
 public:
 //	TMsgOptionUpdateLevel2(const char* symbol, const OptionKey& optionKey, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionKey, updateOrdinal, TM_OPTION_UPDATE_LEVEL2, sizeof(TMsgOptionUpdateLevel2)){}
 //	TMsgOptionUpdateLevel2(const unsigned __int64& symbol, const OptionKey& optionKey, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionKey, updateOrdinal, TM_OPTION_UPDATE_LEVEL2, sizeof(TMsgOptionUpdateLevel2)){}
-	TMsgOptionUpdateLevel2(const char* symbol, const unsigned __int64& optionBlock, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL2, sizeof(TMsgOptionUpdateLevel2)){}
-	TMsgOptionUpdateLevel2(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0, unsigned int updateOrdinal = 0):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL2, sizeof(TMsgOptionUpdateLevel2)){}
+	TMsgOptionUpdateLevel2(const char* const& symbol, const unsigned __int64& optionBlock, const unsigned int& updateOrdinal):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL2, sizeof(TMsgOptionUpdateLevel2)){}
+	TMsgOptionUpdateLevel2(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0, const unsigned int& updateOrdinal = 0):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL2, sizeof(TMsgOptionUpdateLevel2)){}
 };
 
 class TMsgOptionUpdateLevel1 : public TMsgOptionUpdate
@@ -6293,9 +8986,17 @@ class TMsgOptionUpdateLevel1 : public TMsgOptionUpdate
 public:
 //	TMsgOptionUpdateLevel1(const char* symbol, const OptionKey& optionKey, bool hasPrints, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionKey, updateOrdinal, TM_OPTION_UPDATE_LEVEL1, sizeof(TMsgOptionUpdateLevel1)), m_hasPrints(hasPrints){}
 //	TMsgOptionUpdateLevel1(const unsigned __int64& symbol, const OptionKey& optionKey, bool hasPrints, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionKey, updateOrdinal, TM_OPTION_UPDATE_LEVEL1, sizeof(TMsgOptionUpdateLevel1)), m_hasPrints(hasPrints){}
-	TMsgOptionUpdateLevel1(const char* symbol, const unsigned __int64& optionBlock, bool hasPrints, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL1, sizeof(TMsgOptionUpdateLevel1)), m_hasPrints(hasPrints){}
-	TMsgOptionUpdateLevel1(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0, bool hasPrints = false, unsigned int updateOrdinal = 0):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL1, sizeof(TMsgOptionUpdateLevel1)), m_hasPrints(hasPrints){}
+	TMsgOptionUpdateLevel1(const char* const& symbol, const unsigned __int64& optionBlock, const bool& hasPrints, const unsigned int& updateOrdinal):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL1, sizeof(TMsgOptionUpdateLevel1)), m_hasPrints(hasPrints){}
+	TMsgOptionUpdateLevel1(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0, const bool& hasPrints = false, const unsigned int& updateOrdinal = 0):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_UPDATE_LEVEL1, sizeof(TMsgOptionUpdateLevel1)), m_hasPrints(hasPrints){}
 	bool m_hasPrints;
+};
+
+class TMsgOptionUsedCountUpdate : public TMessageSymbol
+{
+public:
+	TMsgOptionUsedCountUpdate(const char* const& symbol, const unsigned __int64& optionBlock):TMessageSymbol(symbol, TM_OPTION_USED_COUNT_UPDATE, sizeof(TMsgOptionUsedCountUpdate)), m_optionBlock(optionBlock){}
+	TMsgOptionUsedCountUpdate(const unsigned __int64& symbol, const unsigned __int64& optionBlock):TMessageSymbol(symbol, TM_OPTION_USED_COUNT_UPDATE, sizeof(TMsgOptionUsedCountUpdate)), m_optionBlock(optionBlock){}
+	unsigned __int64 m_optionBlock;
 };
 
 class TMsgOptionRefreshed : public TMsgOptionUpdate
@@ -6303,16 +9004,31 @@ class TMsgOptionRefreshed : public TMsgOptionUpdate
 public:
 //	TMsgOptionRefreshed(const char* symbol, const OptionKey& optionKey, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionKey, updateOrdinal, TM_OPTION_REFRESHED, sizeof(TMsgOptionRefreshed)){}
 //	TMsgOptionRefreshed(const unsigned __int64& symbol, const OptionKey& optionKey, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionKey, updateOrdinal, TM_OPTION_REFRESHED, sizeof(TMsgOptionRefreshed)){}
-	TMsgOptionRefreshed(const char* symbol, const unsigned __int64& optionBlock, unsigned int updateOrdinal):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_REFRESHED, sizeof(TMsgOptionRefreshed)){}
-	TMsgOptionRefreshed(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0, unsigned int updateOrdinal = 0):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_REFRESHED, sizeof(TMsgOptionRefreshed)){}
+	TMsgOptionRefreshed(const char* const& symbol, const unsigned __int64& optionBlock, const unsigned int& updateOrdinal):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_REFRESHED, sizeof(TMsgOptionRefreshed)){}
+	TMsgOptionRefreshed(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0, const unsigned int& updateOrdinal = 0):TMsgOptionUpdate(symbol, optionBlock, updateOrdinal, TM_OPTION_REFRESHED, sizeof(TMsgOptionRefreshed)){}
 };
 
 class TMsgOptionInvalid : public TMsgOptionSymbol
 {
 public:
-	TMsgOptionInvalid(const char* symbol, const unsigned __int64& optionBlock):TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_INVALID, sizeof(TMsgOptionInvalid)){}
+	TMsgOptionInvalid(const char* const& symbol, const unsigned __int64& optionBlock):TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_INVALID, sizeof(TMsgOptionInvalid)){}
 	TMsgOptionInvalid(const unsigned __int64& symbol = 0, const unsigned __int64& optionBlock = 0):TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_INVALID, sizeof(TMsgOptionInvalid)){}
 };
+
+class TMsgOptionClosed : public TMsgOptionSymbol
+{
+public:
+	TMsgOptionClosed(const char* const& symbol, const unsigned __int64& optionBlock) :TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_CLOSED, sizeof(TMsgOptionClosed)){}
+	TMsgOptionClosed(const unsigned __int64& symbol, const unsigned __int64& optionBlock) :TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_CLOSED, sizeof(TMsgOptionClosed)){}
+};
+
+class TMsgOptionOpened : public TMsgOptionSymbol
+{
+public:
+	TMsgOptionOpened(const char* const& symbol, const unsigned __int64& optionBlock) :TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_OPENED, sizeof(TMsgOptionOpened)){}
+	TMsgOptionOpened(const unsigned __int64& symbol, const unsigned __int64& optionBlock) :TMsgOptionSymbol(symbol, optionBlock, TM_OPTION_OPENED, sizeof(TMsgOptionOpened)){}
+};
+
 
 #endif
 //////////////////////
@@ -6329,15 +9045,15 @@ public:
 	unsigned char m_connectionDataType;
 	char m_connectionName[24];
 protected:
-	TMessageConnection(unsigned short type, unsigned short length,
-		unsigned int ipAddress,
-		unsigned short port,
-		unsigned int ipBindAddress,
-		unsigned short bindPort,
-		unsigned int reconnectSeconds,
-		bool reconnectable,
-		unsigned char connectionDataType,
-		const char* connectionName):
+	TMessageConnection(const unsigned short& type, const unsigned short& length,
+		const unsigned int& ipAddress,
+		const unsigned short& port,
+		const unsigned int& ipBindAddress,
+		const unsigned short& bindPort,
+		const unsigned int& reconnectSeconds,
+		const bool& reconnectable,
+		const unsigned char& connectionDataType,
+		const char* const& connectionName):
 
 		Message(type, length),
 		m_ipAddress(ipAddress),
@@ -6348,21 +9064,21 @@ protected:
 		m_reconnectable(reconnectable),
 		m_connectionDataType(connectionDataType)
 	{
-		U_CopyAndPad(m_connectionName, sizeof(m_connectionName), connectionName, '\0');
+		U_CopyAndPad(m_connectionName, sizeof(m_connectionName), connectionName, '\0', true);
 	}
 };
 
 class TMsgConnected : public TMessageConnection
 {
 public:
-	TMsgConnected(unsigned int ipAddress,
-		unsigned short port,
-		unsigned int ipBindAddress,
-		unsigned short bindPort,
-		unsigned int reconnectSeconds,
-		bool reconnectable,
-		unsigned char connectionDataType,
-		const char* connectionName):
+	TMsgConnected(const unsigned int& ipAddress,
+		const unsigned short& port,
+		const unsigned int& ipBindAddress,
+		const unsigned short& bindPort,
+		const unsigned int& reconnectSeconds,
+		const bool& reconnectable,
+		const unsigned char connectionDataType,
+		const char* const& connectionName):
 
 		TMessageConnection(TM_CONNECTED, sizeof(TMsgConnected),
 			ipAddress,
@@ -6379,14 +9095,15 @@ public:
 class TMsgDisconnected : public TMessageConnection
 {
 public:
-	TMsgDisconnected(unsigned int ipAddress,
-		unsigned short port,
-		unsigned int ipBindAddress,
-		unsigned short bindPort,
-		unsigned int reconnectSeconds,
-		bool reconnectable,
-		unsigned char connectionDataType,
-		const char* connectionName):
+	TMsgDisconnected(const unsigned int& ipAddress,
+		const unsigned short& port,
+		const unsigned int& ipBindAddress,
+		const unsigned short& bindPort,
+		const unsigned int& reconnectSeconds,
+		const bool& reconnectable,
+		const unsigned char& connectionDataType,
+		const char* const& connectionName,
+		const bool& finalDisconnect = false):
 
 		TMessageConnection(TM_DISCONNECTED, sizeof(TMsgDisconnected),
 			ipAddress,
@@ -6396,21 +9113,23 @@ public:
 			reconnectSeconds,
 			reconnectable,
 			connectionDataType,
-			connectionName)
+			connectionName),
+		m_finalDisconnect(finalDisconnect)
 	{}
+	bool m_finalDisconnect;
 };
 
 class TMsgStartedToConnect : public TMessageConnection
 {
 public:
-	TMsgStartedToConnect(unsigned int ipAddress,
-		unsigned short port,
-		unsigned int ipBindAddress,
-		unsigned short bindPort,
-		unsigned int reconnectSeconds,
-		bool reconnectable,
-		unsigned char connectionDataType,
-		const char* connectionName):
+	TMsgStartedToConnect(const unsigned int& ipAddress,
+		const unsigned short& port,
+		const unsigned int& ipBindAddress,
+		const unsigned short& bindPort,
+		const unsigned int& reconnectSeconds,
+		const bool& reconnectable,
+		const unsigned char& connectionDataType,
+		const char* const& connectionName):
 
 		TMessageConnection(TM_STARTED_TO_CONNECT, sizeof(TMsgStartedToConnect),
 			ipAddress,
@@ -6427,14 +9146,14 @@ public:
 class TMsgFailedToConnect : public TMessageConnection
 {
 public:
-	TMsgFailedToConnect(unsigned int ipAddress,
-		unsigned short port,
-		unsigned int ipBindAddress,
-		unsigned short bindPort,
-		unsigned int reconnectSeconds,
-		bool reconnectable,
-		unsigned char connectionDataType,
-		const char* connectionName):
+	TMsgFailedToConnect(const unsigned int& ipAddress,
+		const unsigned short& port,
+		const unsigned int& ipBindAddress,
+		const unsigned short& bindPort,
+		const unsigned int& reconnectSeconds,
+		const bool& reconnectable,
+		const unsigned char& connectionDataType,
+		const char* const& connectionName):
 
 		TMessageConnection(TM_FAILED_TO_CONNECT, sizeof(TMsgFailedToConnect),
 			ipAddress,
@@ -6451,14 +9170,15 @@ public:
 class TMsgConnectionDestroyed : public TMessageConnection
 {
 public:
-	TMsgConnectionDestroyed(unsigned int ipAddress,
-		unsigned short port,
-		unsigned int ipBindAddress,
-		unsigned short bindPort,
-		unsigned int reconnectSeconds,
-		bool reconnectable,
-		unsigned char connectionDataType,
-		const char* connectionName):
+	TMsgConnectionDestroyed(const unsigned int& ipAddress,
+		const unsigned short& port,
+		const unsigned int& ipBindAddress,
+		const unsigned short& bindPort,
+		const unsigned int& reconnectSeconds,
+		const bool& reconnectable,
+		const unsigned char& connectionDataType,
+		const char* const& connectionName,
+		const bool& disconnecting):
 
 		TMessageConnection(TM_CONNECTION_DESTROYED, sizeof(TMsgConnectionDestroyed),
 			ipAddress,
@@ -6468,30 +9188,93 @@ public:
 			reconnectSeconds,
 			reconnectable,
 			connectionDataType,
-			connectionName)
+			connectionName),
+		m_disconnecting(disconnecting)
+	{}
+	bool m_disconnecting;
+};
+
+class TMsgClientConnection : public Message
+{
+public:
+	unsigned int m_ip;
+	unsigned short m_port;
+	unsigned short m_serverPort;
+protected:
+	TMsgClientConnection(const unsigned int& ip,
+		const unsigned short& port,
+		const unsigned short& serverPort,
+		const unsigned short& type,
+		const unsigned short& length):
+		Message(type, length),
+		m_ip(ip),
+		m_port(port),
+		m_serverPort(serverPort)
 	{}
 };
 
-//Transaction Server messages
+class TMsgClientConnected : public TMsgClientConnection
+{
+public:
+	TMsgClientConnected(const unsigned int& ip, const unsigned short& port, const unsigned short& serverPort):
+		TMsgClientConnection(ip, port, serverPort, TM_CLIENT_CONNECTED, sizeof(TMsgClientConnected))
+	{}
+};
 
-#define TS_STRUCTURES_MAJOR_VERSION			1
-#define TS_STRUCTURES_MINOR_VERSION			0
+class TMsgClientDisconnected : public TMsgClientConnection
+{
+public:
+	TMsgClientDisconnected(const unsigned int& ip,
+		const unsigned short& port,
+		const unsigned short& serverPort,
+		const unsigned int& millisecondToSendHeartbeat,
+		const unsigned int& millisecondToSendTest):
+		TMsgClientConnection(ip, port, serverPort, TM_CLIENT_DISCONNECTED, sizeof(TMsgClientDisconnected)),
+		m_millisecondToSendHeartbeat(millisecondToSendHeartbeat),
+		m_millisecondToSendTest(millisecondToSendTest)
+	{}
+	unsigned int m_millisecondToSendHeartbeat;
+	unsigned int m_millisecondToSendTest;
+};
 
+//#define TS_STRUCTURES_MAJOR_VERSION			1
+//#define TS_STRUCTURES_MINOR_VERSION			0
+/*
 #define ENVIRONMENT_TYPE_PRODUCTION		1
 #define ENVIRONMENT_TYPE_SIMULATION		2
 #define ENVIRONMENT_TYPE_STAGING		3
 #define ENVIRONMENT_TYPE_DEVELOPMENT	4
+*/
+enum ExecutorLogonRequestEnvironment : unsigned int
+{
+	ENVIRONMENT_TYPE_PRODUCTION =		1,
+	ENVIRONMENT_TYPE_SIMULATION =		2,
+	ENVIRONMENT_TYPE_STAGING =			3,
+	ENVIRONMENT_TYPE_DEVELOPMENT =		4
+};
 
-#define APPLICATION_TYPE_BLAZER			1
-#define APPLICATION_TYPE_API			2
+//#define APPLICATION_TYPE_BLAZER			1
+//#define APPLICATION_TYPE_API			2
+
+enum ExecutorLogonRequestApplicationType : unsigned int
+{
+	APPLICATION_TYPE_BLAZER =			1,
+	APPLICATION_TYPE_API =				2
+};
 
 // *AK*  FLAGS
-#define FLAGS_TCPNoDelay					0x10000
-#define FLAGS_CancelAllOrdersOnDisconnect	0x20000
+//#define FLAGS_TCPNoDelay					0x10000
+//#define FLAGS_CancelAllOrdersOnDisconnect	0x20000
+
+enum ExecutorLogonRequestFlags : unsigned int
+{
+	FLAGS_TCPNoDelay =					0x10000,
+	FLAGS_CancelAllOrdersOnDisconnect =	0x20000
+};
 
 // *AK* 
 
-enum Compression
+enum Compression : unsigned int
 {
 	NoCompression		= 0x00,
 	FromClientToServer	= 0x01,
@@ -6503,24 +9286,24 @@ class TMsgMdReqLogon : public Message
 {
 public:
 	
-	TMsgMdReqLogon(const char* userId, 
-			   const char* password, 
-			   const char* ipAddress, 
-			   const char* appVersion, 
-			   unsigned int flags = 0, 
-			   bool simulation = true, 
-			   unsigned int compression = NoCompression,
-			   unsigned int requestId = 0):
-		Message(M_REQ_MD_LOGON, sizeof(TMsgMdReqLogon))
-		, m_flags( flags )
-		, m_simulation( simulation )
-		, m_compression( compression )
-		, m_requestId( requestId )
+	TMsgMdReqLogon(const char* const& userId, 
+		const char* const& password, 
+		const char* const& ipAddress, 
+		const char* const& appVersion, 
+		const unsigned int& flags = 0, 
+		const bool& simulation = true, 
+		const unsigned int& compression = NoCompression,
+		const unsigned int& requestId = 0):
+		Message(M_REQ_MD_LOGON, sizeof(TMsgMdReqLogon)),
+		m_flags(flags),
+		m_simulation(simulation),
+		m_compression(compression),
+		m_requestId(requestId)
 	{
-		U_CopyAndPad(m_userId, sizeof(m_userId), userId, '\0');
-		U_CopyAndPad(m_password, sizeof(m_password), password, '\0');
-		U_CopyAndPad(m_ipAddress, sizeof(m_ipAddress), ipAddress, '\0');
-		U_CopyAndPad(m_appVersion, sizeof(m_appVersion), appVersion, '\0');
+		U_CopyAndPad(m_userId, sizeof(m_userId), userId, '\0', true);
+		U_CopyAndPad(m_password, sizeof(m_password), password, '\0', true);
+		U_CopyAndPad(m_ipAddress, sizeof(m_ipAddress), ipAddress, '\0', true);
+		U_CopyAndPad(m_appVersion, sizeof(m_appVersion), appVersion, '\0', true);
 	}
 
 	char			m_userId[5];
@@ -6554,29 +9337,33 @@ class TMsgMdLogonResponse : public Message
 {
 public:
 	
-	TMsgMdLogonResponse(const char* userId,
-				const char* serverVersion,
-				unsigned int flags = SUCCEEDED,
-				bool reserved = true,
-				unsigned int compression = NoCompression,
-				unsigned int requestId = 0,
-				unsigned __int64 marketDataEntitlements = 0):
-		Message(M_RESP_MD_LOGON, sizeof(TMsgMdLogonResponse))
-		, m_flags(flags)
-		, m_reserved(reserved)
-		, m_compression(compression)
-		, m_requestId(requestId)
-		, m_marketDataEntitlements(marketDataEntitlements)
+	TMsgMdLogonResponse(const char* const& userId = "",
+		const char* const& serverVersion = "",
+		const unsigned int& flags = SUCCEEDED,
+		const bool& reserved = true,
+		const unsigned int& compression = NoCompression,
+		const unsigned int& requestId = 0,
+		const unsigned __int64& marketDataEntitlements = 0,
+		const unsigned __int64& extMarketDataEntitlements = 0):
+		Message(M_RESP_MD_LOGON, sizeof(TMsgMdLogonResponse)),
+		m_flags(flags),
+		m_reserved(reserved),
+		m_compression(compression),
+		m_requestId(requestId),
+		m_marketDataEntitlements(marketDataEntitlements),
+		m_extMarketDataEntitlements(extMarketDataEntitlements)
 	{
-		U_CopyAndPad(m_userId, sizeof(m_userId), userId, '\0');
-		U_CopyAndPad( m_serverVersion, sizeof(m_serverVersion), serverVersion, '\0');
+		U_CopyAndPad(m_userId, sizeof(m_userId), userId, '\0', true);
+		U_CopyAndPad(m_serverVersion, sizeof(m_serverVersion), serverVersion, '\0', true);
 	}
 
 	enum
 	{
 		SUCCEEDED	= 0,
 		TIMED_OUT,
-		FAILED		= 0x80000000
+		SUBSCRIPTION_ONLY = 0x40000000,
+		FAILED		= 0x80000000,
+		ERROR_MASK	= FAILED | 0xFF,
 	};
 	
 	char				m_userId[5];
@@ -6586,88 +9373,79 @@ public:
 	unsigned int		m_compression;
 	unsigned int		m_requestId;
 	unsigned __int64	m_marketDataEntitlements;
+	unsigned __int64	m_extMarketDataEntitlements;
 };
 
 class TReqPublicKey : public Message
 {
 public:
-	TReqPublicKey(unsigned int requestId):Message(M_REQ_PUBLIC_KEY, sizeof(TReqPublicKey)), m_requestId(requestId){}
+	TReqPublicKey(const unsigned int& requestId):Message(M_REQ_PUBLIC_KEY, sizeof(TReqPublicKey)), m_requestId(requestId){}
 	unsigned int m_requestId;
 };
 
 class TMsgPublicKey : public Message
 {
 public:
-	TMsgPublicKey(unsigned int requestId, unsigned short blobSize):Message(M_RESP_PUBLIC_KEY, sizeof(TMsgPublicKey) + blobSize), m_requestId(requestId){}
+	TMsgPublicKey(const unsigned int& requestId, const unsigned short& blobSize):Message(M_RESP_PUBLIC_KEY, sizeof(TMsgPublicKey) + blobSize), m_requestId(requestId){}
 	unsigned int m_requestId;
 };
 
 class TMsgReqLogon : public TMessageTime//Executor logon
 {
 public:
-	TMsgReqLogon(
-		unsigned int flags,
-		unsigned int compressionType,
-		const char* ipAddress,
-		const char* firmId,
-		const char* userName,
-		const char* password,
-		WORD applicationType = APPLICATION_TYPE_BLAZER,
-		WORD environment = ENVIRONMENT_TYPE_PRODUCTION,
-		WORD majorVersion = TS_STRUCTURES_MAJOR_VERSION,
-		WORD minorVersion = TS_STRUCTURES_MINOR_VERSION):
-/*
-	TMsgReqLogon::TMsgReqLogon(
-		unsigned int flags,
-		unsigned int compressionType,
-		const char* ipAddress,
-		const char* firmId,
-		const char* userName,
-		const char* password,
-		WORD applicationType,
-		WORD environment,
-		WORD majorVersion,
-		WORD minorVersion):
-*/
+	TMsgReqLogon(const unsigned int& flags,
+		const unsigned int& compressionType,
+		const char* const& ipAddress,
+		const char* const& firmId,
+		const char* const& userName,
+		const char* const& password,
+		const WORD& applicationType,// = APPLICATION_TYPE_BLAZER,
+		const WORD& environment,// = ENVIRONMENT_TYPE_PRODUCTION,
+		const WORD& majorVersion,// = TS_STRUCTURES_MAJOR_VERSION,
+		const WORD& minorVersion):// = TS_STRUCTURES_MINOR_VERSION):
 		TMessageTime(0, TS_LOGIN_REQ, sizeof(TMsgReqLogon)),
 		MajorVersion(majorVersion),
 		MinorVersion(minorVersion),
 		Environment(environment),
 		ApplicationType(applicationType),
-	// *AK* start
 		Flags(flags),
 		CompressionType(compressionType)
 	{
-		U_CopyAndPad(IPAddress, sizeof(IPAddress), ipAddress, '\0');
-		U_CopyAndPad(FirmID, sizeof(FirmID), firmId, '\0');
-	//	U_CopyAndPad(UserName, sizeof(UserName), userName, '\0');
+		U_CopyAndPad(IPAddress, sizeof(IPAddress), ipAddress, '\0', true);
+		U_CopyAndPad(FirmID, sizeof(FirmID), firmId, '\0', true);
 		memset(UserName, 0, sizeof(UserName));
-		unsigned int userNameLen = MAX_TRADER_ID_SIZE - 1;
-		if(userNameLen > sizeof(UserName))
-		{
-			userNameLen = sizeof(UserName);
-		}
-		U_CopyAndPad(UserName, userNameLen, userName, '\0');
-		U_CopyAndPad(Password, sizeof(Password), password, '\0');
+
+		unsigned int userNameLen = MAX_TRADER_ID_SIZE;
+		if(userNameLen > sizeof(UserName))userNameLen = sizeof(UserName);
+		U_CopyAndPad(UserName, userNameLen, userName, '\0', true);
+
+		U_CopyAndPad(Password, sizeof(Password), password, '\0', true);
 	}
 	WORD			MajorVersion;
 	WORD			MinorVersion;
 	WORD			Environment;
 	WORD			ApplicationType;
-// *AK* start
 	unsigned int	Flags;
 	unsigned int	CompressionType;
 	char			IPAddress[MAX_IP_ADDRESS_SIZE];
 	char			FirmID[MAX_FIRM_ID_SIZE];
-// *AK* end
 	char			UserName[MAX_USERNAME_SIZE];
 	char			Password[MAX_PASSWORD_SIZE];
 };
 
+enum ExecutorLogonRejectReason : unsigned int
+{
+	LOGIN_REJECT_REASON_INVALID_USERNAME =	1,
+	LOGIN_REJECT_REASON_INVALID_PASSWORD =	2,
+	LOGIN_REJECT_REASON_INVALID_VERSION =	3,
+	LOGIN_REJECT_REASON_ALREADY_LOGGED_IN =	4
+};
+/*
 #define LOGIN_REJECT_REASON_INVALID_USERNAME	1
 #define LOGIN_REJECT_REASON_INVALID_PASSWORD	2
 #define LOGIN_REJECT_REASON_INVALID_VERSION		3
 #define LOGIN_REJECT_REASON_ALREADY_LOGGED_IN	4
+*/
 //TS->TSClient, Sent in response to TS_LOGIN_MESSAGE request if the login is rejected
 
 class TMsgReason : public TMessageTime
@@ -6676,14 +9454,14 @@ public:
 	WORD	Reason;
 	char	ReasonText[1];
 protected:
-	TMsgReason(WORD reason, unsigned short type, unsigned short length):TMessageTime(0, type, length), Reason(reason){*ReasonText = '\0';}
+	TMsgReason(const WORD& reason, const unsigned short& type, const unsigned short& length):TMessageTime(0, type, length), Reason(reason){*ReasonText = '\0';}
 };
 
 
 class TMsgLogonReject : public TMsgReason
 {
 public:
-	TMsgLogonReject(WORD reason):TMsgReason(reason, TS_LOGIN_REJECT, sizeof(TMsgLogonReject)){}
+	TMsgLogonReject(const WORD& reason):TMsgReason(reason, TS_LOGIN_REJECT, sizeof(TMsgLogonReject)){}
 };
 
 
@@ -6711,54 +9489,287 @@ enum TakionUserType
 #define	USER_TYPE_AGGRESSIVE_ODD_LOTS		0x00000010
 #define	USER_TYPE_WATCHER					0x00000020
 */
+
 enum TraderMiscFlags : unsigned char
 {
 	TMF_QVV_QSMT,
 	TMF_QVV_QADD,
 	TMF_QVV_QTAK,
 
-	TMF_QSMT_SMART_SWIPE,
-	TMF_QSMT_AGGRESSIVE,
-	TMF_QSMT_DUMB_SWIPE,
+	TMF_QSMT_SMART_SWIPE_DMA,
+	TMF_QSMT_AGGRESSIVE_DMA,
+	TMF_QSMT_DUMB_SWIPE_DMA,
 
-	TMF_QSMT_ON_OPEN_CLOSE,
+	TMF_QSMT_ON_OPEN_CLOSE_DMAPLUS,
 
-	TMF_QSMT_SMART_SWIPE_MH,
-	TMF_QSMT_AGGRESSIVE_MH,
-	TMF_QSMT_DUMB_SWIPE_MH,
-	TMF_QSMT_PASSIVE = 11,
+	TMF_QSMT_SMART_SWIPE_DMAPLUS,
+	TMF_QSMT_AGGRESSIVE_DMAPLUS,
+	TMF_QSMT_DUMB_SWIPE_DMAPLUS,
+
+	TMF_QSMT_PASSIVE_DMA = 11,
+
+	TMF_APEX_AGGRESSIVE,
+
+#ifdef LYNX_REROUTING
+	TMF_LYNX_SMART,
+	TMF_LYNX_ON_OPEN_CLOSE,
+	TMF_LYNX_PASSIVE,//15
+#endif
+
+	TMF_Count
 };
+
+enum AccountProcFlags : unsigned char
+{
+	APF_TREAT_PASSIVE_ORDERS_AS_AGGRESSIVE,
+
+	APF_Count
+};
+
 
 //TS->TSClient, Sent in response to TS_LOGIN_MESSAGE request if the login is successful
 class TMsgLogonResponse : public TMessageTime
 {
 public:
-	TMsgLogonResponse():TMessageTime(0, TS_LOGIN_RESP, sizeof(TMsgLogonResponse)){}
+	TMsgLogonResponse(const unsigned int& time,
+		const WORD& numberOfAccounts,
+		const DWORD& userType,
+		const unsigned __int64& entitlements,
+		const unsigned int& multicastIp,
+		const unsigned short& multicastPort,
+		const char* const& traderId,
+		const char* const& title,
+		const char* const& defaultAccount,
+		const unsigned __int64& miscSettings,
+		const unsigned __int64& serverVersion):
+		TMessageTime(time, TS_LOGIN_RESP, sizeof(TMsgLogonResponse)),
+		NumberOfAccounts(numberOfAccounts),
+		UserType(userType),
+		MDEntitlements(entitlements),
+		MulticastIP(multicastIp),
+		MulticastPort(multicastPort),
+		MiscSettings(miscSettings),
+		ServerVersion(serverVersion)
+	{
+		unsigned int traderIdLen = MAX_TRADER_ID_SIZE;// - 1;
+		if(traderIdLen > sizeof(TraderID))traderIdLen = sizeof(TraderID);
+		U_CopyAndPad(TraderID, traderIdLen, traderId, '\0', true);
+
+		U_CopyAndPad(Title, sizeof(Title), title, '\0');
+
+		U_CopyAndPad(DefaultAccount, sizeof(DefaultAccount), defaultAccount, '\0', true);
+	}
 	WORD				NumberOfAccounts;						//This many account messages follow
 	DWORD				UserType;								//Specifies the logged in user type
 	unsigned __int64	MDEntitlements;							// *AK* Market Data entitlements - DWORD may not be sufficient
-// *AK* start
 	unsigned int		MulticastIP;							// *AK* We can use it if we are going to offer multicast for market data
 	unsigned int		MulticastPort;							// *AK*
 	char				TraderID[MAX_TRADER_ID_SIZE];			// Should be used in all transactions, should be 4 Capital letters
 // *AK* end
 	char				Title[MAX_USER_TITLE_SIZE];				//Not sure if we need this, but can be used to give a title to the GUI
 	char				DefaultAccount[MAX_ACCOUNT_SIZE];		//Default account for this user
-	unsigned __int64	MiscSettings;
-	unsigned __int64	ServerVersion;
+	bool				TradingAllowed;							//Flag, whether trading allowed at all for this specific trader, can be used for view only. TSServer 1.0.0.90
+	unsigned __int64	MiscSettings;							//Might contain various bit-flags for any random settings we can come up with
+	unsigned __int64	ServerVersion;							//1.2.3.4 will be coded as ( (unsigned __int64)1 << 48 ) + ( (unsigned __int64)2 << 32 ) + ( 3 << 16 ) + ( 4 << 0 )
 };
 
 class TMsgReqLogout : public TMsgReason
 {
 public:
-	TMsgReqLogout(WORD reason):TMsgReason(reason, TS_LOGOUT_REQ, sizeof(TMsgReqLogout)){}
+	TMsgReqLogout(const WORD& reason):TMsgReason(reason, TS_LOGOUT_REQ, sizeof(TMsgReqLogout)){}
 };
 
 //TS->TSClient, RM->TS, This message may be sent by either TS or a Risk Manager to TSClient upon account profile change or as a part of initally account message
 class TMsgAccountRiskProfile : public TMessageTime
 {
 public:
-	TMsgAccountRiskProfile():TMessageTime(0, TS_ACCOUNT_RISK_PROFILE, sizeof(TMsgAccountRiskProfile)){}
+	TMsgAccountRiskProfile(const unsigned int& time = 0,
+		const char* const& accountName = "",
+		const char* const& userName = "",
+		const double& initialMemberContribution = 0,
+		const double& fixedBP = 0,
+		const double& overnightMaxValue = 0,//OvernightEquityMultiplier;
+		const double& intradayEquityMultiplier = 0,
+		const double& dailyPLLimit = 0,
+		const double& minEquityAmountAllowed = 0,
+		const double& percentEquityLossLimit = 0,
+		const double& threshold = 0,
+		const DWORD& intradayMaxPosShares = 0,
+		const double& intradayMaxPosValue = 0,
+		const double& intradayMaxLongValue = 0,
+		const double& intradayMaxShortValue = 0,
+		const DWORD& overnightMaxPosShares = 0,
+		const double& overnightMaxPosValue = 0,
+		const double& overnightMaxLongValue = 0,
+		const double& overnightMaxShortValue = 0,
+		const DWORD& orderProcessingFlags = 0,
+		const DWORD& acctProcessingFlags = 0,
+		const DWORD& maxOpenPositions = 0,
+		const double& maxSharePrice = 0,
+		const double& maxLoss = 0,
+		const double& maxLossPerPosition = 0,
+		const double& maxOpenLossPerPosition = 0,
+		const double& maxLossMarked = 0,
+		const double& maxTradedMoney = 0,
+		const double& minShortPrice = 0,
+		const unsigned int& maxOrderSize = 0,
+		const unsigned int& maxPendingOrdersPerPosition = 0,
+		const unsigned int& maxSharesTotal = 0,
+		const unsigned int& maxSharesTraded = 0,
+		const char* const& firmID = "",
+		const char& accountType = 0,
+		const char& firmType = 0,
+		const char* const& groupID_LSTK = "",
+		const double& displayMultiplier_LSTK = 0,
+		const double& maxOrderValue = 0,
+		const double& estBeginningDayEquity = 0,
+		const char* const& clearingAccountName = "",//[MAX_ACCOUNT_SIZE];
+
+		const double& maxLossPerPositionClose = 0,
+		const double& maxLossPerAccountClose = 0,
+		const double& maxLossPerPositionSlack = 0,
+		const double& maxLossPerAccountSlack = 0,
+
+		const double& optionBuyingPower = 0,
+		const unsigned int& maxOptionSharesTraded = 0,
+		const unsigned int& maxOptionOrderSize = 0,
+		const double& maxOptionOrderValue = 0,
+		const bool& nakedOptionSellAllowed = false,
+		const bool& enforceClearingAccountAggregation = false,
+		const unsigned int& maxOptionContractsOpen = 0,
+		const unsigned int& optionVenue = 0,
+		const bool& isoAllowed = false,
+		const unsigned int& spoofingOrderCountRatio = 0,
+		const unsigned int& spoofingOrderSizeRatio = 0,
+
+		const double& minSharePrice = 0,
+		const unsigned int& advOrderCount = 0,
+		const unsigned int& advOrderSizePercent = 0,
+		const unsigned int& advValue = 0,//2 values above are enforced only if the stock's ADV is lower or equal to ADVValue.
+		const unsigned int& forceHiddenBelowADV = 0,
+		const unsigned int& rejectBelowADV = 0,
+		const unsigned int& blockAggrPricePercent = 0,
+		
+		const unsigned int& maxOptionOpenPositions = 0,
+
+		const bool& htbThreshold = false,
+		
+		const double& niteMaxLoss = 0,
+		const double& niteMaxLossExit = 0,
+		const double& niteMaxLossSymbolClose = 0,
+		const double& niteMaxLossSymbol = 0,
+		const double& morningMaxTotalInvestment = 0,
+		const double& morningLongInv = 0,
+		const double& morningShortInv = 0,
+		const double& morningPosInv = 0,
+		const DWORD& morningPosShares = 0,
+		const double& morningMaxLoss = 0,
+		const double& morningMaxLossExit = 0,
+		const double& morningMaxLossSymbolClose = 0,
+		const double& morningMaxLossSymbol = 0,
+		const unsigned int& forceHiddenCloseBelowADV = 0,
+		const bool& conservativeOrderMarking = false,
+		const bool& localSideMarking = false,
+		const bool& poolLocates = false,
+		const unsigned int& locateVenue = 0,
+		const unsigned int& estBegPctClosePositions = 0,
+		const unsigned int& estBegPctCancelOpeningOrders = 0):
+
+		TMessageTime(time, TS_ACCOUNT_RISK_PROFILE, sizeof(TMsgAccountRiskProfile)),
+		InitialMemberContribution(initialMemberContribution),
+		FixedBP(fixedBP),
+		OvernightMaxValue(overnightMaxValue),//OvernightEquityMultiplier;
+		IntradayEquityMultiplier(intradayEquityMultiplier),
+		DailyPLLimit(dailyPLLimit),
+		MinEquityAmountAllowed(minEquityAmountAllowed),
+		PercentEquityLossLimit(percentEquityLossLimit),
+		Threshold(threshold),
+		IntradayMaxPosShares(intradayMaxPosShares),
+		IntradayMaxPosValue(intradayMaxPosValue),
+		IntradayMaxLongValue(intradayMaxLongValue),
+		IntradayMaxShortValue(intradayMaxShortValue),
+		OvernightMaxPosShares(overnightMaxPosShares),
+		OvernightMaxPosValue(overnightMaxPosValue),
+		OvernightMaxLongValue(overnightMaxLongValue),
+		OvernightMaxShortValue(overnightMaxShortValue),
+		OrderProcessingFlags(orderProcessingFlags),
+		AcctProcessingFlags(acctProcessingFlags),
+		MaxOpenPositions(maxOpenPositions),
+		MaxSharePrice(maxSharePrice),
+		MaxLoss(maxLoss),
+		MaxLossPerPosition(maxLossPerPosition),
+		MaxOpenLossPerPosition(maxOpenLossPerPosition),
+		MaxLossMarked(maxLossMarked),
+		MaxTradedMoney(maxTradedMoney),
+		MinShortPrice(minShortPrice),
+		MaxOrderSize(maxOrderSize),
+		MaxPendingOrdersPerPosition(maxPendingOrdersPerPosition),
+		MaxSharesTotal(maxSharesTotal),
+		MaxSharesTraded(maxSharesTraded),
+		AccountType(accountType),
+		FirmType(firmType),
+		DisplayMultiplier_LSTK(displayMultiplier_LSTK),
+		MaxOrderValue(maxOrderValue),
+		EstBeginningDayEquity(estBeginningDayEquity),
+
+		MaxLossPerPositionClose(maxLossPerPositionClose),
+		MaxLossPerAccountClose(maxLossPerAccountClose),
+		MaxLossPerPositionSlack(maxLossPerPositionSlack),
+		MaxLossPerAccountSlack(maxLossPerAccountSlack),
+
+		OptionBuyingPower(optionBuyingPower),
+		MaxOptionSharesTraded(maxOptionSharesTraded),
+		MaxOptionOrderSize(maxOptionOrderSize),
+		MaxOptionOrderValue(maxOptionOrderValue),
+		NakedOptionSellAllowed(nakedOptionSellAllowed),
+		EnforceClearingAccountAggregation(enforceClearingAccountAggregation),
+		MaxOptionContractsOpen(maxOptionContractsOpen),
+		OptionVenue(optionVenue),
+		ISOAllowed(isoAllowed),
+		SpoofingOrderCountRatio(spoofingOrderCountRatio),
+		SpoofingOrderSizeRatio(spoofingOrderSizeRatio),
+
+		MinSharePrice(minSharePrice),
+		ADVOrderCount(advOrderCount),
+		ADVOrderSizePercent(advOrderSizePercent),
+		ADVValue(advValue),//2 values above are enforced only if the stock's ADV is lower or equal to ADVValue.
+		ForceHiddenBelowADV(forceHiddenBelowADV),
+		RejectBelowADV(rejectBelowADV),
+		BlockAggrPricePercent(blockAggrPricePercent),
+		MaxOptionOpenPositions(maxOptionOpenPositions),
+		HTBThreshold(htbThreshold),
+
+		NiteMaxLoss(niteMaxLoss),
+		NiteMaxLossExit(niteMaxLossExit),
+		NiteMaxLossSymbolClose(niteMaxLossSymbolClose),
+		NiteMaxLossSymbol(niteMaxLossSymbol),
+		MorningMaxTotalInvestment(morningMaxTotalInvestment),
+		MorningLongInv(morningLongInv),
+		MorningShortInv(morningShortInv),
+		MorningPosInv(morningPosInv),
+		MorningPosShares(morningPosShares),
+		MorningMaxLoss(morningMaxLoss),
+		MorningMaxLossExit(morningMaxLossExit),
+		MorningMaxLossSymbolClose(morningMaxLossSymbolClose),
+		MorningMaxLossSymbol(morningMaxLossSymbol),
+		ForceHiddenCloseBelowADV(forceHiddenCloseBelowADV),
+		ConservativeOrderMarking(conservativeOrderMarking),
+		LocalSideMarking(localSideMarking),
+		PoolLocates(poolLocates),
+		LocateVenue(locateVenue),
+		EstBegPctClosePositions(estBegPctClosePositions),
+		EstBegPctCancelOpeningOrders(estBegPctCancelOpeningOrders)
+	{
+		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0', true);
+
+		unsigned int traderIdLen = MAX_TRADER_ID_SIZE;// - 1;
+		if(traderIdLen > sizeof(UserName))traderIdLen = sizeof(UserName);
+		U_CopyAndPad(UserName, traderIdLen, userName, '\0', true);
+
+		U_CopyAndPad(FirmID, sizeof(FirmID), firmID, '\0', true);
+		U_CopyAndPad(GroupID_LSTK, sizeof(GroupID_LSTK), groupID_LSTK, '\0', true);
+		U_CopyAndPad(ClearingAccountName, sizeof(ClearingAccountName), clearingAccountName, '\0', true);
+	}
 	char				AccountName[MAX_ACCOUNT_SIZE];
 	char				UserName[MAX_TRADER_SIZE];		//The Risk Manager who might have generated this, or empty if it comes from TS intially
 	double				InitialMemberContribution;
@@ -6781,10 +9792,6 @@ public:
 	DWORD				AcctProcessingFlags;
 	DWORD				MaxOpenPositions;
 	double				MaxSharePrice;
-
-
-// *AK* begin
-	// Additional fields that may be required to have
 	double				MaxLoss;
 	double				MaxLossPerPosition;
 	double				MaxOpenLossPerPosition;
@@ -6798,7 +9805,6 @@ public:
 	char				FirmID[MAX_FIRM_ID_SIZE];
 	char				AccountType;
 	char				FirmType;
-// *AK* end
 	char				GroupID_LSTK[MAX_MMID_SIZE];
 	double				DisplayMultiplier_LSTK;
 	double				MaxOrderValue;
@@ -6810,11 +9816,6 @@ public:
 	double				MaxLossPerPositionSlack;
 	double				MaxLossPerAccountSlack;
 
-//	double				PNLLossHi;
-//	int m_autoCloseStartDelaySecond;
-//	int m_autoCloseEndDelaySecond;
-
-//	double				OvernightMaxValue;//done by OvernightEquityMultiplier
 	double				OptionBuyingPower;
 	unsigned int		MaxOptionSharesTraded;
 	unsigned int		MaxOptionOrderSize;
@@ -6822,18 +9823,88 @@ public:
 	bool				NakedOptionSellAllowed;
 	bool				EnforceClearingAccountAggregation;
 	unsigned int		MaxOptionContractsOpen;
+	unsigned int		OptionVenue;
+	bool				ISOAllowed;
+	unsigned int		SpoofingOrderCountRatio;
+	unsigned int		SpoofingOrderSizeRatio;
+
+	double				MinSharePrice;
+	unsigned int		ADVOrderCount;
+	unsigned int		ADVOrderSizePercent;
+	unsigned int		ADVValue;//2 values above are enforced only if the stock's ADV is lower or equal to ADVValue.
+	unsigned int		ForceHiddenBelowADV;
+	unsigned int		RejectBelowADV;
+	unsigned int		BlockAggrPricePercent;
+
+	DWORD				MaxOrderVenues;
+	unsigned int		MaxOrderVenuesTime;
+	DWORD				MaxOrderSizeVenues;
+	unsigned int		MaxOrderSizeVenuesMultiplier;
+
+	unsigned int		MaxOptionOpenPositions;
+
+	bool				HTBThreshold;
+
+	double				NiteMaxLoss;
+	double				NiteMaxLossExit;
+	double				NiteMaxLossSymbolClose;
+	double				NiteMaxLossSymbol;
+	double				MorningMaxTotalInvestment;
+	double				MorningLongInv;
+	double				MorningShortInv;
+	double				MorningPosInv;
+	DWORD				MorningPosShares;
+	double				MorningMaxLoss;
+	double				MorningMaxLossExit;
+	double				MorningMaxLossSymbolClose;
+	double				MorningMaxLossSymbol;
+
+	unsigned int		ForceHiddenCloseBelowADV;
+	bool				ConservativeOrderMarking;
+	bool				LocalSideMarking;
+	bool				PoolLocates;
+	unsigned int		LocateVenue;
+	unsigned int		EstBegPctClosePositions;
+	unsigned int		EstBegPctCancelOpeningOrders;
 };
 //End Transaction Server messages
 
 class TMsgNewAccount : public TMessageTime
 {
 public:
-	TMsgNewAccount():TMessageTime(0, TS_NEW_ACCOUNT, sizeof(TMsgNewAccount)){}
+	TMsgNewAccount(const unsigned int& time = 0,
+		const char* const& accountName = "",
+		const double& buyingPower = 0,
+		const DWORD& executionEntitlementsLow = 0,				//Exchange ECN execution entitlements
+		const DWORD& securityEntitlements = 0,				//Security entitlements
+
+//		const DWORD& defaultRoute = 0,						//Defualt route for orders
+		const DWORD& executionEntitlementsHigh = 0,						//Defualt route for orders
+
+		const bool& tradingAllowed = 0,						//Flag, whether trading on this account is allowed for specific trader, can be used for view only
+		const TMsgAccountRiskProfile& accountRiskProfile = TMsgAccountRiskProfile()):					//Risk Profiles, this message may be passed around in future to control risk during the day between Risk Manager-TS and Front end
+
+		TMessageTime(time, TS_NEW_ACCOUNT, sizeof(TMsgNewAccount)),
+		BuyingPower(buyingPower),
+		ExecutionEntitlementsLow(executionEntitlementsLow),
+		SecurityEntitlements(securityEntitlements),
+		
+//		DefaultRoute(defaultRoute),
+		ExecutionEntitlementsHigh(executionEntitlementsHigh),
+
+		TradingAllowed(tradingAllowed),
+		AccountRiskProfile(accountRiskProfile)
+	{
+		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0', true);
+	}
 	char							AccountName[MAX_ACCOUNT_SIZE];
 	double							BuyingPower;
-	DWORD							ExecutionEntitlements;				//Exchange ECN execution entitlements
+	DWORD							ExecutionEntitlementsLow;				//Exchange ECN execution entitlements
 	DWORD							SecurityEntitlements;				//Security entitlements
-	DWORD							DefaultRoute;						//Defualt route for orders
+
+//	DWORD							DefaultRoute;						//Defualt route for orders
+	DWORD							ExecutionEntitlementsHigh;				//Exchange ECN execution entitlements
+
 	bool							TradingAllowed;						//Flag, whether trading on this account is allowed for specific trader, can be used for view only
 	TMsgAccountRiskProfile			AccountRiskProfile;					//Risk Profiles, this message may be passed around in future to control risk during the day between Risk Manager-TS and Front end
 };
@@ -6845,11 +9916,11 @@ public:
 	DWORD						RequestID;
 	char						AccountName[MAX_ACCOUNT_SIZE];
 protected:
-	TMessageAccountRecoveryBase(DWORD requestID, const char* accountName, unsigned short type, unsigned short length):
-		TMessageTime(0, type, length),
+	TMessageAccountRecoveryBase(const unsigned int& time, const DWORD& requestID, const char* const& accountName, const unsigned short& type, const unsigned short& length):
+		TMessageTime(time, type, length),
 		RequestID(requestID)
 	{
-		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0');
+		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0', true);
 	}
 };
 
@@ -6857,8 +9928,8 @@ protected:
 class TMsgReqOvernightPosition : public TMessageAccountRecoveryBase
 {
 public:
-	TMsgReqOvernightPosition(DWORD requestID, const char* accountName):
-		TMessageAccountRecoveryBase(requestID, accountName, TS_ACCOUNT_POSITION_REQ, sizeof(TMsgReqOvernightPosition))
+	TMsgReqOvernightPosition(const unsigned int& time, const DWORD& requestID, const char* const& accountName):
+		TMessageAccountRecoveryBase(time, requestID, accountName, TS_ACCOUNT_POSITION_REQ, sizeof(TMsgReqOvernightPosition))
 	{
 	}
 };
@@ -6870,44 +9941,66 @@ public:
 class TMsgOvernightPosition : public TMessageAccountRecoveryBase
 {
 public:
-	TMsgOvernightPosition(DWORD requestID, const char* accountName):TMessageAccountRecoveryBase(requestID, accountName, TS_ACCOUNT_POSITION, sizeof(TMsgOvernightPosition)){}
+	TMsgOvernightPosition(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const char* const& symbol = "",
+		const UCHAR& instrumentType = 0,
+		const int& quantity = 0,
+		const double& averagePrice = 0,
+
+		const unsigned int& borrowedQuantity = 0,
+		const double& borrowedAveragePrice = 0,
+
+		const unsigned __int64 optionBlock = 0,
+		const char* const& lastLocateExecutionID = ""):
+
+		TMessageAccountRecoveryBase(time, requestID, accountName, TS_ACCOUNT_POSITION, sizeof(TMsgOvernightPosition)),
+		InstrumentType(instrumentType),
+		Quantity(quantity),
+		AveragePrice(averagePrice),
+		m_borrowedQuantity(borrowedQuantity),
+		m_borrowedAvgPrice(borrowedAveragePrice),
+		m_optionBlock(optionBlock)
+	{
+		U_CopyAndPad(Symbol, sizeof(Symbol), symbol, '\0');
+		U_CopyAndPad(m_lastLocateExecutionID, sizeof(m_lastLocateExecutionID), lastLocateExecutionID, '\0');
+	}
 
 	char	Symbol[MAX_SYMBOL_SIZE];
 	UCHAR	InstrumentType;
 
-	long	Quantity;
-	double	AveragePrice;
+	int	Quantity;
+	double AveragePrice;
 
 	unsigned int m_borrowedQuantity;
-	double	AverageBorrowedPrice;
+	double	m_borrowedAvgPrice;
 
 	unsigned __int64 m_optionBlock;
 	char m_lastLocateExecutionID[MAX_MARKET_REFERENCE_ID];
 };
 
-//TS->TSClient Sent as the last message to TS_ACCOUNT_OVERNIGHT_POSITION_REQUEST_MESSAGE to indicate either an error condition or successful completion of download
-class TMsgOvernightPositionLoadComplete : public TMessageAccountRecoveryBase
+enum AccountRecoveryReason : unsigned int
 {
-public:
-	TMsgOvernightPositionLoadComplete(DWORD requestID, const char* accountName):TMessageAccountRecoveryBase(requestID, accountName, TS_ACCOUNT_POSITION_RESP, sizeof(TMsgOvernightPositionLoadComplete)){}
-	DWORD	PositionCount;
-	WORD	ResultCode;								//Filled in case of error
-	char	ResultText[MAX_RESULT_TEXT_SIZE];		//Filled in case of error
+	RECOVERY_REASON_STARTING =					1,
+	RECOVERY_REASON_DISCONNECTED =				2
 };
 
-
-
-
-#define RECOVERY_REASON_STARTING					1
-#define RECOVERY_REASON_DISCONNECTED				2
+//#define RECOVERY_REASON_STARTING					1
+//#define RECOVERY_REASON_DISCONNECTED				2
 
 class TMessageReqAccountRecovery : public TMessageAccountRecoveryBase
 {
 public:
-	WORD						RecoveryReason;						//The reason for full recovery
+	WORD RecoveryReason;						//The reason for full recovery
 protected:
-	TMessageReqAccountRecovery(DWORD requestID, const char* accountName, WORD recoveryReason, unsigned short type, unsigned short length):
-		TMessageAccountRecoveryBase(requestID, accountName, type, length),
+	TMessageReqAccountRecovery(const unsigned int& time,
+		const DWORD& requestID,
+		const char* const& accountName,
+		const WORD& recoveryReason,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageAccountRecoveryBase(time, requestID, accountName, type, length),
 		RecoveryReason(recoveryReason)
 	{
 	}
@@ -6917,27 +10010,37 @@ protected:
 class TMsgReqAccountFullRecovery : public TMessageReqAccountRecovery
 {
 public:
-	TMsgReqAccountFullRecovery(DWORD requestID, const char* accountName, WORD recoveryReason, DWORD lastAccountMessageSequenuenceNumber):
-		TMessageReqAccountRecovery(requestID, accountName, recoveryReason, TS_ACCOUNT_RECOVERY_FULL_REQ, sizeof(TMsgReqAccountFullRecovery)),
+	TMsgReqAccountFullRecovery(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const WORD& recoveryReason = 0,
+		const DWORD& lastAccountMessageSequenuenceNumber = 0):
+		TMessageReqAccountRecovery(time, requestID, accountName, recoveryReason, TS_ACCOUNT_RECOVERY_FULL_REQ, sizeof(TMsgReqAccountFullRecovery)),
 		LastAccountMessageSequenuenceNumber(lastAccountMessageSequenuenceNumber)
 	{}
-	DWORD						LastAccountMessageSequenuenceNumber;
+	DWORD LastAccountMessageSequenuenceNumber;
 };
 
 //TSClient -> TS Sent to recover the current open orders and open positions
 class TMsgReqAccountQuickRecovery : public TMessageReqAccountRecovery
 {
 public:
-	TMsgReqAccountQuickRecovery(DWORD requestID, const char* accountName, WORD recoveryReason):
-		TMessageReqAccountRecovery(requestID, accountName, recoveryReason, TS_ACCOUNT_RECOVERY_QUICK_REQ, sizeof(TMsgReqAccountQuickRecovery))
+	TMsgReqAccountQuickRecovery(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const WORD& recoveryReason = 0):
+		TMessageReqAccountRecovery(time, requestID, accountName, recoveryReason, TS_ACCOUNT_RECOVERY_QUICK_REQ, sizeof(TMsgReqAccountQuickRecovery))
 	{}
 };
 
 class TMsgReqExecutionHistory : public TMessageReqAccountRecovery
 {
 public:
-	TMsgReqExecutionHistory(DWORD requestID, const char* accountName, WORD recoveryReason):
-		TMessageReqAccountRecovery(requestID, accountName, recoveryReason, TS_ACCOUNT_EXEC_HISTORY_REQ, sizeof(TMsgReqExecutionHistory))
+	TMsgReqExecutionHistory(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const WORD& recoveryReason = 0):
+		TMessageReqAccountRecovery(time, requestID, accountName, recoveryReason, TS_ACCOUNT_EXEC_HISTORY_REQ, sizeof(TMsgReqExecutionHistory))
 	{}
 };
 
@@ -6948,261 +10051,147 @@ public:
 	WORD	m_resultCode;								//Filled in case of error
 	char	m_resultText[MAX_RESULT_TEXT_SIZE];		//Filled in case of error
 protected:
-	TMsgHistoryComplete(DWORD requestID, const char* accountName, DWORD objectCount, WORD resultCode, unsigned short type, unsigned short length):
-		TMessageAccountRecoveryBase(requestID, accountName, type, length)
+	TMsgHistoryComplete(const unsigned int& time,
+		const DWORD& requestID,
+		const char* const& accountName,
+		const DWORD& objectCount,
+		const WORD& resultCode,
+		const char* const& resultText,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageAccountRecoveryBase(time,
+			requestID,
+			accountName,
+			type,
+			length),
+		m_objectCount(objectCount),
+		m_resultCode(resultCode)
 	{
-		memset(m_resultText, 0, sizeof(m_resultText));
+		U_CopyAndPad(m_resultText, sizeof(m_resultText), resultText, '\0', true);
 	}
+};
+
+//TS->TSClient Sent as the last message to TS_ACCOUNT_OVERNIGHT_POSITION_REQUEST_MESSAGE to indicate either an error condition or successful completion of download
+class TMsgOvernightPositionLoadComplete : public TMsgHistoryComplete
+{
+public:
+	TMsgOvernightPositionLoadComplete(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const DWORD& positionCount = 0,
+		const WORD& resultCode = 0,								//Filled in case of error
+		const char* const& resultText = ""):
+		TMsgHistoryComplete(time,
+			requestID,
+			accountName,
+			positionCount,
+			resultCode,
+			resultText,
+			TS_ACCOUNT_POSITION_RESP, sizeof(TMsgOvernightPositionLoadComplete))
+//		PositionCount(positionCount),
+//		ResultCode(resultCode)
+	{
+//		U_CopyAndPad(ResultText, sizeof(ResultText), resultText, '\0');
+	}
+//	DWORD	PositionCount;
+//	WORD	ResultCode;								//Filled in case of error
+//	char	ResultText[MAX_RESULT_TEXT_SIZE];		//Filled in case of error
 };
 
 class TMsgExecutionHistoryComplete : public TMsgHistoryComplete
 {
 public:
-	TMsgExecutionHistoryComplete(DWORD requestID, const char* accountName, DWORD objectCount, WORD resultCode):
-		TMsgHistoryComplete(requestID, accountName, objectCount, resultCode, TS_ACCOUNT_EXEC_HISTORY_COMPLETE, sizeof(TMsgExecutionHistoryComplete)){}
+	TMsgExecutionHistoryComplete(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const DWORD& objectCount = 0,
+		const WORD& resultCode = 0,
+		const char* const& resultText = ""):
+		TMsgHistoryComplete(time,
+			requestID,
+			accountName,
+			objectCount,
+			resultCode,
+			resultText,
+			TS_ACCOUNT_EXEC_HISTORY_COMPLETE,
+			sizeof(TMsgExecutionHistoryComplete))
+		{}
 };
 
 class TMsgReqOrderHistory : public TMessageReqAccountRecovery
 {
 public:
-	TMsgReqOrderHistory(DWORD requestID, const char* accountName, WORD recoveryReason):
-		TMessageReqAccountRecovery(requestID, accountName, recoveryReason, TS_ACCOUNT_ORDER_HISTORY_REQ, sizeof(TMsgReqOrderHistory))
+	TMsgReqOrderHistory(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const WORD& recoveryReason = 0):
+		TMessageReqAccountRecovery(time,
+			requestID,
+			accountName,
+			recoveryReason,
+			TS_ACCOUNT_ORDER_HISTORY_REQ,
+			sizeof(TMsgReqOrderHistory))
 	{}
 };
 
 class TMsgOrderHistoryComplete : public TMsgHistoryComplete
 {
 public:
-	TMsgOrderHistoryComplete(DWORD requestID, const char* accountName, DWORD objectCount, WORD resultCode):
-		TMsgHistoryComplete(requestID, accountName, objectCount, resultCode, TS_ACCOUNT_ORDER_HISTORY_COMPLETE, sizeof(TMsgOrderHistoryComplete)){}
-};
-
-#ifdef FIRM_VALUES
-
-class TMsgFirm : public Message
-{
-public:
-//	unsigned __int64 m_clearingNamePart1;
-//	unsigned __int64 m_clearingNamePart2;
-//	unsigned int m_firmId;
-	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
-	char m_firmId[MAX_FIRM_ID_SIZE];
-protected:
-	TMsgFirm(const char* clearingAccountName, const char* firmId, unsigned short type, unsigned short length):
-		Message(type, length)
-	{
-		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0');
-		U_CopyAndPad(m_firmId, sizeof(m_firmId), firmId, '\0');
-//		AccountId accountId(clearingAccountName);
-//		m_clearingNamePart1 = accountId.GetFirst();
-//		m_clearingNamePart2 = accountId.GetSecond();
-//		m_firmId = U_StringToUInt(firmId);
-	}
-	TMsgFirm(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned int& firmId, unsigned short type, unsigned short length):
-		Message(type, length)
-//		m_clearingNamePart1(clearingNamePart1),
-//		m_clearingNamePart2(clearingNamePart2),
-//		m_firmId(firmId)
-
-	{
-		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
-		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
-		*(unsigned int*)m_firmId = firmId;
-		m_firmId[sizeof(unsigned int)] = '\0';
-	}
-};
-
-class TMsgFirmUntradeableListLoaded : public TMsgFirm
-{
-public:
-	TMsgFirmUntradeableListLoaded(const char* clearingAccountName, const char* firmId):
-		TMsgFirm(clearingAccountName, firmId, TM_UNTRADEABLE_LIST_LOADED, sizeof(TMsgFirmUntradeableListLoaded))
-	{
-	}
-	TMsgFirmUntradeableListLoaded(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned int& firmId):
-		TMsgFirm(clearingNamePart1, clearingNamePart2, firmId, TM_UNTRADEABLE_LIST_LOADED, sizeof(TMsgFirmUntradeableListLoaded))
-	{
-	}
-};
-
-class TMsgAllUntradeableListsLoaded : public Message
-{
-public:
-	TMsgAllUntradeableListsLoaded():Message(TM_ALL_UNTRADEABLE_LISTS_LOADED, sizeof(TMsgAllUntradeableListsLoaded)){}
-};
-
-class TMsgFirmPosition : public TMessageTime//Message
-{
-public:
-	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
-	char m_symbol[MAX_SYMBOL_SIZE];
-	char m_firmId[MAX_FIRM_ID_SIZE];
-protected:
-//	TMsgFirmPosition(const char* clearingAccountName, const char* symbol, const char* firmId, unsigned short type, unsigned short length):Message(type, length)
-	TMsgFirmPosition(const char* clearingAccountName, const char* symbol, const char* firmId, const unsigned int& timestamp, unsigned short type, unsigned short length):TMessageTime(timestamp, type, length)
-	{
-		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0');
-		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
-		U_CopyAndPad(m_firmId, sizeof(m_firmId), firmId, '\0');
-	}
-//	TMsgFirmPosition(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, unsigned short type, unsigned short length):Message(type, length)
-	TMsgFirmPosition(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, const unsigned int& timestamp, unsigned short type, unsigned short length):TMessageTime(timestamp, type, length)
-	{
-		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
-		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
-		*(unsigned __int64*)m_symbol = symbol;
-		*(unsigned int*)m_firmId = firmId;
-		m_firmId[sizeof(unsigned int)] = '\0';
-	}
-};
-
-//TSClient -> TS. Sent to subscribe to ClearingAccount position
-class TMsgReqSubscribeFirmPosition : public TMsgFirmPosition
-{
-public:
-	TMsgReqSubscribeFirmPosition(const char* clearingAccountName, const char* symbol, const char* firmId, const unsigned int& timestamp):TMsgFirmPosition(clearingAccountName, symbol, firmId, timestamp, TS_FIRM_POSITION_SUBSCRIBE_REQ, sizeof(TMsgReqSubscribeFirmPosition)){}
-	TMsgReqSubscribeFirmPosition(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, const unsigned int& timestamp):TMsgFirmPosition(clearingNamePart1, clearingNamePart2, symbol, firmId, timestamp, TS_FIRM_POSITION_SUBSCRIBE_REQ, sizeof(TMsgReqSubscribeFirmPosition)){}
-};
-
-//TS->TSClient Sent to all subscribed clients
-class TMsgUpdateFirmPosition : public TMsgFirmPosition
-{
-public:
-	TMsgUpdateFirmPosition(const char* clearingAccountName, const char* symbol, const char* firmId, int firmPosition, unsigned int firmPendingSellSharesPassive, unsigned int firmPendingSellSharesNonPassive, const unsigned int& timestamp):
-		TMsgFirmPosition(clearingAccountName, symbol, firmId, timestamp, TS_FIRM_POSITION_UPDATE, sizeof(TMsgUpdateFirmPosition)),
-		m_firmPosition(firmPosition),
-		m_firmPendingSellSharesPassive(firmPendingSellSharesPassive),
-		m_firmPendingSellSharesNonPassive(firmPendingSellSharesNonPassive)
+	TMsgOrderHistoryComplete(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const DWORD& objectCount = 0,
+		const WORD& resultCode = 0,
+		const char* const& resultText = ""):
+		TMsgHistoryComplete(time,
+			requestID,
+			accountName,
+			objectCount,
+			resultCode,
+			resultText,
+			TS_ACCOUNT_ORDER_HISTORY_COMPLETE,
+			sizeof(TMsgOrderHistoryComplete))
 		{}
-	TMsgUpdateFirmPosition(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, int firmPosition, unsigned int firmPendingSellSharesPassive, unsigned int firmPendingSellSharesNonPassive, const unsigned int& timestamp):
-		TMsgFirmPosition(clearingNamePart1, clearingNamePart2, symbol, firmId, timestamp, TS_FIRM_POSITION_UPDATE, sizeof(TMsgUpdateFirmPosition)),
-		m_firmPosition(firmPosition),
-		m_firmPendingSellSharesPassive(firmPendingSellSharesPassive),
-		m_firmPendingSellSharesNonPassive(firmPendingSellSharesNonPassive)
-		{}
-	int m_firmPosition;
-	unsigned int m_firmPendingSellSharesPassive;
-	unsigned int m_firmPendingSellSharesNonPassive;
 };
-
-//TSClient -> TS. Sent to unsubscribe from ClearingAccount position
-class TMsgReqUnsubscribeFirmPosition : public TMsgFirmPosition
-{
-public:
-	TMsgReqUnsubscribeFirmPosition(const char* clearingAccountName, const char* symbol, const char* firmId, const unsigned int& timestamp):TMsgFirmPosition(clearingAccountName, symbol, firmId, timestamp, TS_FIRM_POSITION_UNSUBSCRIBE_REQ, sizeof(TMsgReqUnsubscribeFirmPosition)){}
-	TMsgReqUnsubscribeFirmPosition(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, const unsigned int& timestamp):TMsgFirmPosition(clearingNamePart1, clearingNamePart2, symbol, firmId, timestamp, TS_FIRM_POSITION_UNSUBSCRIBE_REQ, sizeof(TMsgReqUnsubscribeFirmPosition)){}
-};
-
-class TMsgFirmEnforcement : public TMessageTime
-{
-public:
-	TMsgFirmEnforcement(const char* clearingAccountName, bool enforceFirm, const unsigned int& timestamp):
-		TMessageTime(timestamp, TS_FIRM_ENFORCEMENT, sizeof(TMsgFirmEnforcement)),
-		m_enforceFirm(enforceFirm)
-	{
-		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0');
-	}
-	TMsgFirmEnforcement(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, bool enforceFirm, const unsigned int& timestamp):
-		TMessageTime(timestamp, TS_FIRM_ENFORCEMENT, sizeof(TMsgFirmEnforcement)),
-		m_enforceFirm(enforceFirm)
-	{
-		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
-		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
-	}
-	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
-	bool m_enforceFirm;
-};
-
-enum FirmPositionSubscribeRejectCode : unsigned short
-{
-	FPS_UNKNOWN_FIRM = 1,
-	FPS_UNKNOWN_CA,
-	FPS_UNKNOWN_SYMBOL,
-
-	FPS_Count
-};
-
-class TMsgFirmPositionReject : public TMsgFirmPosition
-{
-public:
-	TMsgFirmPositionReject(const char* clearingAccountName, const char* symbol, const char* firmId, const unsigned int& timestamp, unsigned short rejectCode, const char* rejectText):
-		TMsgFirmPosition(clearingAccountName, symbol, firmId, timestamp, TS_FIRM_POSITION_REJECT, sizeof(TMsgFirmPositionReject)),
-		m_rejectCode(rejectCode)
-	{
-		if(rejectText && *rejectText)U_CopyAndPad(m_rejectText, sizeof(m_rejectText), rejectText, '\0');
-		else memset(m_rejectText, 0, sizeof(m_rejectText));
-	}
-	TMsgFirmPositionReject(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, const unsigned int& timestamp, unsigned short rejectCode, const char* rejectText):
-		TMsgFirmPosition(clearingNamePart1, clearingNamePart2, symbol, firmId, timestamp, TS_FIRM_POSITION_REJECT, sizeof(TMsgFirmPositionReject)),
-		m_rejectCode(rejectCode)
-	{
-		if(rejectText && *rejectText)U_CopyAndPad(m_rejectText, sizeof(m_rejectText), rejectText, '\0');
-		else memset(m_rejectText, 0, sizeof(m_rejectText));
-	}
-	unsigned short m_rejectCode;
-	char m_rejectText[MAX_RESULT_TEXT_SIZE];
-};
-
-//TS->TSClient Sent to all Firm's clients, Used to distribute untradeable stocks and status change
-class TMsgFirmUntradeableStatusUpdate : public TMessageTime
-{
-public:
-	TMsgFirmUntradeableStatusUpdate(const char* clearingAccountName, const char* symbol, const char* firmId, const unsigned int& timestamp, bool untradeable):
-		TMessageTime(timestamp, TS_UNTRADEABLE_STATUS_UPDATE, sizeof(TMsgFirmUntradeableStatusUpdate)),
-		m_untradeable(untradeable)
-	{
-		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0');
-		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
-		U_CopyAndPad(m_firmId, sizeof(m_firmId), firmId, '\0');
-	}
-	TMsgFirmUntradeableStatusUpdate(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, const unsigned int& timestamp, bool untradeable):
-		TMessageTime(timestamp, TS_UNTRADEABLE_STATUS_UPDATE, sizeof(TMsgFirmUntradeableStatusUpdate)),
-		m_untradeable(untradeable)
-	{
-		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
-		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
-		*(unsigned __int64*)m_symbol = symbol;
-		*(unsigned int*)m_firmId = firmId;
-		m_firmId[sizeof(unsigned int)] = '\0';
-	}
-	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
-	char m_symbol[MAX_SYMBOL_SIZE];
-	char m_firmId[MAX_FIRM_ID_SIZE];
-	bool m_untradeable;
-};
-
-#endif
 
 //TS->TSClient, sent in response to TS_ACCOUNT_RECOVERY_QUICK_REQUEST_MESSAGE
 class TMsgPosition : public TMessageAccountRecoveryBase
 {
 public:
-	TMsgPosition(DWORD requestID,
-		const char* accountName,
-		const char* symbol,
-		unsigned char instrumentType,
-		long quantity,
-		const Price& price,
-		long overnightQuantity,
-		const Price& overnightPrice,
-		long currentQuantity,		//Includes overnight positions too
-		const Price& currentPrice,
-		unsigned int closedLongQuantity,
-		const Money& closedLongCost,
-		const Money& closedLongValue,
+	TMsgPosition(const unsigned int& time = 0,
+		const DWORD& requestID = 0,
+		const char* const& accountName = "",
+		const char* const& symbol = "",
+		const unsigned char& instrumentType = 0,
+		const int& quantity = 0,
+		const Price& price = Price::priceZero,
+		const int& overnightQuantity = 0,
+		const Price& overnightPrice = Price::priceZero,
+		const int& currentQuantity = 0,		//Includes overnight positions too
+		const Price& currentPrice = Price::priceZero,
+		const unsigned int& closedLongQuantity = 0,
+		const Money& closedLongCost = Money::moneyZero,
+		const Money& closedLongValue = Money::moneyZero,
 
-		unsigned int closedShortQuantity,
-		const Money& closedShortCost,
-		const Money& closedShortValue,
+		const unsigned int& closedShortQuantity = 0,
+		const Money& closedShortCost = Money::moneyZero,
+		const Money& closedShortValue = Money::moneyZero,
 
-		unsigned int borrowedQuantity,
-		const Price& borrowedPrice,
+		const unsigned int& borrowedQuantity = 0,
+		const Price& borrowedPrice = Price::priceZero,
 
-		const unsigned __int64& optionBlock,
+		const unsigned __int64& optionBlock = 0,
 
-		const char* lastLocateExecutionID
-		):
-		TMessageAccountRecoveryBase(requestID, accountName, TS_ACCOUNT_RECOVERY_RESP, sizeof(TMsgPosition)),
+		const char* const& lastLocateExecutionID = "",
+
+		const int& openOvernightQuantity = 0,
+		const double& currentPositionAvgPriceMargin = 0):
+
+		TMessageAccountRecoveryBase(time,
+			requestID,
+			accountName,
+			TS_ACCOUNT_RECOVERY_RESP,
+			sizeof(TMsgPosition)),
 		InstrumentType(instrumentType),
 		Quantity(quantity),
 		AveragePrice(price.toDouble()),
@@ -7219,7 +10208,10 @@ public:
 		m_borrowedQuantity(borrowedQuantity),
 		m_borrowedAvgPrice(borrowedPrice.toDouble()),
 
-		m_optionBlock(optionBlock)
+		m_optionBlock(optionBlock),
+
+		OpenOvernightPositionQuantity(openOvernightQuantity),
+		CurrentPositionAvgPriceMargin(currentPositionAvgPriceMargin)
 	{
 		U_CopyAndPad(Symbol, sizeof(Symbol), symbol, '\0');
 		U_CopyAndPad(m_lastLocateExecutionID, sizeof(m_lastLocateExecutionID), lastLocateExecutionID ? lastLocateExecutionID : "", '\0');
@@ -7228,13 +10220,13 @@ public:
 	char	Symbol[MAX_SYMBOL_SIZE];
 	UCHAR	InstrumentType;
 
-	long	Quantity;
+	int	Quantity;
 	double	AveragePrice;
 
-	long	OvernightPositionQuantity;
+	int	OvernightPositionQuantity;
 	double	OvernightPositionAvgPrice;
 
-	long	CurrentPositionQuantity;		//Includes overnight positions too
+	int	CurrentPositionQuantity;		//Includes overnight positions too
 	double	CurrentPositionAvgPrice;
 
 	DWORD	ClosedLongPositionQuantity;
@@ -7251,9 +10243,29 @@ public:
 	unsigned __int64 m_optionBlock;
 
 	char m_lastLocateExecutionID[MAX_MARKET_REFERENCE_ID];
+
+	int OpenOvernightPositionQuantity;
+
+	double CurrentPositionAvgPriceMargin;
 };
 
 //Order sides - match with FIX
+enum OrderSideEnum : unsigned char
+{
+	ORDER_SIDE_BUY =					'1',		// = Buy
+	ORDER_SIDE_SELL =					'2',		// = Sell
+	ORDER_SIDE__BUY_MINUS =				'3',		// = Buy minus
+	ORDER_SIDE_SELL_PLUS =				'4',		// = Sell plus
+	ORDER_SIDE_SELL_SHORT =				'5',		// = Sell short
+	ORDER_SIDE_SELL_SHORT_EXEMPT =		'6',		// = Sell short exempt
+	ORDER_SIDE_UNDISCLOSED =			'7',		// = Undisclosed (valid for IOI and List Order messages only)
+	ORDER_SIDE_CROSS =					'8',		// = Cross (orders where counterparty is an exchange, valid for all messages except IOIs)
+	ORDER_SIDE_CROSS_SHORT =			'9',		// = Cross short
+	ORDER_SIDE_SHORT_EXEMPT =			'A',		//= Cross short exxmpt
+	ORDER_SIDE_AS_DEFINED =				'B',		//"As Defined" (for use with multileg instruments)
+	ORDER_SIDE_OPPOSITE =				'C'		// = "Opposite" (for use with multileg instruments)
+};
+/*
 #define ORDER_SIDE_BUY					'1'		// = Buy
 #define ORDER_SIDE_SELL					'2'		// = Sell
 #define ORDER_SIDE__BUY_MINUS			'3'		// = Buy minus
@@ -7266,10 +10278,27 @@ public:
 #define ORDER_SIDE_SHORT_EXEMPT			'A'		//= Cross short exxmpt
 #define ORDER_SIDE_AS_DEFINED			'B'		//"As Defined" (for use with multileg instruments)
 #define ORDER_SIDE_OPPOSITE				'C'		// = "Opposite" (for use with multileg instruments)
-
+*/
 
 
 // Order types - match with FIX
+enum OrderTypeEnum : unsigned char
+{
+	ORDER_TYPE_NULL =						'0',	// Invalid or illegal order type
+	ORDER_TYPE_MARKET =						'1',
+	ORDER_TYPE_LIMIT =						'2',
+	ORDER_TYPE_STOP =						'3',
+	ORDER_TYPE_STOP_LIMIT =					'4',
+	ORDER_TYPE_MARKET_ON_CLOSE =			'5',//Deprecated (Use ORDER_TYPE_MARKET and TIF_ATC )
+	ORDER_TYPE_WITH_OR_WITHOUT =			'6',
+	ORDER_TYPE_LIMIT_OR_BETTER =			'7',//Deprecated
+	ORDER_TYPE_LIMIT_WITH_OR_WITHOUT =		'8',
+	ORDER_TYPE_ON_BASIS =					'9',
+	ORDER_TYPE_LIMIT_ON_CLOSE =				'B', // Deprecated (Use ORDER_TYPE_LIMIT and TIF_ATC )
+	ORDER_TYPE_FUNARI =						'I',	// Deprecated - LeveL wants this order type sent instead of ORDER_TYPE_LIMIT
+	ORDER_TYPE_PEGGED =						'P'
+};
+/*
 #define ORDER_TYPE_NULL							'0'	// Invalid or illegal order type
 #define ORDER_TYPE_MARKET						'1'
 #define ORDER_TYPE_LIMIT						'2'
@@ -7282,8 +10311,8 @@ public:
 #define	ORDER_TYPE_ON_BASIS						'9'
 #define ORDER_TYPE_LIMIT_ON_CLOSE				'B' // Deprecated (Use ORDER_TYPE_LIMIT and TIF_ATC )
 #define ORDER_TYPE_FUNARI						'I'	// Deprecated - LeveL wants this order type sent instead of ORDER_TYPE_LIMIT
-#define	ORDER_TYPE_ON_PEGGED					'P'
-
+#define	ORDER_TYPE_PEGGED						'P'
+*/
 /*
 //Order TIFS - match with FIX
 #define TIF_DAY						'0'		//Day (or session)
@@ -7299,7 +10328,7 @@ public:
 #define	GT_DAY_PLUS					'P'	// Day Plus (Day+)	//-> Added 07/26/2004.
 */
 
-enum Subtype : DWORD
+enum Subtype : unsigned short
 {
 	ST_REGULAR_STOP,
 	ST_TRAILING_STOP_BID = 1,
@@ -7318,76 +10347,157 @@ enum Subtype : DWORD
 	ST_URGENCY_GETDONE,
 
 	ST_CLOSE = 0x100,
+
+	ST_HALTED_STOCK = 0x200,
+	ST_DMA = 0x400,
+	ST_OTCBB = 0x800,
+
+	ST_ALL_FLAGS = ST_CLOSE | ST_HALTED_STOCK | ST_DMA | ST_OTCBB
 };
 
-//TODO // *AK* Yeah, it should be cleaned up
-//Route codes - for TR_MSG
-#define NULL_ROUTE				0x0			// Invalid or illegal system type
-#define NSDQ_FIX_ROUTE			0x00000001	// NASDAQ FIX
-#define IEX_ROUTE			0x00000002
-#define CVGX_ROUTE				0x00000004  // ConvergEx
-//#define SPEED_MID_DARK_ROUTE	0x00000004	// NASDAQ RUSH ROUTE
-#define AMEX_ROUTE				0x00000008	// AMEX ROUTE
-#define BATS_ROUTE				0x00000010	// BATS ROUTE
-#define EDGX_ROUTE				0x00000020	// Direct Edge
-#define NYSE_ROUTE				0x00000040  // NYSE ROUTE
-#define ARCA_ROUTE				0x00000080  // ARCA ROUTE
-//#define BTRD_ROUTE				0x00000100  // BTRD ROUTE
-//#define BARX_ROUTE				0x00000100  // BARX ROUTE
-//#define SPEED_FREE_DARK_ROUTE	0x00000100
-//#define TRAC_ROUTE				0x00000200  // TRAC ROUTE
-#define CITADEL_ROUTE			0x00000100  // Citadel ROUTE
-#define UBS_ROUTE				0x00000200  // UBS ROUTE
-#define NITE_ROUTE				0x00000400  // Knight route
-#define GSCO_SIGMA_X_ROUTE		0x00000800//dark pool
-#define CSFB_CROSSFINDER		0x00001000//dark pool
-#define BATY_ROUTE				0x00002000	// BATY ROUTE
+enum VenueEnum : unsigned __int64
+{
+	NULL_ROUTE =			0x0,			// Invalid or illegal system type
+	NSDQ_FIX_ROUTE =		0x00000001,	// NASDAQ FIX
+	IEX_ROUTE =				0x00000002,
+	CVGX_ROUTE =			0x00000004,  // ConvergEx
+//	SPEED_MID_DARK_ROUTE =	0x00000004,	// NASDAQ RUSH ROUTE
+	AMEX_ROUTE =			0x00000008,	// AMEX ROUTE
+	BATS_ROUTE =			0x00000010,	// BATS ROUTE
+	EDGX_ROUTE =			0x00000020,	// Direct Edge
+	NYSE_ROUTE =			0x00000040,  // NYSE ROUTE
+	ARCA_ROUTE =			0x00000080,  // ARCA ROUTE
+//	BTRD_ROUTE =			0x00000100,  // BTRD ROUTE
+//	BARX_ROUTE =			0x00000100,  // BARX ROUTE
+//	SPEED_FREE_DARK_ROUTE =	0x00000100,
+//	TRAC_ROUTE =			0x00000200,  // TRAC ROUTE
+//	CITADEL_ROUTE =			0x00000100,  // Citadel ROUTE
+	LYNX_ROUTE =			0x00000100,  // Lynx Route
+	UBS_ROUTE =				0x00000200,  // UBS ROUTE
+//	NITE_ROUTE =			0x00000400,  // Knight route
+	VIRT_ROUTE =			0x00000400,  // Virtu route
+//	GSCO_SIGMA_X_ROUTE =	0x00000800,//dark pool
+	CSFB_CROSSFINDER =		0x00001000,//dark pool
+	BATY_ROUTE =			0x00002000,	// BATY ROUTE
 
-#define EDGA_ROUTE				0x00004000	// Direct EdgeA
-#define NSEX_ROUTE				0x00008000	// NSX
-#define CHSX_ROUTE				0x00010000	// MWSE (Chicago Stock Exchange)
-//#define	CBOE_ROUTE				0x00020000	// CBOE (Chicago Board of Options Exchange) (CBSX)
-#define	PHLX_ROUTE				0x00040000	// NASDAQ PHLX
-#define	BOSX_ROUTE				0x00080000	// NASDAQ BOSX
-#define FLOW_ROUTE				0x00100000	// LAVA FLOW Dark Pool
-#define PDQ_ROUTE				0x00200000	// BNY ConvergEx - VortEx Dark Pool
-#define LEVEL_ROUTE				0x00400000	// NYFIX Millennium Dark Pool
-//#define NYFX_ROUTE				0x00800000	// NYFIX Broker Routing
-#define ITG_ROUTE				0x00800000	// NYFIX Broker Routing
-//#define NEXA_ROUTE				0x01000000  // NEXA - PTSI( Penson )
-#define JPM_ROUTE				0x01000000
-#define SPEED_ROUTE				0x02000000 
-#define LSTK_ROUTE				0x04000000	// LOCATE STOCK
-#define FI_SMART_ROUTE			0x08000000	// MANTARA Smart Routes (XWAY)
-#define QED_ROUTE				0x10000000  // QED Route (internal use) - MatchServer
-/*
-#define RISK_ROUTE				0x10000000  // Risk Management Server (internal use)
-#define DROP_COPY_ROUTE			0x20000000  // DROP COPY (internal use)
-#define DB_LOGGER_ROUTE			0x40000000  // DB Logger (internal use)
-#define AUTO_ROUTE				0x80000000  // AUTO ROUTE
-*/
+	EDGA_ROUTE =			0x00004000,	// Direct EdgeA
+//	NSEX_ROUTE =			0x00008000,	// NSX
+	DASH_ROUTE =			0x00008000,	// DASH
+	CHSX_ROUTE =			0x00010000,	// MWSE (Chicago Stock Exchange)
+	APEX_ROUTE =			0x00020000,	// APEX
+//	CBOE_ROUTE =			0x00020000,	// CBOE (Chicago Board of Options Exchange) (CBSX)
+	PHLX_ROUTE =			0x00040000,	// NASDAQ PHLX
+	BOSX_ROUTE =			0x00080000,	// NASDAQ BOSX
+//	FLOW_ROUTE =			0x00100000,	// LAVA FLOW Dark Pool
+	CLEARPOOL_ROUTE =		0x00100000,	// ClearPool (Was LAVA FLOW Dark Pool)
+	PDQ_ROUTE =				0x00200000,	// BNY ConvergEx - VortEx Dark Pool
+	LEVEL_ROUTE =			0x00400000,	// NYFIX Millennium Dark Pool
+//	NYFX_ROUTE =			0x00800000,	// NYFIX Broker Routing
+//	ITG_ROUTE =				0x00800000,
+//	NEXA_ROUTE =			0x01000000,  // NEXA - PTSI( Penson )
+	JPM_ROUTE =				0x01000000,
+	SPEED_ROUTE =			0x02000000,
+	LSTK_ROUTE =			0x04000000,	// LOCATE STOCK
+//	FI_SMART_ROUTE =		0x08000000,	// MANTARA Smart Routes (XWAY)
+	NSEX_ROUTE =			0x08000000,	// NSX
+//	QED_ROUTE =				0x10000000,  // QED Route (internal use) - MatchServer
+	CUTTONE_ROUTE =			0x10000000,	// Cuttone through Raptor
+	COWEN_ROUTE	=			0x20000000,	// Cowen
+	LAMP_ROUTE =			0x40000000,	// Lamp through Trafix
+	BARX_ROUTE =			0x80000000,	// Barclays
+	BROADRIDGE_ROUTE =		0x100000000	// Broadridge locates
+
+//	RISK_ROUTE =			0x10000000,  // Risk Management Server (internal use)
+//	DROP_COPY_ROUTE =		0x20000000,  // DROP COPY (internal use)
+//	DB_LOGGER_ROUTE =		0x40000000,  // DB Logger (internal use)
+//	AUTO_ROUTE =			0x80000000,  // AUTO ROUTE
+};
+
+inline bool isDestinationBorrow(const unsigned __int64& destinationId)
+{
+	switch(destinationId)
+	{
+		case LSTK_ROUTE:
+		case BROADRIDGE_ROUTE:
+		return true;
+
+		default:
+		return false;
+	}
+}
+
 
 #ifndef TAKION_NO_OPTIONS
-#define ISEX_ROUTE				0x00000101
-#define MISE_ROUTE				0x00000102
-#define C2_ROUTE				0x00000103
-#define BOX_ROUTE				0x00000104
-#define GEM_ROUTE				0x00000105
-#define	CBOE_ROUTE_OPT			0x00000106	// CBOE - for Options Only
+enum OptionMMID : unsigned int
+{
+	ISEX_ROUTE =			0x00000101,
+	MISE_ROUTE =			0x00000102,
+	C2_ROUTE =				0x00000103,
+	BOX_ROUTE =				0x00000104,
+	GEM_ROUTE =				0x00000105,
+	CBOE_ROUTE_OPT =		0x00000106,	// CBOE - for Options Only
+	PERL_ROUTE =			0x00000107,
+};
 #endif
 
+
 // Order Status
-#define OS_NONPENDING			0x0			// No longer pending (canceled, filled, rejected)
-#define OS_NEW					0x1			// New Order
-#define OS_PENDING_CANCEL		0x2
+enum OrderStatusEnum : unsigned char
+{
+	OS_NONPENDING =			0x0,			// No longer pending (canceled, filled, rejected)
+	OS_NEW =				0x1,			// New Order
+	OS_PENDING_CANCEL =		0x2,
+};
 
 // Tracking
-#define TR_ON_CLIENT			0x0			// Order is on client
-#define TR_ON_SERVER			0x1			// Order is on server
-#define TR_ON_DRIVER			0x2			// Order is on venue driver
-#define TR_ON_MARKET			0x3			// Order is on market
+enum OrderTrackingEnum : unsigned char
+{
+	TR_ON_CLIENT =			0x0,			// Order is on client
+	TR_ON_SERVER =			0x1,			// Order is on server
+	TR_ON_DRIVER =			0x2,			// Order is on venue driver
+	TR_ON_MARKET =			0x3,			// Order is on market
+};
 
 // ExecInst bit field, should be mapped to FIX values in FIX driver
+enum ExecutionInstructions : unsigned int
+{
+	EI_STAY_ON_OFFERSIDE =				0x00000001,	// '0' = Stay on offerside
+	EI_NOT_HELD =						0x00000002,	// '1' = Not held
+	EI_WORK =							0x00000004,	// '2' = Work
+	EI_GO_ALONG =						0x00000008,	// '3' = Go along
+	EI_OVER_THE_DAY =					0x00000010,	// '4' = Over the day
+	EI_HELD =							0x00000020,	// '5' = Held
+	EI_PARTICIPATE_DONT_INITIATE =		0x00000040,	// '6' = Participate don't initiate
+	EI_STRICT_SCALE =					0x00000080,	// '7' = Strict scale
+	EI_TRY_TO_SCALE =					0x00000100,	// '8' = Try to scale
+	EI_STAY_ON_BIDSIDE =				0x00000200,	// '9' = Stay on bidside
+	EI_NO_CROSS =						0x00000400,	// 'A' = No cross (cross is forbidden)
+	EI_OK_TO_CROSS =					0x00000800,	// 'B' = OK to cross
+	EI_CALL_FIRST =						0x00001000,	// 'C' = Call first
+	EI_PERCENT_OF_VOLUME =				0x00002000,	// 'D' = Percent of volume (indicates that the sender does not want to be all of the volume on the floor vs. a specific percentage)
+	EI_DNI =							0x00004000,	// 'E' = Do not increase - DNI
+	EI_DNR =							0x00008000,	// 'F' = Do not reduce - DNR
+	EI_AON =							0x00010000,	// 'G' = All or none - AON
+	EI_INSTITUTIONS_ONLY =				0x00020000,	// 'I' = Institutions only
+	EI_LAST_PEG =						0x00040000,	// 'L' = Last peg (last sale)
+	EI_MIDPRICE_PEG =					0x00080000,	// 'M' = Mid-price peg (midprice of inside quote)
+	EI_NON_NEGOTIABLE =					0x00100000,	// 'N' = Non-negotiable
+	EI_OPENING_PEG =					0x00200000,	// 'O' = Opening peg
+	EI_MARKET_PEG =						0x00400000,	// 'P' = Market peg
+	EI_PRIMARY_PEG =					0x00800000,	// 'R' = Primary peg (primary market - buy at bid/sell at offer)
+	EI_SUSPEND =						0x01000000,	// 'S' = Suspend
+	EI_INTERMARKET_SWEEP =				0x02000000,	// 'f' = Intermarket Sweep (BATS)
+	EI_FIXED_PEG =						0x04000000,	// 'T' = Fixed Peg to Local best bid or offer at time of order
+	EI_CUSTOMER_DISPLAY_INSTRUCTION	=	0x08000000,	// 'U' = Customer Display Instruction (Rule11Ac1-1/4)
+	EI_NETTING =						0x10000000,	// 'V' = Netting (for Forex)
+	EI_PEG_TO_VWAP =					0x20000000,	// 'W' = Peg to VWAP
+	EI_IMBALANCE_ONLY =					0x40000000,  // 'i' = NASDAQ Imbalance Only Orders
+//	EI_PEG_TO_LIMIT_PRICE =				0x80000000,	// 'd' = PegToLimitPrice (used by ARCA for Tracking Orders)
+	EI_MIDPOINT_DISCRETIONARY_PEG =		0x80000000,	// 'd' = Midpoint Discretionary Order (EDGA)
+
+	EI_PEG_MASK =						EI_LAST_PEG | EI_MIDPRICE_PEG | EI_OPENING_PEG | EI_MARKET_PEG | EI_PRIMARY_PEG | EI_FIXED_PEG | EI_PEG_TO_VWAP | EI_MIDPOINT_DISCRETIONARY_PEG
+};
+/*
 #define EI_STAY_ON_OFFERSIDE			0x00000001	// '0' = Stay on offerside
 #define EI_NOT_HELD						0x00000002	// '1' = Not held
 #define EI_WORK							0x00000004	// '2' = Work
@@ -7419,10 +10529,11 @@ enum Subtype : DWORD
 #define EI_NETTING						0x10000000	// 'V' = Netting (for Forex)
 #define EI_PEG_TO_VWAP					0x20000000	// 'W' = Peg to VWAP
 #define EI_IMBALANCE_ONLY				0x40000000  // 'i' = NASDAQ Imbalance Only Orders
-#define EI_PEG_TO_LIMIT_PRICE			0x80000000	// 'd' = PegToLimitPrice (used by ARCA for Tracking Orders)
+//#define EI_PEG_TO_LIMIT_PRICE			0x80000000	// 'd' = PegToLimitPrice (used by ARCA for Tracking Orders)
+#define EI_MIDPOINT_DISCRETIONARY_PEG	0x80000000	// 'd' = Midpoint Discretionary Order (EDGA)
 
-#define EI_PEG_MASK						( EI_LAST_PEG | EI_MIDPRICE_PEG | EI_OPENING_PEG | EI_MARKET_PEG | EI_PRIMARY_PEG | EI_FIXED_PEG | EI_PEG_TO_VWAP | EI_PEG_TO_LIMIT_PRICE )
-
+#define EI_PEG_MASK						( EI_LAST_PEG | EI_MIDPRICE_PEG | EI_OPENING_PEG | EI_MARKET_PEG | EI_PRIMARY_PEG | EI_FIXED_PEG | EI_PEG_TO_VWAP | EI_MIDPOINT_DISCRETIONARY_PEG)
+*/
 /*
 // Subtype: additional ExecInst flags
 #define ST_BATS_DART					0x00000001	// 'u' = BATS+DART (BATS)
@@ -7430,12 +10541,12 @@ enum Subtype : DWORD
 #define ST_BATS_DONT_DART				0x00000004	// 'w' = Do Not DART (BATS)
 */
 //RoutingInstructions
-enum Routing : unsigned int
+enum Routing : unsigned short
 {
 	RI_NONE					= 0,
 	
 	RI_PROACTIVE,
-	RI_PROACTIVE_DMA,
+//	RI_PROACTIVE_DMA,
 
 	RI_BATS_ADD_LIQUIDITY_ONLY = 20,
 	RI_BATS_DART,
@@ -7448,6 +10559,11 @@ enum Routing : unsigned int
 	RI_BATS_SLIM_PLUS,
 	RI_BATS_PARALLEL_T,
 	RI_BATS_PARALLEL_2D,
+
+	RI_BATS_TRIM2,
+	RI_BATS_TRIM2_MINUS,
+	RI_BATS_TRIM3,
+	RI_BATS_TRIM3_MINUS,
 
 	RI_EDGE_ADD_LIQUIDITY_ONLY = 40,
 	RI_EDGE_RDOT,
@@ -7465,8 +10581,27 @@ enum Routing : unsigned int
 	RI_EDGE_ROUQ,
 	RI_EDGE_ROUZ,
 
+	RI_EDGE_ROBY,
+	RI_EDGE_ROBB,
+	RI_EDGE_ROCO,
+	RI_EDGE_ROOC,
+	RI_EDGE_SWPA,
+	RI_EDGE_SWPB,
+	RI_EDGE_SWPC_DEPRECATED,					// Deprecated
+	RI_EDGE_IOCT,
+	RI_EDGE_IOCX,
+	RI_EDGE_IOCM,
+	RI_EDGE_ICMT,
+	RI_EDGE_RMPT,								// Should be used ONLY on BATY/EDGA orders
+
 	RI_ARCA_ADD_LIQUIDITY_ONLY = 70,
 	RI_ARCA_PASSIVE_LIQUIDITY,
+	RI_ARCA_PRIMARY_SWEEP_NON_ROUTABLE,
+	RI_ARCA_PRIMARY_SWEEP_ROUTABLE,
+	RI_ARCA_PRIMARY_ON_OPEN,
+	RI_ARCA_PRIMARY_ON_OPEN_PLUS,
+	RI_ARCA_PRIMARY_ON_OPEN_PLUS_SHIP,
+	RI_ARCA_PASSIVE_LIQUIDITY_SELECT,
 
 	RI_NSDQ_ADD_LIQUIDITY_ONLY = 100,
 	RI_NSDQ_SCAN,
@@ -7488,9 +10623,46 @@ enum Routing : unsigned int
 	RI_NSDQ_DOTD,
 	RI_NSDQ_DARK,
 	RI_NSDQ_COST,
+	RI_NSDQ_MIDPOINT_EXTENDED_LIFE,
 
-	RI_NYSE_CLOSING_OFFSET = 130,
+//	RI_NYSE_CLOSING_OFFSET = 130,
+	RI_NYSE_ADD_LIQUIDITY_ONLY = 131,
 
+	RI_VIRT_FAN = 160,
+	RI_VIRT_FAN_AGGRESSIVE,
+	RI_VIRT_FAN_AGGRESSIVE_PLUS,
+	RI_VIRT_FAN_PASSIVE,
+	RI_VIRT_RESERVED,
+	RI_VIRT_COVERT,
+	RI_VIRT_COVERT_AGGRESSIVE,
+	RI_VIRT_RESERVED1,
+	RI_VIRT_COVERT_PASSIVE,
+	RI_VIRT_RESERVED2,
+	RI_VIRT_OASIS,
+	RI_VIRT_RESERVED3,
+	RI_VIRT_RESERVED4,
+	RI_VIRT_RESERVED5,
+	RI_VIRT_RESERVED6,
+	RI_VIRT_RESERVED7,
+	RI_VIRT_RESERVED8,
+	RI_VIRT_RESERVED9,
+	RI_VIRT_RESERVED10,
+	RI_VIRT_RESERVED11,
+	RI_VIRT_RESERVED12,
+	RI_VIRT_RESERVED13,
+	RI_VIRT_RESERVED14,
+	RI_VIRT_OASIS_AGGRESSIVE,
+	RI_VIRT_OASIS_PASSIVE,
+	RI_VIRT_VWAP,
+	RI_VIRT_TWAP,
+	RI_VIRT_CATCH,
+	RI_VIRT_CATCH_AGGRESSIVE,
+	RI_VIRT_CATCH_PASSIVE,
+	RI_VIRT_OPPORTUNISTIC,
+	RI_VIRT_OPPORTUNISTIC_AGGRESSIVE,
+	RI_VIRT_OPPORTUNISTIC_PASSIVE,
+
+/*
 	RI_NITE_FAN = 160,
 	RI_NITE_FAN_AGGRESSIVE,
 	RI_NITE_FAN_AGGRESSIVE_PLUS,
@@ -7513,24 +10685,27 @@ enum Routing : unsigned int
 	RI_NITE_FAN_R_PASSIVE_PLUS,
 	RI_NITE_ARCA_DMA,
 	RI_NITE_GETCO,
-
+	RI_NITE_FAN_ISO,
+*/
 	RI_NSX_ADD_LIQUIDITY_ONLY = 200,
 
 //	RI_NEXA_MNGD = 230,
 	RI_JPM_AQUA = 230,
-	RI_JPM_JPMCROSS,
-	RI_JPM_CUSTOM1,
-	RI_JPM_CUSTOM2,
-	RI_JPM_SOR_POST,
-	RI_JPM_SOR_STEALTH,
-	RI_JPM_SOR_CUSTOM,
+	RI_JPM_CLOSE,
+	RI_JPM_CUSTOM,
+	RI_JPM_IS,
+	RI_JPM_POV,
+	RI_JPM_TWAP,
+	RI_JPM_VWAP,
 
 	RI_BARX_VWAP = 300,
 	RI_BARX_WITH_VOLUME,
 	RI_BARX_TWAP,
 	RI_BARX_SMARTX,
-	RI_BARX_ARCA,
-	RI_BARX_NSDQ,
+	RI_BARX_HYDRA,
+	RI_BARX_RAPID,
+	RI_BARX_LX,
+	RI_BARX_CUSTOM,
 
 	RI_UBS_TAPNOW = 400,
 
@@ -7539,9 +10714,11 @@ enum Routing : unsigned int
 	RI_CSFB_PASSIVE,     // Peg to Primary
 	RI_CSFB_PATHFINDER,
 	RI_CSFB_BLAST,
+	RI_CSFB_OTCBB,
+	RI_CSFB_VWAP,
 
-	RI_SIGMA_ATS    = 600,
-	RI_SIGMA_X_PING,
+//	RI_SIGMA_ATS    = 600,
+//	RI_SIGMA_X_PING,
 
 	RI_PDQ_MIDPOINT_GET = 700,
 	RI_PDQ_ARCA_VALUE,
@@ -7557,24 +10734,147 @@ enum Routing : unsigned int
 	RI_PDQ_FREEPAIR,
 	RI_PDQ_PCBSX,
 	RI_PDQ_BATY_VALUE,
-	RI_PDQ_FLOW,
-	RI_PDQ_PNSX,
+//	RI_PDQ_FLOW,
+	RI_PDQ_CRUSH = 715,
+//	RI_PDQ_PNSX,
+	RI_PDQ_CBLOCK,
+	RI_PDQ_SCRAPE,
 //	RI_PDQ_NYSE_VALUE,
+	RI_PDQ_CODASOR,
+	RI_PDQ_IEX,
+	RI_PDQ_VWAP,
+	RI_PDQ_CODAMM,
+	RI_PDQ_MIDPOINT_PLUS_FAR_TOUCH,
+	RI_PDQ_MIDPOINT_PLUS_LIT,
+	RI_PDQ_GMSP,
+	RI_PDQ_BEST,
 
 	RI_SPEEDROUTE_FREE_DARK = 800,
 	RI_SPEEDROUTE_MIDPOINT_DARK,
 	RI_SPEEDROUTE_FAN_AGGRESSIVE,
+	RI_SPEEDROUTE_SPDRM,
+	RI_SPEEDROUTE_SPDRX,
 
 	RI_SPEEDROUTE_KROUTE = 807,
+	RI_SPEEDROUTE_SPDRF,
+	RI_SPEEDROUTE_ARCAEDGE,
+	RI_SPEEDROUTE_PINKBB1,
+	RI_SPEEDROUTE_PROP,
+	RI_SPEEDROUTE_ARCA_IPO,
+	RI_SPEEDROUTE_NSDQ_IPO,
+	RI_SPEEDROUTE_NYSE_IPO,
 
+	RI_SPEEDROUTE_ATDARK,
+	RI_SPEEDROUTE_ATMID,
+	RI_SPEEDROUTE_DARKVPS,
+	RI_SPEEDROUTE_DARKVP,
+	RI_SPEEDROUTE_NTCOVERT,
+	RI_SPEEDROUTE_SMARTEDGE,
+	RI_SPEEDROUTE_SMARTDARK,
+	RI_SPEEDROUTE_XFINDER,
+	RI_SPEEDROUTE_XFINDERMID,
+	RI_SPEEDROUTE_BAODARK,
+	RI_SPEEDROUTE_BAODARKS,
+	RI_SPEEDROUTE_BAOMID,
+	RI_SPEEDROUTE_BAOMIDXTRA,
+	RI_SPEEDROUTE_BAOPOST,
+	RI_SPEEDROUTE_SORPOST,
+	RI_SPEEDROUTE_VWAP,
+	RI_SPEEDROUTE_TWAP,
+
+	RI_SPEEDROUTE_EDARK,
+	RI_SPEEDROUTE_ESTLT,
+	RI_SPEEDROUTE_ESENS,
+/*
 	RI_CITADEL_MERCURY_DARK	= 900,
 	RI_CITADEL_MARKET_ACCESS,
-
+	RI_CITADEL_MARKET_ACCESS_GET,
+*/
 	RI_CONVERGEX_NIX = 1000,	// Can be DAY, IOC, MOO, LOO, MOC, LOC, GTX, Market, Limit
 	RI_CONVERGEX_VORTEX,		// Can be DAY, IOC, Market, Limit, Peg (Mid, Market, Primary)
 	RI_CONVERGEX_PBOX,			// Can be IOC, Market, Limit
 	RI_CONVERGEX_MILLENNIUM,	// Day orders only, Market, Limit, Peg (Open, Last, Mid, Market, Primary)
 		
+	RI_APEX_MNGD				= 1200,
+
+	RI_DASH_SENSOR				= 1300,
+	RI_DASH_SMOKE,
+	RI_DASH_STRIKE,
+	RI_DASH_OPTWAP,
+
+	RI_CLEARPOOL_SOR			= 1400,
+	RI_CLEARPOOL_DARKAGG,
+	RI_CLEARPOOL_AP,
+
+//	RI_IEX_ROUTE_TO_REST		= 1500,
+	RI_IEX_ROUTE_TO_REST_RESWEEP= 1501,
+	RI_IEX_ROUTE_TO_TAKE,
+	RI_IEX_ROUTE_TO_TAKE_RESWEEP,
+//	RI_IEX_ROUTE_TO_REST_AWAY,
+/*
+	RI_ITG_SMRTDUAL				= 1600,
+	RI_ITG_ITGDP,
+	RI_ITG_POSIT,
+	RI_ITG_DARK,
+*/
+	RI_LYNX_BAOFREE				= 1700,
+	RI_LYNX_BAOMID,
+	RI_LYNX_BAOEXTRA,
+	RI_LYNX_BAOPOST,
+	RI_LYNX_BAOSMART,
+	RI_LYNX_BAODARK,
+	RI_LYNX_BAOLIT,
+	RI_LYNX_BAOCHEAP,
+
+	RI_LYNX_BAOREBATE,
+
+	RI_LYNX_LONG,
+	RI_LYNX_BAOPEG,
+
+	RI_LYNX_ATDARK,
+	RI_LYNX_ATMID,
+	RI_LYNX_DARKVPS,
+	RI_LYNX_DARKVP,
+	RI_LYNX_NITECOVERT,
+	RI_LYNX_SMARTEDGE,
+	RI_LYNX_SMARTDARK,
+	RI_LYNX_XFINDER,
+	RI_LYNX_XFINDERMID,
+	RI_LYNX_BAODARKS,
+	RI_LYNX_BAOMIDXTRA,
+	RI_LYNX_SORPOST,
+/*
+#ifdef LYNX_REROUTING
+	RI_LYNX_NYSEMOO,
+	RI_LYNX_NYSEMOC,
+	RI_LYNX_NYSELOO,
+	RI_LYNX_NYSELOC,
+	RI_LYNX_ARCAMOO,
+	RI_LYNX_ARCAMOC,
+	RI_LYNX_ARCALOO,
+	RI_LYNX_ARCALOC,
+	RI_LYNX_NSDQMOO,
+	RI_LYNX_NSDQMOC,
+	RI_LYNX_NSDQLOO,
+	RI_LYNX_NSDQLOC,//1722//1720
+#endif
+*/
+	RI_CHSX_SNAP_AUCTION  = 1800,
+	RI_CHSX_SNAP_AUCTION_ONLY,
+
+	RI_CUTTONE_CUTP				= 1900,
+	RI_CUTTONE_CUTD,
+	RI_CUTTONE_CUTR,
+	RI_CUTTONE_CUTS,
+	RI_CUTTONE_CUTZ,
+	RI_CUTTONE_CUTX,
+	RI_CUTTONE_CUTC,
+	RI_COWEN_SEEK				= 2000,
+	RI_COWEN_SWEEP,
+	RI_LAMP_LAMP				= 2100,
+	RI_LAMP_POST,
+	RI_LAMP_PSFL,
+
 	RI_Count
 };
 
@@ -7604,43 +10904,47 @@ public:
 	unsigned char		Tracking;							// Where order is, on server, on market, etc.
 	unsigned char		Status;								// New, Partially filled, Canceled, Filled
 	char		ConfirmationID[16];					// can be used for short sells. ID from liquidity finder
-	ULONG		Quantity;							// Order quantity ( moved from order )
-	ULONG		RemainingQuantity;					// Remaining size of the order ( moved from order )
-	ULONG		CanceledQuantity;					// Canceled size of the order
+	unsigned int Quantity;							// Order quantity ( moved from order )
+	unsigned int RemainingQuantity;					// Remaining size of the order ( moved from order )
+	unsigned int CanceledQuantity;					// Canceled size of the order
 // *AK* end
 
 	char		Symbol[MAX_SYMBOL_SIZE];
-	UCHAR		RealTimeOrRecovered;				//Weather this a current message or recovered message
+	unsigned char RealTimeOrRecovered;				//Weather this a current message or recovered message
 	DWORD		Time;								//Milliseconds since midnight, when this message is generated
 	DWORD		Ip;									//For Compliance
 
-	UCHAR		Side;
-	UCHAR		InstrumentType;
+	unsigned char Side;
+	unsigned char InstrumentType;
 
 #ifndef ORDER_STRUCTURE_MEMBER
 protected:
 #endif
-	TMessageOrderHeader(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMessageOrderHeader(const DWORD& clientOrdID,
+		const char* const& traderId,
+		const char* const& accountName,
+		const char* const& firmId,
+		const char* const& symbol,
+		const unsigned char& side,
+		const unsigned int& quantity,
+		const DWORD& ip,
 #ifndef ORDER_STRUCTURE_MEMBER
-		unsigned short type, unsigned short length,
+		const unsigned short& type,
+		const unsigned short& length,
 #endif
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_CLIENT,
-		unsigned char status = OS_NEW,
-		unsigned __int64 optionBlock = 0,//const char* confirmationID = "",
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_CLIENT,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,//const char* confirmationID = "",
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 	#ifndef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, type, length),
@@ -7667,15 +10971,160 @@ protected:
 	#ifdef ORDER_STRUCTURE_MEMBER
 		Time = TL_GetCurrentMillisecond();
 	#endif
-		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0');
-		U_CopyAndPad(TraderID, sizeof(TraderID), traderId, '\0');
-		U_CopyAndPad(FirmID, sizeof(FirmID), firmId, '\0');
+		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0', true);
+		U_CopyAndPad(TraderID, sizeof(TraderID), traderId, '\0', true);
+		U_CopyAndPad(FirmID, sizeof(FirmID), firmId, '\0', true);
 		U_CopyAndPad(MarketReferenceID, sizeof(MarketReferenceID), marketReferenceID, '\0');
 //		U_CopyAndPad(ConfirmationID, sizeof(ConfirmationID), confirmationID, '\0');
 		*(unsigned __int64*)ConfirmationID = optionBlock;
 		*((unsigned __int64*)ConfirmationID + 1) = 0;
 		U_CopyAndPad(Symbol, sizeof(Symbol), symbol, '\0');
 	}
+};
+
+class TMessageBorrowAcceptRequest : public TMessageOrderHeader
+{
+public:
+	TMessageBorrowAcceptRequest(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = '\0',
+		const unsigned int& quantity = 0,
+		//		const DWORD& route,							// Routes to send order to 
+		const ULONGLONG& route = 0,							// Routes to send order to 
+		const DWORD& ip = 0,
+
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_CLIENT,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0,
+		const unsigned int& priceDollar = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& availableQuantity = 0,
+		const char* const& orderId = ""):
+
+		TMessageOrderHeader(clientOrdID,
+			traderId,
+			accountName,
+			firmId, 
+			symbol,
+			side,
+			quantity,
+			ip,
+			
+			TS_BORROW_ACCEPT_REQ,
+			sizeof(TMessageBorrowAcceptRequest),
+
+			messageSequenceNumber,
+			serverOrdID,
+			parentClOrdID,
+			acceptedTime,
+			canceledTime,
+			marketReferenceID,
+			tracking,
+			status,
+			optionBlock,//confirmationID,
+			remainingQuantity,
+			canceledQuantity,
+			realTimeOrRecovered,
+			instrumentType),
+		PriceDollar(priceDollar),
+		PriceFraction(priceFraction),
+		m_availableQuantity(availableQuantity)
+	{
+		U_CopyAndPad(OrderID, sizeof(OrderID), orderId, '\0');
+		*ReasonText = '\0';
+	}
+
+	unsigned int PriceDollar;
+	unsigned int PriceFraction;
+	unsigned int m_availableQuantity;
+
+	char OrderID[MAX_MARKET_REFERENCE_ID];// ID assigned to execution by venue
+	char ReasonText[1];
+};
+
+class TMessageBorrowAcceptResponse : public TMessageOrderHeader
+{
+public:
+	TMessageBorrowAcceptResponse(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = '\0',
+		const unsigned int& quantity = 0,
+//		const DWORD& route,							// Routes to send order to 
+		const ULONGLONG& route = 0,							// Routes to send order to 
+		const DWORD& ip = 0,
+
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_CLIENT,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0,
+		const char* const& orderId = "",
+		const bool accepted = false):
+
+		TMessageOrderHeader(clientOrdID,
+			traderId,
+			accountName,
+			firmId, 
+			symbol,
+			side,
+			quantity,
+			ip,
+			
+			TS_BORROW_ACCEPT_RESP,
+			sizeof(TMessageBorrowAcceptResponse),
+
+			messageSequenceNumber,
+			serverOrdID,
+			parentClOrdID,
+			acceptedTime,
+			canceledTime,
+			marketReferenceID,
+			tracking,
+			status,
+			optionBlock,//confirmationID,
+			remainingQuantity,
+			canceledQuantity,
+			realTimeOrRecovered,
+			instrumentType),
+		Accepted(accepted)
+	{
+		U_CopyAndPad(OrderID, sizeof(OrderID), orderId, '\0');
+	}
+	TMessageBorrowAcceptResponse(const TMessageBorrowAcceptRequest& request, const bool& accepted):
+		TMessageOrderHeader(request),
+		Accepted(accepted)
+	{
+		m_type = TS_BORROW_ACCEPT_RESP;
+		m_length = sizeof(TMessageBorrowAcceptResponse);
+		m_time = TL_GetCurrentMillisecond();
+		U_CopyAndPad(OrderID, sizeof(OrderID), request.OrderID, '\0');
+	}
+	char OrderID[MAX_MARKET_REFERENCE_ID];// ID assigned to execution by venue
+	bool Accepted;
 };
 
 #ifdef ORDER_STRUCTURE_MEMBER
@@ -7689,25 +11138,29 @@ public:
 #ifdef ORDER_STRUCTURE_MEMBER
 	TMessageOrderHeader m_header;
 #endif
-	DWORD		Date;							// Date for good till date orders
+//	DWORD		Date;							// Date for good till date orders
+	DWORD		DefaultRoutesHigh;				// High DWORD - for 64 bit Routes (Single ROUTE to default to for execution).
 
-	UCHAR		Type;							// Order type, market, limit, etc
-	UCHAR		TIF;							// TIF or Order duration 
+	unsigned char Type;							// Order type, market, limit, etc
+	unsigned char TIF;							// TIF or Order duration 
 
-	ULONG		MinQuantity;					// Minimum quantity to process order
+	unsigned int MinQuantity;					// Minimum quantity to process order
 												// if equals quantity, then all or nothing
-	ULONG		DisplayQuantity;				// Reserve order display quantity
+	unsigned int DisplayQuantity;				// Reserve order display quantity
 
-	UCHAR		QuantityType;					// Quantity type that generated the above qty
-	UCHAR		PriceType;						// Price type that generated the above price
+	unsigned char QuantityType;					// Quantity type that generated the above qty
+	unsigned char PriceType;						// Price type that generated the above price
 
-	DWORD		Route;							// Routes to send order to 
-	DWORD		ExcludeRoutes;					// Routes to exclude when executing order.
-	DWORD		DefaultRoutes;					// Single ROUTE to default to for execution.
+//	DWORD		Route;							// Routes to send order to 
+//	DWORD		ExcludeRoutes;					// Routes to exclude when executing order.
+//	DWORD		DefaultRoutes;					// Single ROUTE to default to for execution.
 
-	UCHAR		TicketCount;					// Number of orders that is part of the
+	ULONGLONG Route;							// Routes to send order to 
+	DWORD DefaultRoutesLow;					// Single ROUTE to default to for execution.
+
+	unsigned char TicketCount;					// Number of orders that is part of the
 												// same ticket counted down.
-	USHORT		TicketID;						// Ticket ID assigned by client.
+	unsigned short TicketID;						// Ticket ID assigned by client.
 
 	unsigned int LastPriceDollar;						// Last bid/ask price 
 	unsigned int LastPriceFraction;						// Last bid/ask price
@@ -7734,9 +11187,9 @@ public:
 	unsigned int DisplayPriceDollar;					// Also can be used for discretionary orders
 	unsigned int DisplayPriceFraction;					// Also can be used for discretionary orders
 	
-	ULONG		ReserveQuantity;				// Reserve size
-	ULONG		RefreshQuantity;				// Refresh size
-	ULONG		DiscretionQuantity;				// Discretion size
+	unsigned int ReserveQuantity;				// Reserve size
+	unsigned int RefreshQuantity;				// Refresh size
+	unsigned int DiscretionQuantity;				// Discretion size
 	DWORD		ExpireTime;						// Number of milliseconds before order should expire (for TIF = '6')
 	DWORD		EffectiveTime;					// When order should become active
 	char		Capacity;						// Agency, principal, etc.
@@ -7744,82 +11197,87 @@ public:
 	char		market_maker[MAX_MMID_SIZE];	// Market maker ID string, don't know whether we need it...
 protected:
 //	TS_ORDER_MSG_HEADER		Header;
-	TMessageOrderBase(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD route,							// Routes to send order to 
-		DWORD ip,
+	TMessageOrderBase(const DWORD& clientOrdID,
+		const char* const& traderId,
+		const char* const& accountName,
+		const char* const& firmId,
+		const char* const& symbol,
+		const unsigned char& side,
+		const unsigned int& quantity,
+//		const DWORD& route,							// Routes to send order to 
+		const ULONGLONG& route,							// Routes to send order to 
+		const DWORD& ip,
 
-		unsigned short type, unsigned short length,
+		const unsigned short& type,
+		const unsigned short& length,
 
-		unsigned char orderType = ORDER_TYPE_MARKET,
-		unsigned int limitPriceDollar = 0,						// Limit price
-		unsigned int limitPriceFraction = 0,					// Limit price
+		const unsigned char& orderType = ORDER_TYPE_MARKET,
+		const unsigned int& limitPriceDollar = 0,						// Limit price
+		const unsigned int& limitPriceFraction = 0,					// Limit price
 
-		unsigned char tifType = TIF_DAY,
+		const unsigned char& tifType = TIF_DAY,
 
-		unsigned int expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
-		unsigned int effectiveTime = 0,					// When order should become active
+		const unsigned int& expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
+		const unsigned int& effectiveTime = 0,					// When order should become active
 //?
-		char capacity = 0,						// Agency, principal, etc.
+		const char& capacity = 0,						// Agency, principal, etc.
 
-		const char* mm = "",	// Market maker ID string, don't know whether we need it...
+		const char* const& mm = "",	// Market maker ID string, don't know whether we need it...
 
-		int stopPriceDollar = 0,						// Stop price 
-		int stopPriceFraction = 0,						// Stop price 
+		const int& stopPriceDollar = 0,						// Stop price 
+		const int& stopPriceFraction = 0,						// Stop price 
 
-		unsigned long minQuantity = 0,
-		unsigned long displayQuantity = 0,				// Reserve order display quantity
-		unsigned char quantityType = 0,					// Quantity type that generated the above qty
-		unsigned long reserveQuantity = 0,				// Reserve size
-		unsigned long refreshQuantity = 0,				// Refresh size
-		unsigned long discretionQuantity = 0,				// Discretion size
+		const unsigned int& minQuantity = 0,
+		const unsigned int& displayQuantity = 0,				// Reserve order display quantity
+		const unsigned char& quantityType = 0,					// Quantity type that generated the above qty
+		const unsigned int& reserveQuantity = 0,				// Reserve size
+		const unsigned int& refreshQuantity = 0,				// Refresh size
+		const unsigned int& discretionQuantity = 0,				// Discretion size
 
 
-		unsigned char priceType = 0,						// Price type that generated the above price
+		const unsigned char& priceType = 0,						// Price type that generated the above price
 
-		unsigned int displayPriceDollar = 0,					// Also can be used for discretionary orders
-		unsigned int displayPriceFraction = 0,					// Also can be used for discretionary orders
+		const unsigned int& displayPriceDollar = 0,					// Also can be used for discretionary orders
+		const unsigned int& displayPriceFraction = 0,					// Also can be used for discretionary orders
 
-		unsigned int lastPriceDollar = 0,						// Last bid/ask price 
-		unsigned int lastPriceFraction = 0,						// Last bid/ask price
+		const unsigned int& lastPriceDollar = 0,						// Last bid/ask price 
+		const unsigned int& lastPriceFraction = 0,						// Last bid/ask price
 
-		unsigned int bidPriceDollar = 0,						// Latest bid price
-		unsigned int bidPriceFraction = 0,						// Latest bid price
+		const unsigned int& bidPriceDollar = 0,						// Latest bid price
+		const unsigned int& bidPriceFraction = 0,						// Latest bid price
 
-		unsigned int askPriceDollar = 0,						// Latest ask price
-		unsigned int askPriceFraction = 0,						// Latest ask price
+		const unsigned int& askPriceDollar = 0,						// Latest ask price
+		const unsigned int& askPriceFraction = 0,						// Latest ask price
 
-		unsigned int auxPriceDollar = 0,						// For discretionary and scaled orders
-		unsigned int auxPriceFraction = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceDollar = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceFraction = 0,						// For discretionary and scaled orders
 
-		unsigned int date = 0,
-		DWORD excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
-		DWORD defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
-		unsigned char ticketCount = 0,					// Number of orders that is part of the
+//		const unsigned int& date = 0,
+		const DWORD& defaultRoutesHigh = NULL_ROUTE,					// Single ROUTE to default to for execution.
+
+//		const DWORD& excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
+		const DWORD& defaultRoutesLow = NULL_ROUTE,					// Single ROUTE to default to for execution.
+		const unsigned char& ticketCount = 0,					// Number of orders that is part of the
 												// same ticket counted down.
-		unsigned short ticketID = 0,						// Ticket ID assigned by client.
+		const unsigned short& ticketID = 0,						// Ticket ID assigned by client.
 
-// *AK* start
-		DWORD subType = 0,						// Additional Flags for Order, like type of peg...
-		DWORD execInst = 0,						// Execution Instructions
-		DWORD routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
+		const DWORD& subType = 0,						// Additional Flags for Order, like type of peg...
+		const DWORD& execInst = 0,						// Execution Instructions
+		const DWORD& routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_CLIENT,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_CLIENT,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 	#ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER, sizeof(TMsgReqOrder)),
@@ -7834,7 +11292,10 @@ protected:
 			side,
 			quantity,
 			ip,
-			type, length,
+			
+			type,
+			length,
+
 			messageSequenceNumber,
 			serverOrdID,
 			parentClOrdID,
@@ -7849,7 +11310,8 @@ protected:
 			realTimeOrRecovered,
 			instrumentType),
 	#endif
-		Date(date),
+//		Date(date),
+		DefaultRoutesHigh(defaultRoutesHigh),
 		Type(orderType),
 		TIF(tifType),
 		MinQuantity(minQuantity),
@@ -7857,8 +11319,8 @@ protected:
 		QuantityType(quantityType),
 		PriceType(priceType),
 		Route(route),
-		ExcludeRoutes(excludeRoutes),
-		DefaultRoutes(defaultRoutes),
+//		ExcludeRoutes(excludeRoutes),
+		DefaultRoutesLow(defaultRoutesLow),
 		TicketCount(ticketCount),
 		TicketID(ticketID),
 		LastPriceDollar(lastPriceDollar),
@@ -7885,8 +11347,9 @@ protected:
 		EffectiveTime(effectiveTime),
 		Capacity(capacity)
 	{
-		U_CopyAndPad(market_maker, sizeof(market_maker) - 1, mm ? mm : "", '\0');
-		market_maker[sizeof(market_maker) - 1] = '\0';
+//		U_CopyAndPad(market_maker, sizeof(market_maker) - 1, mm ? mm : "", '\0');
+//		market_maker[sizeof(market_maker) - 1] = '\0';
+		U_CopyAndPad(market_maker, sizeof(market_maker), mm ? mm : "", '\0', true);
 	}
 };
 
@@ -7894,80 +11357,87 @@ class TMsgReqOrder : public TMessageOrderBase
 {
 public:
 //	TS_ORDER_MSG_HEADER		Header;
-	TMsgReqOrder(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD route,							// Routes to send order to 
-		DWORD ip,
+	TMsgReqOrder(const DWORD& clientOrdID,
+		const char* const& traderId,
+		const char* const& accountName,
+		const char* const& firmId,
+		const char* const& symbol,
+		const unsigned char& side,
+		const unsigned int& quantity,
 
-		unsigned char orderType = ORDER_TYPE_MARKET,
-		unsigned int limitPriceDollar = 0,						// Limit price
-		unsigned int limitPriceFraction = 0,					// Limit price
+//		const DWORD& route,							// Routes to send order to 
+		const ULONGLONG& route,							// Routes to send order to 
 
-		unsigned char tifType = TIF_DAY,
+		const DWORD& ip,
 
-		unsigned int expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
-		unsigned int effectiveTime = 0,					// When order should become active
+		const unsigned char& orderType = ORDER_TYPE_MARKET,
+		const unsigned int& limitPriceDollar = 0,						// Limit price
+		const unsigned int& limitPriceFraction = 0,					// Limit price
+
+		const unsigned char& tifType = TIF_DAY,
+
+		const unsigned int& expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
+		const unsigned int& effectiveTime = 0,					// When order should become active
 //?
-		char capacity = 0,						// Agency, principal, etc.
+		const char& capacity = 0,						// Agency, principal, etc.
 
-		const char* mm = "",	// Market maker ID string, don't know whether we need it...
+		const char* const& mm = "",	// Market maker ID string, don't know whether we need it...
 
-		int stopPriceDollar = 0,						// Stop price 
-		int stopPriceFraction = 0,						// Stop price 
+		const int& stopPriceDollar = 0,						// Stop price 
+		const int& stopPriceFraction = 0,						// Stop price 
 
-		unsigned long minQuantity = 0,
-		unsigned long displayQuantity = 0,				// Reserve order display quantity
-		unsigned char quantityType = 0,					// Quantity type that generated the above qty
-		unsigned long reserveQuantity = 0,				// Reserve size
-		unsigned long refreshQuantity = 0,				// Refresh size
-		unsigned long discretionQuantity = 0,				// Discretion size
+		const unsigned int& minQuantity = 0,
+		const unsigned int& displayQuantity = 0,				// Reserve order display quantity
+		const unsigned char& quantityType = 0,					// Quantity type that generated the above qty
+		const unsigned int& reserveQuantity = 0,				// Reserve size
+		const unsigned int& refreshQuantity = 0,				// Refresh size
+		const unsigned int& discretionQuantity = 0,				// Discretion size
 
+		const unsigned char& priceType = 0,						// Price type that generated the above price
 
-		unsigned char priceType = 0,						// Price type that generated the above price
+		const unsigned int& displayPriceDollar = 0,					// Also can be used for discretionary orders
+		const unsigned int& displayPriceFraction = 0,					// Also can be used for discretionary orders
 
-		unsigned int displayPriceDollar = 0,					// Also can be used for discretionary orders
-		unsigned int displayPriceFraction = 0,					// Also can be used for discretionary orders
+		const unsigned int& lastPriceDollar = 0,						// Last bid/ask price 
+		const unsigned int lastPriceFraction = 0,						// Last bid/ask price
 
-		unsigned int lastPriceDollar = 0,						// Last bid/ask price 
-		unsigned int lastPriceFraction = 0,						// Last bid/ask price
+		const unsigned int& bidPriceDollar = 0,						// Latest bid price
+		const unsigned int& bidPriceFraction = 0,						// Latest bid price
 
-		unsigned int bidPriceDollar = 0,						// Latest bid price
-		unsigned int bidPriceFraction = 0,						// Latest bid price
+		const unsigned int& askPriceDollar = 0,						// Latest ask price
+		const unsigned int& askPriceFraction = 0,						// Latest ask price
 
-		unsigned int askPriceDollar = 0,						// Latest ask price
-		unsigned int askPriceFraction = 0,						// Latest ask price
+		const unsigned int& auxPriceDollar = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceFraction = 0,						// For discretionary and scaled orders
 
-		unsigned int auxPriceDollar = 0,						// For discretionary and scaled orders
-		unsigned int auxPriceFraction = 0,						// For discretionary and scaled orders
+//		const unsigned int& date = 0,
+		const DWORD& defaultRoutesHigh = NULL_ROUTE,					// Single ROUTE to default to for execution.
 
-		unsigned int date = 0,
-		DWORD excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
-		DWORD defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
-		unsigned char ticketCount = 0,					// Number of orders that is part of the
+//		const DWORD& excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
+//		const DWORD& defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
+		const DWORD& defaultRoutesLow = NULL_ROUTE,					// Single ROUTE to default to for execution.
+
+		const unsigned char& ticketCount = 0,					// Number of orders that is part of the
 												// same ticket counted down.
-		unsigned short ticketID = 0,						// Ticket ID assigned by client.
+		const unsigned short& ticketID = 0,						// Ticket ID assigned by client.
 
-// *AK* start
-		DWORD subType = 0,						// Additional Flags for Order, like type of peg...
-		DWORD execInst = 0,						// Execution Instructions
-		DWORD routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
+		const DWORD& subType = 0,						// Additional Flags for Order, like type of peg...
+		const DWORD& execInst = 0,						// Execution Instructions
+		const DWORD& routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_CLIENT,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_CLIENT,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 	TMessageOrderBase(clientOrdID, traderId, accountName, firmId,
 		symbol,
@@ -8018,9 +11488,13 @@ public:
 		auxPriceDollar,						// For discretionary and scaled orders
 		auxPriceFraction,						// For discretionary and scaled orders
 
-		date,
-		excludeRoutes,					// Routes to exclude when executing order.
-		defaultRoutes,					// Single ROUTE to default to for execution.
+//		date,
+		defaultRoutesHigh,
+
+//		excludeRoutes,					// Routes to exclude when executing order.
+//		defaultRoutes,					// Single ROUTE to default to for execution.
+		defaultRoutesLow,
+
 		ticketCount,					// Number of orders that is part of the
 												// same ticket counted down.
 		ticketID,						// Ticket ID assigned by client.
@@ -8050,10 +11524,32 @@ public:
 class TMsgOrderError : public TMessageOrderBase
 {
 public:
-	TMsgOrderError(const TMessageOrderBase& orderBase, unsigned char errorCode, const unsigned __int64& userOrderId, const Money& moneyValue = Money(), const Money& moneyConstraint = Money(), unsigned int uintValue = 0, unsigned int uintConstraint = 0):
+	TMsgOrderError(const TMessageOrderBase& orderBase,
+		const unsigned char& errorCode = 0,
+		const char& side = 0,
+		const unsigned __int64& userOrderId = 0,
+		const unsigned int& parentId = 0,
+		const unsigned int& splitParentClientId = 0,
+		const unsigned int& splitChildClientId = 0,
+		const unsigned int& sendId = 0,
+		const unsigned int& orderBeingReplacedClientId = 0,
+		const unsigned __int64& orderBeingReplacedUserId = 0,
+		const Money& moneyValue = Money::moneyZero,
+		const Money& moneyConstraint = Money::moneyZero,
+		const unsigned int& uintValue = 0,
+		const unsigned int& uintConstraint = 0,
+		const bool& alert = false):
 		TMessageOrderBase(orderBase),
 		m_errorCode(errorCode),
+		m_side(side),
+		m_alert(alert),
 		m_userOrderId(userOrderId),
+		m_parentId(parentId),
+		m_splitParentId(splitParentClientId),
+		m_splitChildId(splitChildClientId),
+		m_sendId(sendId),
+		m_orderBeingReplacedClientId(orderBeingReplacedClientId),
+		m_orderBeingReplacedUserId(orderBeingReplacedUserId),
 		m_moneyValue(moneyValue),
 		m_moneyConstraint(moneyConstraint),
 		m_uintValue(uintValue),
@@ -8063,7 +11559,15 @@ public:
 		m_length = sizeof(TMsgOrderError);
 	}
 	unsigned char m_errorCode;
+	char m_side;
+	bool m_alert;
 	unsigned __int64 m_userOrderId;
+	unsigned int m_parentId;
+	unsigned int m_splitParentId;
+	unsigned int m_splitChildId;
+	unsigned int m_sendId;
+	unsigned int m_orderBeingReplacedClientId;
+	unsigned __int64 m_orderBeingReplacedUserId;
 	Money m_moneyValue;
 	Money m_moneyConstraint;
 	unsigned int m_uintValue;
@@ -8073,9 +11577,16 @@ public:
 class TMsgCancelError : public TMessageOrderHeader
 {
 public:
-	TMsgCancelError(const TMessageOrderHeader& orderHeader, unsigned char errorCode, const Money& moneyValue = Money(), const Money& moneyConstraint = Money(), unsigned int uintValue = 0, unsigned int uintConstraint = 0):
+	TMsgCancelError(const TMessageOrderHeader& orderHeader,
+		const unsigned char& errorCode = 0,
+		const char& side = 0,
+		const Money& moneyValue = Money::moneyZero,
+		const Money& moneyConstraint = Money::moneyZero,
+		const unsigned int& uintValue = 0,
+		const unsigned int& uintConstraint = 0):
 		TMessageOrderHeader(orderHeader),
 		m_errorCode(errorCode),
+		m_side(side),
 		m_moneyValue(moneyValue),
 		m_moneyConstraint(moneyConstraint),
 		m_uintValue(uintValue),
@@ -8085,6 +11596,7 @@ public:
 		m_length = sizeof(TMsgCancelError);
 	}
 	unsigned char m_errorCode;
+	char m_side;
 	Money m_moneyValue;
 	Money m_moneyConstraint;
 	unsigned int m_uintValue;
@@ -8104,85 +11616,89 @@ class TMsgOrderAck : public TMessageOrderHeader
 #endif
 {
 public:
-	TMsgOrderAck(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
+	TMsgOrderAck(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
 
 #ifdef ORDER_RESPONSE_FULL
-		DWORD route,							// Routes to send order to 
+//		const DWORD& route = 0,							// Routes to send order to 
+		const ULONGLONG& route = 0,							// Routes to send order to 
 #endif
-		DWORD ip,
+		const DWORD& ip = 0,
 
 #ifdef ORDER_RESPONSE_FULL
-		unsigned char orderType = ORDER_TYPE_MARKET,
-		unsigned int limitPriceDollar = 0,						// Limit price
-		unsigned int limitPriceFraction = 0,					// Limit price
+		const unsigned char& orderType = ORDER_TYPE_MARKET,
+		const unsigned int& limitPriceDollar = 0,						// Limit price
+		const unsigned int& limitPriceFraction = 0,					// Limit price
 
-		unsigned char tifType = TIF_DAY,
+		const unsigned char& tifType = TIF_DAY,
 
-		unsigned int expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
-		unsigned int effectiveTime = 0,					// When order should become active
+		const unsigned int& expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
+		const unsigned int& effectiveTime = 0,					// When order should become active
 //?
-		char capacity = 0,						// Agency, principal, etc.
+		const char& capacity = 0,						// Agency, principal, etc.
 
-		const char* mm = "",	// Market maker ID string, don't know whether we need it...
+		const char* const& mm = "",	// Market maker ID string, don't know whether we need it...
 
-		int stopPriceDollar = 0,						// Stop price 
-		int stopPriceFraction = 0,						// Stop price 
+		const int& stopPriceDollar = 0,						// Stop price 
+		const int& stopPriceFraction = 0,						// Stop price 
 
-		unsigned long minQuantity = 0,
-		unsigned long displayQuantity = 0,				// Reserve order display quantity
-		unsigned char quantityType = 0,					// Quantity type that generated the above qty
-		unsigned long reserveQuantity = 0,				// Reserve size
-		unsigned long refreshQuantity = 0,				// Refresh size
-		unsigned long discretionQuantity = 0,				// Discretion size
+		const unsigned int& minQuantity = 0,
+		const unsigned int& displayQuantity = 0,				// Reserve order display quantity
+		const unsigned char& quantityType = 0,					// Quantity type that generated the above qty
+		const unsigned int& reserveQuantity = 0,				// Reserve size
+		const unsigned int& refreshQuantity = 0,				// Refresh size
+		const unsigned int& discretionQuantity = 0,				// Discretion size
 
+		const unsigned char& priceType = 0,						// Price type that generated the above price
 
-		unsigned char priceType = 0,						// Price type that generated the above price
+		const unsigned int& displayPriceDollar = 0,					// Also can be used for discretionary orders
+		const unsigned int& displayPriceFraction = 0,					// Also can be used for discretionary orders
 
-		unsigned int displayPriceDollar = 0,					// Also can be used for discretionary orders
-		unsigned int displayPriceFraction = 0,					// Also can be used for discretionary orders
+		const unsigned int& lastPriceDollar = 0,						// Last bid/ask price 
+		const unsigned int& lastPriceFraction = 0,						// Last bid/ask price
 
-		unsigned int lastPriceDollar = 0,						// Last bid/ask price 
-		unsigned int lastPriceFraction = 0,						// Last bid/ask price
+		const unsigned int& bidPriceDollar = 0,						// Latest bid price
+		const unsigned int& bidPriceFraction = 0,						// Latest bid price
 
-		unsigned int bidPriceDollar = 0,						// Latest bid price
-		unsigned int bidPriceFraction = 0,						// Latest bid price
+		const unsigned int& askPriceDollar = 0,						// Latest ask price
+		const unsigned int& askPriceFraction = 0,						// Latest ask price
 
-		unsigned int askPriceDollar = 0,						// Latest ask price
-		unsigned int askPriceFraction = 0,						// Latest ask price
+		const unsigned int& auxPriceDollar = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceFraction = 0,						// For discretionary and scaled orders
 
-		unsigned int auxPriceDollar = 0,						// For discretionary and scaled orders
-		unsigned int auxPriceFraction = 0,						// For discretionary and scaled orders
+//		const unsigned int& date = 0,
+		const DWORD& defaultRoutesHigh = NULL_ROUTE,					// Single ROUTE to default to for execution.
 
-		unsigned int date = 0,
-		DWORD excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
-		DWORD defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
-		unsigned char ticketCount = 0,					// Number of orders that is part of the
+//		const DWORD& excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
+//		const DWORD& defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
+		const DWORD& defaultRoutesLow = NULL_ROUTE,					// Single ROUTE to default to for execution.
+
+		const unsigned char& ticketCount = 0,					// Number of orders that is part of the
 												// same ticket counted down.
-		unsigned short ticketID = 0,						// Ticket ID assigned by client.
+		const unsigned short& ticketID = 0,						// Ticket ID assigned by client.
 
-// *AK* start
-		DWORD subType = 0,						// Additional Flags for Order, like type of peg...
-		DWORD execInst = 0,						// Execution Instructions
-		DWORD routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
+		const DWORD& subType = 0,						// Additional Flags for Order, like type of peg...
+		const DWORD& execInst = 0,						// Execution Instructions
+		const DWORD& routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
 #endif
-
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_SERVER,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_SERVER,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER_ACK, sizeof(TMsgOrderAck)),
@@ -8242,9 +11758,13 @@ public:
 			auxPriceDollar,						// For discretionary and scaled orders
 			auxPriceFraction,						// For discretionary and scaled orders
 
-			date,
-			excludeRoutes,					// Routes to exclude when executing order.
-			defaultRoutes,					// Single ROUTE to default to for execution.
+//			date,
+			defaultRoutesHigh,
+
+//			excludeRoutes,					// Routes to exclude when executing order.
+//			defaultRoutes,					// Single ROUTE to default to for execution.
+			defaultRoutesLow,					// Single ROUTE to default to for execution.
+
 			ticketCount,					// Number of orders that is part of the
 													// same ticket counted down.
 			ticketID,						// Ticket ID assigned by client.
@@ -8313,83 +11833,88 @@ class TMsgOrderUpdate : public TMessageOrderHeader
 #endif
 {
 public:
-	TMsgOrderUpdate(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
+	TMsgOrderUpdate(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
 #ifdef ORDER_RESPONSE_FULL
-		DWORD route,							// Routes to send order to 
+//		const DWORD& route = 0,							// Routes to send order to 
+		const ULONGLONG& route = 0,							// Routes to send order to 
 #endif
-		DWORD ip,
+		const DWORD& ip = 0,
 
 #ifdef ORDER_RESPONSE_FULL
-		unsigned char orderType = ORDER_TYPE_MARKET,
-		unsigned int limitPriceDollar = 0,						// Limit price
-		unsigned int limitPriceFraction = 0,					// Limit price
+		const unsigned char& orderType = ORDER_TYPE_MARKET,
+		const unsigned int& limitPriceDollar = 0,						// Limit price
+		const unsigned int& limitPriceFraction = 0,					// Limit price
 
-		unsigned char tifType = TIF_DAY,
+		const unsigned char& tifType = TIF_DAY,
 
-		unsigned int expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
-		unsigned int effectiveTime = 0,					// When order should become active
+		const unsigned int& expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
+		const unsigned int& effectiveTime = 0,					// When order should become active
 //?
-		char capacity = 0,						// Agency, principal, etc.
+		const char& capacity = 0,						// Agency, principal, etc.
 
-		const char* mm = "",	// Market maker ID string, don't know whether we need it...
+		const char* const& mm = "",	// Market maker ID string, don't know whether we need it...
 
-		int stopPriceDollar = 0,						// Stop price 
-		int stopPriceFraction = 0,						// Stop price 
+		const int& stopPriceDollar = 0,						// Stop price 
+		const int& stopPriceFraction = 0,						// Stop price 
 
-		unsigned long minQuantity = 0,
-		unsigned long displayQuantity = 0,				// Reserve order display quantity
-		unsigned char quantityType = 0,					// Quantity type that generated the above qty
-		unsigned long reserveQuantity = 0,				// Reserve size
-		unsigned long refreshQuantity = 0,				// Refresh size
-		unsigned long discretionQuantity = 0,				// Discretion size
+		const unsigned int& minQuantity = 0,
+		const unsigned int& displayQuantity = 0,				// Reserve order display quantity
+		const unsigned char& quantityType = 0,					// Quantity type that generated the above qty
+		const unsigned int& reserveQuantity = 0,				// Reserve size
+		const unsigned int& refreshQuantity = 0,				// Refresh size
+		const unsigned int& discretionQuantity = 0,				// Discretion size
 
+		const unsigned char& priceType = 0,						// Price type that generated the above price
 
-		unsigned char priceType = 0,						// Price type that generated the above price
+		const unsigned int& displayPriceDollar = 0,					// Also can be used for discretionary orders
+		const unsigned int& displayPriceFraction = 0,					// Also can be used for discretionary orders
 
-		unsigned int displayPriceDollar = 0,					// Also can be used for discretionary orders
-		unsigned int displayPriceFraction = 0,					// Also can be used for discretionary orders
+		const unsigned int& lastPriceDollar = 0,						// Last bid/ask price 
+		const unsigned int& lastPriceFraction = 0,						// Last bid/ask price
 
-		unsigned int lastPriceDollar = 0,						// Last bid/ask price 
-		unsigned int lastPriceFraction = 0,						// Last bid/ask price
+		const unsigned int& bidPriceDollar = 0,						// Latest bid price
+		const unsigned int& bidPriceFraction = 0,						// Latest bid price
 
-		unsigned int bidPriceDollar = 0,						// Latest bid price
-		unsigned int bidPriceFraction = 0,						// Latest bid price
+		const unsigned int& askPriceDollar = 0,						// Latest ask price
+		const unsigned int& askPriceFraction = 0,						// Latest ask price
 
-		unsigned int askPriceDollar = 0,						// Latest ask price
-		unsigned int askPriceFraction = 0,						// Latest ask price
+		const unsigned int& auxPriceDollar = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceFraction = 0,						// For discretionary and scaled orders
 
-		unsigned int auxPriceDollar = 0,						// For discretionary and scaled orders
-		unsigned int auxPriceFraction = 0,						// For discretionary and scaled orders
+//		const unsigned int& date = 0,
+		const DWORD& defaultRoutesHigh = NULL_ROUTE,					// Single ROUTE to default to for execution.
 
-		unsigned int date = 0,
-		DWORD excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
-		DWORD defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
-		unsigned char ticketCount = 0,					// Number of orders that is part of the
+//		const DWORD& excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
+//		const DWORD& defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
+		const DWORD& defaultRoutesLow = NULL_ROUTE,					// Single ROUTE to default to for execution.
+
+		const unsigned char& ticketCount = 0,					// Number of orders that is part of the
 												// same ticket counted down.
-		unsigned short ticketID = 0,						// Ticket ID assigned by client.
+		const unsigned short& ticketID = 0,						// Ticket ID assigned by client.
 
-// *AK* start
-		DWORD subType = 0,						// Additional Flags for Order, like type of peg...
-		DWORD execInst = 0,						// Execution Instructions
-		DWORD routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
+		const DWORD& subType = 0,						// Additional Flags for Order, like type of peg...
+		const DWORD& execInst = 0,						// Execution Instructions
+		const DWORD& routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
 #endif
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER_UPDATE, sizeof(TMsgOrderUpdate)),
@@ -8449,9 +11974,13 @@ public:
 			auxPriceDollar,						// For discretionary and scaled orders
 			auxPriceFraction,						// For discretionary and scaled orders
 
-			date,
-			excludeRoutes,					// Routes to exclude when executing order.
-			defaultRoutes,					// Single ROUTE to default to for execution.
+//			date,
+			defaultRoutesHigh,					// Single ROUTE to default to for execution.
+
+//			excludeRoutes,					// Routes to exclude when executing order.
+//			defaultRoutes,					// Single ROUTE to default to for execution.
+			defaultRoutesLow,					// Single ROUTE to default to for execution.
+
 			ticketCount,					// Number of orders that is part of the
 													// same ticket counted down.
 			ticketID,						// Ticket ID assigned by client.
@@ -8508,14 +12037,27 @@ public:
 };
 
 //Order reject codes 
-#define ORDER_REJECT_CODE_BAD_SYMBOL			1
-#define	ORDER_REJECT_CODE_NO_OWN				2
-#define ORDER_REJECT_CODE_SMALL_OWN				3
-#define	ORDER_REJECT_CODE_ROUTE_UNAVAILABLE		4
-#define	ORDER_REJECT_CODE_REJECTED_BY_ROUTE		5
-#define	ORDER_REJECT_CODE_VALIDATION_FAILED		6
-#define	ORDER_REJECT_CODE_BAD_TRADER_ID			7
-#define	ORDER_REJECT_CODE_BAD_ACCOUNT			8
+enum OrderRejectCodes : WORD
+{
+	ORDER_REJECT_CODE_BAD_SYMBOL = 1,
+	ORDER_REJECT_CODE_NO_OWN,// =				2,
+	ORDER_REJECT_CODE_SMALL_OWN,// =			3,
+	ORDER_REJECT_CODE_ROUTE_UNAVAILABLE,// =	4,
+	ORDER_REJECT_CODE_REJECTED_BY_ROUTE,// =	5,
+	ORDER_REJECT_CODE_VALIDATION_FAILED,// =	6,
+	ORDER_REJECT_CODE_BAD_TRADER_ID,// =		7,
+	ORDER_REJECT_CODE_BAD_ACCOUNT,// =			8,
+	ORDER_REJECT_CODE_CIRCUIT_BREAKER,//				9
+	ORDER_REJECT_CODE_ORIGINAL_ORDER_NOT_FOUND,//		10
+	ORDER_REJECT_CODE_REPL_ORDER_PARAM_CONFLICT,//		11
+	ORDER_REJECT_CODE_FIRM_NOT_FOUND,//				12
+	ORDER_REJECT_CODE_ALGO_NOT_FOUND,//				13
+	ORDER_REJECT_CODE_ORDER_SENDER_NOT_REGISTERED,//	14
+	ORDER_REJECT_CODE_SOR_UNABLE_TO_REQ_SNAPSHOT,//	15
+	ORDER_REJECT_CODE_SOR_UNABLE_TO_CREATE_STEPS,//	16
+	ORDER_REJECT_CODE_MALFORMED_ALGO_TEMPLATE,//		17
+	ORDER_REJECT_CODE_INVALID_MNEMONIC,//				18
+};
 //TS->TSClient, Sent by TS if the new order TS_ORDER_MESSAGE is rejected
 
 
@@ -8532,29 +12074,33 @@ public:
 	WORD					ReasonCode;			// Reject code
 	char					ReasonText[1];		//	Reject String
 protected:
-	TMsgOrderReason(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgOrderReason(const DWORD& clientOrdID,
+		const char* const& traderId,
+		const char* const& accountName,
+		const char* const& firmId,
+		const char* const& symbol,
+		const unsigned char& side,
+		const unsigned int& quantity,
+		const DWORD& ip,
 
-		WORD reasonCode,
-		unsigned short type, unsigned short length,
+		const WORD& reasonCode,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_CLIENT,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const unsigned short& type,
+		const unsigned short& length,
+
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_CLIENT,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, type, length),
@@ -8593,28 +12139,30 @@ protected:
 class TMsgOrderReject : public TMsgOrderReason
 {
 public:
-	TMsgOrderReject(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgOrderReject(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
 
-		WORD rejectCode,
+		const WORD& rejectCode = 0,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_SERVER,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_SERVER,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 		TMsgOrderReason(clientOrdID, traderId, accountName, firmId,
 			symbol,
@@ -8640,37 +12188,42 @@ public:
 	}
 };
 
-#define	CANCEL_REJECT_CODE_ROUTE_UNAVAILABLE	1
-#define CANCEL_REJECT_TOO_LATE_TO_CANCEL		'0'
-#define	CANCEL_REJECT_UNKNOWN_ORDER				'1'
-#define CANCEL_REJECT_BROKER_OPTION				'2'
-#define CANCEL_REJECT_ALREADY_PENDING_CANCEL	'3'
+enum CancelRejectCodes : WORD
+{
+	CANCEL_REJECT_CODE_ROUTE_UNAVAILABLE =	1,
+	CANCEL_REJECT_TOO_LATE_TO_CANCEL =		'0',
+	CANCEL_REJECT_UNKNOWN_ORDER =			'1',
+	CANCEL_REJECT_BROKER_OPTION =			'2',
+	CANCEL_REJECT_ALREADY_PENDING_CANCEL =	'3',
+};
 
 class TMsgCancelReject : public TMsgOrderReason
 {
 public:
-	TMsgCancelReject(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgCancelReject(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
 
-		WORD rejectCode,
+		const WORD& rejectCode = 0,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_SERVER,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_SERVER,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 		TMsgOrderReason(clientOrdID, traderId, accountName, firmId,
 			symbol,
@@ -8698,14 +12251,17 @@ public:
 
 
 
-#define	REPORT_FILLED			0x01	// Part or all of order filled
-#define	REPORT_CANCELED			0x02	// Part or all of order canceled
-#define	REPORT_NOFILLED			0x04	// Part or all of order not filled
-#define	REPORT_REJECTED			0x08	// Part or all of order was rejected
-#define	REPORT_TIMEOUT			0x10	// Order timed out
-#define	REPORT_ACCEPTED			0x20	// Order accepted
-#define	REPORT_BUSTED			0x40	// Execution busted
-#define	REPORT_FOREIGN			0x80	// Execution foreign
+enum ReportTypeFlags : WORD
+{
+	REPORT_FILLED =				0x01,	// Part or all of order filled
+	REPORT_CANCELED =			0x02,	// Part or all of order canceled
+	REPORT_NOFILLED =			0x04,	// Part or all of order not filled
+	REPORT_REJECTED =			0x08,	// Part or all of order was rejected
+	REPORT_TIMEOUT =			0x10,	// Order timed out
+	REPORT_CANCEL_SOLICITED =	0x20,	// Part or all of order canceled due to trader request
+	REPORT_BUSTED =				0x40,	// Execution busted
+	REPORT_FOREIGN =			0x80,	// Execution foreign
+};
 
 #ifdef ORDER_STRUCTURE_MEMBER
 class TMsgOrderReport : public TMessageTime
@@ -8714,40 +12270,43 @@ class TMsgOrderReport : public TMessageOrderHeader
 #endif
 {
 public:
-	TMsgOrderReport(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgOrderReport(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
 
-		WORD reportType,
+		const WORD& reportType = 0,
 
-		unsigned char liquidityFlag,			// 0 or 1 
-		unsigned char billableFlag,			// 0 or 1 
+		const unsigned char& liquidityFlag = 0,			// 0 or 1 
+		const unsigned char& billableFlag = 0,			// 0 or 1 
 
-		DWORD fillQuantity,			// # of shares filled
-		DWORD nofillQuantity,			// # of shares not filled
-		DWORD cancelQuantity,			// # of shares cancelled
-		DWORD remainingQuantity,		// # of shares remaining in order
+		const DWORD& fillQuantity = 0,			// # of shares filled
+//		const DWORD& nofillQuantity = 0,			// # of shares not filled
+		const DWORD& liquidity = 0,
+		const DWORD& cancelQuantity = 0,			// # of shares cancelled
+		const DWORD& remainingQuantity = 0,		// # of shares remaining in order
 								
-		unsigned int fillPriceDollar,				// Filled price	
-		unsigned int fillPriceFraction,				// Filled price	
-		const char* mmid,	// Market maker ID string - 5 bytes
-		const char* executionReferenceID,	// ID assigned to execution by venue
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-//		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const unsigned int& fillPriceDollar = 0,				// Filled price	
+		const unsigned int& fillPriceFraction = 0,				// Filled price	
+		const char* const& mmid = "",	// Market maker ID string - 5 bytes
+		const char* const& executionReferenceID = "",	// ID assigned to execution by venue
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0,
+		const ULONGLONG& route = 0
 		):
 	#ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER_REPORT, sizeof(TMsgOrderReport)),
@@ -8783,14 +12342,15 @@ public:
 		BillableFlag(billableFlag),			// 0 or 1 
 
 		FillQuantity(fillQuantity),			// # of shares filled
-		NofillQuantity(nofillQuantity),			// # of shares not filled
+		Liquidity(liquidity),//NofillQuantity(nofillQuantity),			// # of shares not filled
 		CancelQuantity(cancelQuantity),			// # of shares cancelled
 		m_orderRemainingQuantity(remainingQuantity),		// # of shares remaining in order
 								
-		FillPriceDollar(fillPriceDollar),				// Filled price	
-		FillPriceFraction(fillPriceFraction)				// Filled price	
+		FillPriceDollar(fillPriceDollar),				// Filled price
+		FillPriceFraction(fillPriceFraction),				// Filled price
+		Route(route)
 	{
-		U_CopyAndPad(MMID, sizeof(MMID), mmid, '\0');
+		U_CopyAndPad(MMID, sizeof(MMID), mmid, '\0', true);
 		U_CopyAndPad(ExecutionReferenceID, sizeof(ExecutionReferenceID), executionReferenceID, '\0');
 		*ReasonText = '\0';
 	}
@@ -8803,7 +12363,7 @@ public:
 	UCHAR					BillableFlag;			// 0 or 1 
 
 	DWORD					FillQuantity;			// # of shares filled
-	DWORD					NofillQuantity;			// # of shares not filled
+	DWORD					Liquidity;// NofillQuantity;			// # of shares not filled
 	DWORD					CancelQuantity;			// # of shares cancelled
 	DWORD					m_orderRemainingQuantity;		// # of shares remaining in order
 								
@@ -8811,7 +12371,8 @@ public:
 	unsigned int			FillPriceFraction;				// Filled price	
 	char					MMID[MAX_MMID_SIZE];	// Market maker ID string - 5 bytes
 	char					ExecutionReferenceID[MAX_MARKET_REFERENCE_ID];	// ID assigned to execution by venue
-	DWORD					Route;
+//	DWORD					Route;
+	ULONGLONG				Route;
 	char					ReasonText[1];			// Reason msg string for rejections
 };
 
@@ -8822,25 +12383,27 @@ class TMsgReqOrderCancel : public TMessageOrderHeader
 #endif
 {
 public:
-	TMsgReqOrderCancel(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+	TMsgReqOrderCancel(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER_CANCEL_REQ, sizeof(TMsgReqOrderCancel)),
@@ -8885,55 +12448,59 @@ class TMsgReqOrderReplace : public TMessageOrderHeader
 #endif
 {
 public:
-	TMsgReqOrderReplace(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned int oldQuantity,
-		DWORD newClOrdID,
-		unsigned int newQuantity,
-		DWORD ip,
+	TMsgReqOrderReplace(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& oldQuantity = 0,
+		const DWORD& newClOrdID = 0,
+		const unsigned int& newQuantity = 0,
+		const DWORD& ip = 0,
 
-		unsigned char orderType = ORDER_TYPE_MARKET,
+		const unsigned char& orderType = ORDER_TYPE_MARKET,
 
-		unsigned int limitPriceDollar = 0,						// Limit price
-		unsigned int limitPriceFraction = 0,					// Limit price
+		const unsigned int& limitPriceDollar = 0,						// Limit price
+		const unsigned int& limitPriceFraction = 0,					// Limit price
 
-		int stopPriceDollar = 0,						// Stop price
-		int stopPriceFraction = 0,						// Stop price
+		const int& stopPriceDollar = 0,						// Stop price
+		const int& stopPriceFraction = 0,						// Stop price
 
-		unsigned int auxPriceDollar = 0,						// For discretionary and scaled orders
-		unsigned int auxPriceFraction = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceDollar = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceFraction = 0,						// For discretionary and scaled orders
 
-		unsigned int lastPriceDollar = 0,						// Last bid/ask price 
-		unsigned int lastPriceFraction = 0,						// Last bid/ask price
+		const unsigned int& lastPriceDollar = 0,						// Last bid/ask price 
+		const unsigned int& lastPriceFraction = 0,						// Last bid/ask price
 
-		unsigned int bidPriceDollar = 0,						// Latest bid price
-		unsigned int bidPriceFraction = 0,						// Latest bid price
+		const unsigned int& bidPriceDollar = 0,						// Latest bid price
+		const unsigned int& bidPriceFraction = 0,						// Latest bid price
 
-		unsigned int askPriceDollar = 0,						// Latest ask price
-		unsigned int askPriceFraction = 0,						// Latest ask price
+		const unsigned int& askPriceDollar = 0,						// Latest ask price
+		const unsigned int& askPriceFraction = 0,						// Latest ask price
 
-		unsigned char tifType = TIF_DAY,
+		const unsigned char& tifType = TIF_DAY,
 
-		unsigned long minQuantity = 0,
-		unsigned long displayQuantity = 0,				// Reserve order display quantity
+		const unsigned int& minQuantity = 0,
+		const unsigned int& displayQuantity = 0,				// Reserve order display quantity
 
-		DWORD date = 0,
+//		const DWORD& date = 0,
+		const unsigned short& ticketID = 0,
+		const unsigned char& ticketCount = 0,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER_REPLACE_REQ, sizeof(TMsgReqOrderReplace)),
@@ -8963,7 +12530,10 @@ public:
 			realTimeOrRecovered,
 			instrumentType),
 		NewClOrdID(newClOrdID),
-		Date(date),
+//		Date(date),
+		TicketCount(ticketCount),
+		Reserved(0),
+		TicketID(ticketID),
 		m_newType(orderType),
 		m_newTIF(tifType),
 		m_newQuantity(newQuantity),
@@ -8989,7 +12559,10 @@ public:
 #endif
 	DWORD NewClOrdID;
 
-	DWORD Date;							// Date for good till date orders
+//	DWORD Date;							// Date for good till date orders
+	unsigned short TicketID;
+	unsigned char Reserved;
+	unsigned char TicketCount;
 
 	UCHAR m_newType;							// Order type, market, limit, etc
 	UCHAR m_newTIF;							// TIF or Order duration 
@@ -9025,25 +12598,27 @@ class TMsgOrderCancelAck : public TMessageOrderHeader
 #endif
 {
 public:
-	TMsgOrderCancelAck(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+	TMsgOrderCancelAck(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, TS_ORDER_CANCEL_ACK, sizeof(TMsgOrderCancelAck)),
@@ -9083,28 +12658,30 @@ public:
 class TMsgOrderKill : public TMsgOrderReason
 {
 public:
-	TMsgOrderKill(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgOrderKill(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
 
-		WORD rejectCode,
+		const WORD& rejectCode = 0,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 		TMsgOrderReason(clientOrdID, traderId, accountName, firmId,
 			symbol,
@@ -9142,29 +12719,33 @@ public:
 #endif
 	DWORD					NewClOrdID;
 protected:
-	TMsgOrderReplace(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgOrderReplace(const DWORD& clientOrdID,
+		const char* const& traderId,
+		const char* const& accountName,
+		const char* const& firmId,
+		const char* const& symbol,
+		const unsigned char& side,
+		const unsigned int& quantity,
+		const DWORD& ip,
 
-		DWORD newClOrdID,
-		unsigned short type, unsigned short length,
+		const DWORD& newClOrdID,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const unsigned short& type,
+		const unsigned short& length,
+
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 #ifdef ORDER_STRUCTURE_MEMBER
 		TMessageTime(0, type, length),
@@ -9202,28 +12783,30 @@ protected:
 class TMsgOrderReplaceAck : public TMsgOrderReplace
 {
 public:
-	TMsgOrderReplaceAck(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD ip,
+	TMsgOrderReplaceAck(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+		const DWORD& ip = 0,
 
-		DWORD newClOrdID,
+		const DWORD& newClOrdID = 0,
 
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0
 		):
 		TMsgOrderReplace(clientOrdID, traderId, accountName, firmId,
 			symbol,
@@ -9252,103 +12835,112 @@ public:
 class TMsgOrderReplaceDone : public TMessageOrderBase//TMsgOrderReplace
 {
 public:
-	TMsgOrderReplaceDone(DWORD clientOrdID, const char* traderId, const char* accountName, const char* firmId,
-		const char* symbol,
-		unsigned char side,
-		unsigned long quantity,
-		DWORD route,
-		DWORD ip,
+	TMsgOrderReplaceDone(const DWORD& clientOrdID = 0,
+		const char* const& traderId = "",
+		const char* const& accountName = "",
+		const char* const& firmId = "",
+		const char* const& symbol = "",
+		const unsigned char& side = 0,
+		const unsigned int& quantity = 0,
+
+//		const DWORD& route = 0,
+		const ULONGLONG& route = 0,
+
+		const DWORD& ip = 0,
 
 //		DWORD newClOrdID,
 ////
-		unsigned char orderType = ORDER_TYPE_MARKET,
-		unsigned int limitPriceDollar = 0,						// Limit price
-		unsigned int limitPriceFraction = 0,					// Limit price
+		const unsigned char& orderType = ORDER_TYPE_MARKET,
+		const unsigned int& limitPriceDollar = 0,						// Limit price
+		const unsigned int& limitPriceFraction = 0,					// Limit price
 
-		unsigned char tifType = TIF_DAY,
+		const unsigned char& tifType = TIF_DAY,
 
-		unsigned int expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
-		unsigned int effectiveTime = 0,					// When order should become active
+		const unsigned int& expireTime = 0,						// Number of milliseconds before order should expire (for TIF = '6')
+		const unsigned int& effectiveTime = 0,					// When order should become active
 //?
-		char capacity = 0,						// Agency, principal, etc.
+		const char& capacity = 0,						// Agency, principal, etc.
 
-		const char* mm = "",	// Market maker ID string, don't know whether we need it...
+		const char* const& mm = "",	// Market maker ID string, don't know whether we need it...
 
-		int stopPriceDollar = 0,						// Stop price 
-		int stopPriceFraction = 0,						// Stop price 
+		const int& stopPriceDollar = 0,						// Stop price 
+		const int& stopPriceFraction = 0,						// Stop price 
 
-		unsigned long minQuantity = 0,
-		unsigned long displayQuantity = 0,				// Reserve order display quantity
-		unsigned char quantityType = 0,					// Quantity type that generated the above qty
-		unsigned long reserveQuantity = 0,				// Reserve size
-		unsigned long refreshQuantity = 0,				// Refresh size
-		unsigned long discretionQuantity = 0,				// Discretion size
+		const unsigned int& minQuantity = 0,
+		const unsigned int& displayQuantity = 0,				// Reserve order display quantity
+		const unsigned char& quantityType = 0,					// Quantity type that generated the above qty
+		const unsigned int& reserveQuantity = 0,				// Reserve size
+		const unsigned int& refreshQuantity = 0,				// Refresh size
+		const unsigned int& discretionQuantity = 0,				// Discretion size
 
+		const unsigned char& priceType = 0,						// Price type that generated the above price
 
-		unsigned char priceType = 0,						// Price type that generated the above price
+		const unsigned int& displayPriceDollar = 0,					// Also can be used for discretionary orders
+		const unsigned int& displayPriceFraction = 0,					// Also can be used for discretionary orders
 
-		unsigned int displayPriceDollar = 0,					// Also can be used for discretionary orders
-		unsigned int displayPriceFraction = 0,					// Also can be used for discretionary orders
+		const unsigned int& lastPriceDollar = 0,						// Last bid/ask price 
+		const unsigned int& lastPriceFraction = 0,						// Last bid/ask price
 
-		unsigned int lastPriceDollar = 0,						// Last bid/ask price 
-		unsigned int lastPriceFraction = 0,						// Last bid/ask price
+		const unsigned int& bidPriceDollar = 0,						// Latest bid price
+		const unsigned int& bidPriceFraction = 0,						// Latest bid price
 
-		unsigned int bidPriceDollar = 0,						// Latest bid price
-		unsigned int bidPriceFraction = 0,						// Latest bid price
+		const unsigned int& askPriceDollar = 0,						// Latest ask price
+		const unsigned int& askPriceFraction = 0,						// Latest ask price
 
-		unsigned int askPriceDollar = 0,						// Latest ask price
-		unsigned int askPriceFraction = 0,						// Latest ask price
+		const unsigned int& auxPriceDollar = 0,						// For discretionary and scaled orders
+		const unsigned int& auxPriceFraction = 0,						// For discretionary and scaled orders
 
-		unsigned int auxPriceDollar = 0,						// For discretionary and scaled orders
-		unsigned int auxPriceFraction = 0,						// For discretionary and scaled orders
+//		const unsigned int& date = 0,
+		const DWORD& defaultRoutesHigh = NULL_ROUTE,					// Single ROUTE to default to for execution.
 
-		unsigned int date = 0,
-		DWORD excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
-		DWORD defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
-		unsigned char ticketCount = 0,					// Number of orders that is part of the
+//		const DWORD& excludeRoutes = NULL_ROUTE,					// Routes to exclude when executing order.
+//		const DWORD& defaultRoutes = NULL_ROUTE,					// Single ROUTE to default to for execution.
+		const DWORD& defaultRoutesLow = NULL_ROUTE,					// Single ROUTE to default to for execution.
+
+		const unsigned char& ticketCount = 0,					// Number of orders that is part of the
 												// same ticket counted down.
-		unsigned short ticketID = 0,						// Ticket ID assigned by client.
+		const unsigned short& ticketID = 0,						// Ticket ID assigned by client.
 
-// *AK* start
-		DWORD subType = 0,						// Additional Flags for Order, like type of peg...
-		DWORD execInst = 0,						// Execution Instructions
-		DWORD routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
+		const DWORD& subType = 0,						// Additional Flags for Order, like type of peg...
+		const DWORD& execInst = 0,						// Execution Instructions
+		const DWORD& routingInstructions = 0,			// Routing Instructions to direct venue whether to route order out and where
 ////
-		DWORD messageSequenceNumber = 0,
-		DWORD serverOrdID = 0,
-		DWORD parentClOrdID = 0,
-		DWORD acceptedTime = 0,
-		DWORD canceledTime = 0,
-		const char* marketReferenceID = "",
-		unsigned char tracking = TR_ON_MARKET,
-		unsigned char status = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 optionBlock = 0,
-		unsigned long remainingQuantity = 0,
-		unsigned long canceledQuantity = 0,
-		unsigned char realTimeOrRecovered = 0,
-		unsigned char instrumentType = 0,
+		const DWORD& messageSequenceNumber = 0,
+		const DWORD& serverOrdID = 0,
+		const DWORD& parentClOrdID = 0,
+		const DWORD& acceptedTime = 0,
+		const DWORD& canceledTime = 0,
+		const char* const& marketReferenceID = "",
+		const unsigned char& tracking = TR_ON_MARKET,
+		const unsigned char& status = OS_NEW,
+		const unsigned __int64& optionBlock = 0,
+		const unsigned int& remainingQuantity = 0,
+		const unsigned int& canceledQuantity = 0,
+		const unsigned char& realTimeOrRecovered = 0,
+		const unsigned char& instrumentType = 0,
 
-		DWORD oldClOrdID = 0,
-		const char* oldTraderId = "", const char* oldAccountName = "", const char* oldFirmId = "", const char* oldSymbol = "",
-		unsigned char oldSide = 0,
-		unsigned long oldQuantity = 0,
-		DWORD oldIp = 0,
+		const DWORD& oldClOrdID = 0,
+		const char* const& oldTraderId = "",
+		const char* const& oldAccountName = "",
+		const char* const& oldFirmId = "",
+		const char* const& oldSymbol = "",
+		const unsigned char& oldSide = 0,
+		const unsigned int& oldQuantity = 0,
+		const DWORD& oldIp = 0,
 
-		DWORD oldMessageSequenceNumber = 0,
-		DWORD oldServerOrdID = 0,
-		DWORD oldParentClOrdID = 0,
-		DWORD oldAcceptedTime = 0,
-		DWORD oldCanceledTime = 0,
-		const char* oldMarketReferenceId = "",
-		unsigned char oldTracking = TR_ON_MARKET,
-		unsigned char oldStatus = OS_NEW,
-//		const char* confirmationID = "",
-		unsigned __int64 oldOptionBlock = 0,
-		unsigned long oldRemainingQuantity = 0,
-		unsigned long oldCanceledQuantity = 0,
-		unsigned char oldRealTimeOrRecovered = 0,
-		unsigned char oldInstrumentType = 0
+		const DWORD& oldMessageSequenceNumber = 0,
+		const DWORD& oldServerOrdID = 0,
+		const DWORD& oldParentClOrdID = 0,
+		const DWORD& oldAcceptedTime = 0,
+		const DWORD& oldCanceledTime = 0,
+		const char* const& oldMarketReferenceId = "",
+		const unsigned char& oldTracking = TR_ON_MARKET,
+		const unsigned char& oldStatus = OS_NEW,
+		const unsigned __int64& oldOptionBlock = 0,
+		const unsigned int& oldRemainingQuantity = 0,
+		const unsigned int& oldCanceledQuantity = 0,
+		const unsigned char& oldRealTimeOrRecovered = 0,
+		const unsigned char& oldInstrumentType = 0
 		):
 		TMessageOrderBase(clientOrdID, traderId, accountName, firmId,
 			symbol,
@@ -9395,9 +12987,13 @@ public:
 			auxPriceDollar,
 			auxPriceFraction,
 
-			date,
-			excludeRoutes,
-			defaultRoutes,
+//			date,
+			defaultRoutesHigh,
+
+//			excludeRoutes,
+//			defaultRoutes,
+			defaultRoutesLow,
+
 			ticketCount,
 			ticketID,
 
@@ -9436,9 +13032,9 @@ public:
 		m_oldSide(oldSide ? oldSide : side),
 		m_oldInstrumentType(oldInstrumentType)
 	{
-		U_CopyAndPad(m_oldAccountName, sizeof(m_oldAccountName), *oldAccountName ? oldAccountName : accountName, '\0');
-		U_CopyAndPad(m_oldTraderID, sizeof(m_oldTraderID), *oldTraderId ? oldTraderId : traderId, '\0');
-		U_CopyAndPad(m_oldFirmID, sizeof(m_oldFirmID), *oldFirmId ? oldFirmId : firmId, '\0');
+		U_CopyAndPad(m_oldAccountName, sizeof(m_oldAccountName), *oldAccountName ? oldAccountName : accountName, '\0', true);
+		U_CopyAndPad(m_oldTraderID, sizeof(m_oldTraderID), *oldTraderId ? oldTraderId : traderId, '\0', true);
+		U_CopyAndPad(m_oldFirmID, sizeof(m_oldFirmID), *oldFirmId ? oldFirmId : firmId, '\0', true);
 		U_CopyAndPad(m_oldMarketReferenceID, sizeof(m_oldMarketReferenceID), *oldMarketReferenceId ? oldMarketReferenceId : marketReferenceID, '\0');
 		*(unsigned __int64*)m_oldConfirmationID = oldOptionBlock ? oldOptionBlock : optionBlock;
 		*((unsigned __int64*)m_oldConfirmationID + 1) = 0;
@@ -9473,9 +13069,193 @@ public:
 	UCHAR		m_oldInstrumentType;
 };
 
+#ifdef FIRM_VALUES
+
+class TMsgFirmPosition : public TMessageTime//Message
+{
+public:
+	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
+	char m_symbol[MAX_SYMBOL_SIZE];
+	char m_firmId[MAX_FIRM_ID_SIZE];
+protected:
+//	TMsgFirmPosition(const char* clearingAccountName, const char* symbol, const char* firmId, unsigned short type, unsigned short length):Message(type, length)
+	TMsgFirmPosition(const char* const& clearingAccountName,
+		const char* const& symbol,
+		const char* const& firmId,
+		const unsigned int& timestamp,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTime(timestamp, type, length)
+	{
+		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0', true);
+		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
+		U_CopyAndPad(m_firmId, sizeof(m_firmId), firmId, '\0', true);
+	}
+//	TMsgFirmPosition(const unsigned __int64& clearingNamePart1, const unsigned __int64& clearingNamePart2, const unsigned __int64& symbol, const unsigned int& firmId, unsigned short type, unsigned short length):Message(type, length)
+	TMsgFirmPosition(const unsigned __int64& clearingNamePart1,
+		const unsigned __int64& clearingNamePart2,
+		const unsigned __int64& symbol,
+		const unsigned int& firmId,
+		const unsigned int& timestamp,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTime(timestamp, type, length)
+	{
+		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
+		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
+		*(unsigned __int64*)m_symbol = symbol;
+		*(unsigned int*)m_firmId = firmId;
+		m_firmId[sizeof(unsigned int)] = '\0';
+	}
+};
+
+class TMsgUpdateFirmPosition : public TMsgFirmPosition
+{
+public:
+	TMsgUpdateFirmPosition(const char* const& clearingAccountName,
+		const char* const& symbol = "",
+		const char* const& firmId = "",
+		const int& firmPosition = 0,
+		const unsigned int& firmPendingSellSharesPassive = 0,
+		const unsigned int& firmPendingSellSharesNonPassive = 0,
+		const unsigned int& firmPendingShortSharesPassive = 0,
+		const unsigned int& firmPendingShortSharesNonPassive = 0,
+		const double& aggregatedAvgPriceMargin = 0,
+		const unsigned int& availableBorrowedShares = 0,
+		const unsigned int& timestamp = 0):
+
+		TMsgFirmPosition(clearingAccountName,
+			symbol,
+			firmId,
+			timestamp,
+			TS_FIRM_POSITION_UPDATE,
+			sizeof(TMsgUpdateFirmPosition)),
+		m_firmPosition(firmPosition),
+		m_firmPendingSellSharesPassive(firmPendingSellSharesPassive),
+		m_firmPendingSellSharesNonPassive(firmPendingSellSharesNonPassive),
+		m_firmPendingShortSharesPassive(firmPendingShortSharesPassive),
+		m_firmPendingShortSharesNonPassive(firmPendingShortSharesNonPassive),
+		m_aggregatedAvgPriceMargin(aggregatedAvgPriceMargin),
+		m_availableBorrowedShares(availableBorrowedShares)
+	{}
+	TMsgUpdateFirmPosition(const unsigned __int64& clearingNamePart1 = 0,
+		const unsigned __int64& clearingNamePart2 = 0,
+		const unsigned __int64& symbol = 0,
+		const unsigned int& firmId = 0,
+		const int& firmPosition = 0,
+		const unsigned int& firmPendingSellSharesPassive = 0,
+		const unsigned int& firmPendingSellSharesNonPassive = 0,
+		const unsigned int& firmPendingShortSharesPassive = 0,
+		const unsigned int& firmPendingShortSharesNonPassive = 0,
+		const double& aggregatedAvgPriceMargin = 0,
+		const unsigned int& availableBorrowedShares = 0,
+		const unsigned int& timestamp = 0):
+
+		TMsgFirmPosition(clearingNamePart1,
+			clearingNamePart2,
+			symbol,
+			firmId,
+			timestamp,
+			TS_FIRM_POSITION_UPDATE,
+			sizeof(TMsgUpdateFirmPosition)),
+		m_firmPosition(firmPosition),
+		m_firmPendingSellSharesPassive(firmPendingSellSharesPassive),
+		m_firmPendingSellSharesNonPassive(firmPendingSellSharesNonPassive),
+		m_firmPendingShortSharesPassive(firmPendingShortSharesPassive),
+		m_firmPendingShortSharesNonPassive(firmPendingShortSharesNonPassive),
+		m_aggregatedAvgPriceMargin(aggregatedAvgPriceMargin),
+		m_availableBorrowedShares(availableBorrowedShares)
+	{}
+	int m_firmPosition;
+	unsigned int m_firmPendingSellSharesPassive;
+	unsigned int m_firmPendingSellSharesNonPassive;
+	unsigned int m_firmPendingShortSharesPassive;
+	unsigned int m_firmPendingShortSharesNonPassive;
+//07/02/2019
+	double m_aggregatedAvgPriceMargin;
+//03/04/2020
+	unsigned int m_availableBorrowedShares;
+};
+
+class TMsgFirmEnforcement : public TMessageTime
+{
+public:
+	TMsgFirmEnforcement(const char* const& clearingAccountName,
+		const bool& enforceFirm = false,
+		const bool& conservativeOrderMarking = false,
+		const bool& localSideMarking = false,
+		const DWORD& niteBetaEnforcementStartTime = 0,//In Milliseconds since midnight
+		const double& niteBetaGroupBuyingPower = 0,
+		const double& marginExcessMultiplier = 0,
+		const double& marginExcess = 0,
+		const double& totalEquity = 0,
+		const unsigned int& timestamp = 0):
+		TMessageTime(timestamp, TS_FIRM_ENFORCEMENT, sizeof(TMsgFirmEnforcement)),
+		m_enforceFirm(enforceFirm),
+		m_conservativeOrderMarking(conservativeOrderMarking),
+		m_localSideMarking(localSideMarking),
+		m_niteBetaEnforcementStartTime(niteBetaEnforcementStartTime),
+		m_niteBetaGroupBuyingPower(niteBetaGroupBuyingPower),
+		m_marginExcessMultiplier(marginExcessMultiplier),
+		m_marginExcess(marginExcess),
+		m_totalEquity(totalEquity)
+	{
+		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0', true);
+	}
+	TMsgFirmEnforcement(const unsigned __int64& clearingNamePart1 = 0,
+		const unsigned __int64& clearingNamePart2 = 0,
+		const bool& enforceFirm = false,
+		const bool& conservativeOrderMarking = false,
+		const bool& localSideMarking = false,
+		const DWORD& niteBetaEnforcementStartTime = 0,//In Milliseconds since midnight
+		const double& niteBetaGroupBuyingPower = 0,
+		const double& marginExcessMultiplier = 0,
+		const double& marginExcess = 0,
+		const double& totalEquity = 0,
+		const unsigned int& timestamp = 0):
+		TMessageTime(timestamp, TS_FIRM_ENFORCEMENT, sizeof(TMsgFirmEnforcement)),
+		m_enforceFirm(enforceFirm),
+		m_conservativeOrderMarking(conservativeOrderMarking),
+		m_localSideMarking(localSideMarking),
+		m_niteBetaEnforcementStartTime(niteBetaEnforcementStartTime),
+		m_niteBetaGroupBuyingPower(niteBetaGroupBuyingPower),
+		m_marginExcessMultiplier(marginExcessMultiplier),
+		m_marginExcess(marginExcess),
+		m_totalEquity(totalEquity)
+	{
+		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
+		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
+	}
+	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
+	bool m_enforceFirm;
+	bool m_conservativeOrderMarking;
+	bool m_localSideMarking;
+	DWORD m_niteBetaEnforcementStartTime;//In Milliseconds since midnight
+	double m_niteBetaGroupBuyingPower;
+//07/02/2019
+	double m_marginExcessMultiplier;
+	double m_marginExcess;
+	double m_totalEquity;
+};
+#endif
+
 class HtbNode
 {
 public:
+	HtbNode(const unsigned __int64& symbol = 0,
+		const unsigned int& priceToBorrowDollar = 0,
+		const unsigned int& priceToBorrowFraction = 0,
+		const unsigned int& quantity = 0,
+		const unsigned char& discountFlag = 0,
+		const unsigned char& htbType = 0):
+		m_priceToBorrowDollar(priceToBorrowDollar),
+		m_priceToBorrowFraction(priceToBorrowFraction),
+		m_quantity(quantity),
+		m_discountFlag(discountFlag),
+		m_htbType(htbType)
+	{
+		*(unsigned __int64*)m_symbol = symbol;
+	}
 	Symbol m_symbol;
 	unsigned int m_priceToBorrowDollar;
 	unsigned int m_priceToBorrowFraction;
@@ -9488,7 +13268,11 @@ public:
 class TMsgRespHtbSymbolList : public TMessageTime
 {
 public:
-	TMsgRespHtbSymbolList(unsigned int firmId, unsigned int requestId, unsigned short nodeSize, unsigned short nodes, bool done):
+	TMsgRespHtbSymbolList(const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned short& nodeSize = sizeof(HtbNode),
+		const unsigned short& nodes = 1,
+		const bool& done = true):
 		TMessageTime(0, M_TR_HTB_RESP_SYMBOL_LIST, sizeof(TMsgRespHtbSymbolList) + nodeSize * nodes),
 		m_firmId(firmId),
 		m_requestId(requestId),
@@ -9512,27 +13296,37 @@ public:
 	unsigned int m_firmId;
 	unsigned int m_requestId;
 protected:
-	TMsgReqList(unsigned int firmId, unsigned int requestId, unsigned short type, unsigned short length):
-		TMessageTime(0, type, length),
+	TMsgReqList(const unsigned int& firmId,
+		const unsigned int& requestId,
+		const unsigned int& time,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageTime(time, type, length),
 		m_firmId(firmId),
 		m_requestId(requestId)
 	{}
 };
 
-class TMsgRespList : public TMessageTime
+class TMsgRespList : public TMsgReqList
 {
 public:
-	unsigned int m_firmId;
-	unsigned int m_requestId;
+//	unsigned int m_firmId;
+//	unsigned int m_requestId;
 	unsigned short m_nodeSize;
 	unsigned short m_nodes;
 //	bool m_done;
 	// Followed by m_nodes of EtbNode points
 protected:
-	TMsgRespList(unsigned int firmId, unsigned int requestId, unsigned short nodeSize, unsigned short nodes, unsigned short type, unsigned short length):
-		TMessageTime(0, type, length + nodeSize * nodes),
-		m_firmId(firmId),
-		m_requestId(requestId),
+	TMsgRespList(const unsigned int& firmId,
+		const unsigned int& requestId,
+		const unsigned int& time,
+		const unsigned short& nodeSize,
+		const unsigned short& nodes,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgReqList(firmId, requestId, time, type, length + nodeSize * nodes),
+//		m_firmId(firmId),
+//		m_requestId(requestId),
 		m_nodeSize(nodeSize),
 		m_nodes(nodes)
 	{}
@@ -9544,8 +13338,15 @@ public:
 	bool m_done;
 	// Followed by m_nodes of EtbNode points
 protected:
-	TMsgRespListWithDone(unsigned int firmId, unsigned int requestId, unsigned short nodeSize, unsigned short nodes, bool done, unsigned short type, unsigned short length):
-		TMsgRespList(firmId, requestId, nodeSize, nodes, type, length),
+	TMsgRespListWithDone(const unsigned int& firmId,
+		const unsigned int& requestId,
+		const unsigned int& time,
+		const unsigned short& nodeSize,
+		const unsigned short& nodes,
+		const bool& done,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgRespList(firmId, requestId, time, nodeSize, nodes, type, length),
 		m_done(done)
 	{}
 };
@@ -9553,16 +13354,20 @@ protected:
 class TMsgReqHtbSymbolList : public TMsgReqList
 {
 public:
-	TMsgReqHtbSymbolList(unsigned int firmId, unsigned int requestId):
-		TMsgReqList(firmId, requestId, M_TR_HTB_REQ_SYMBOL_LIST, sizeof(TMsgReqHtbSymbolList))
+	TMsgReqHtbSymbolList(const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0):
+		TMsgReqList(firmId, requestId, time, M_TR_HTB_REQ_SYMBOL_LIST, sizeof(TMsgReqHtbSymbolList))
 	{}
 };
 
 class TMsgReqEtbSymbolList : public TMsgReqList
 {
 public:
-	TMsgReqEtbSymbolList(unsigned int firmId, unsigned int requestId):
-		TMsgReqList(firmId, requestId, M_TR_ETB_REQ_SYMBOL_LIST, sizeof(TMsgReqEtbSymbolList))
+	TMsgReqEtbSymbolList(const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0):
+		TMsgReqList(firmId, requestId, time, M_TR_ETB_REQ_SYMBOL_LIST, sizeof(TMsgReqEtbSymbolList))
 	{}
 };
 
@@ -9577,34 +13382,18 @@ enum EtbSymbolListFlags : unsigned char
 	EtbFirst	= 0x01,
 	EtbReload	= 0x02,
 };
-/*
-class TMsgRespEtbSymbolList : public TMessageTime
-{
-public:
-	unsigned int m_firmId;
-	unsigned int m_requestId;
-	unsigned short m_nodeSize;
-	unsigned short m_nodes;
-	bool m_done;
-	unsigned char m_flags;
-	// Followed by m_nodes of EtbNode points
-protected:
-	TMsgRespEtbSymbolList(unsigned int firmId, unsigned int requestId, unsigned short nodeSize, unsigned short nodes, bool done, unsigned char flags):
-		TMessageTime(0, M_TR_ETB_RESP_SYMBOL_LIST, sizeof(TMsgRespEtbSymbolList) + nodeSize * nodes),
-		m_firmId(firmId),
-		m_requestId(requestId),
-		m_nodeSize(nodeSize),
-		m_nodes(nodes),
-		m_done(done),
-		m_flags(flags)
-	{}
-};
-*/
+
 class TMsgRespEtbSymbolList : public TMsgRespList
 {
 public:
-	TMsgRespEtbSymbolList(unsigned int firmId, unsigned int requestId, unsigned short nodeSize, unsigned short nodes, bool done, unsigned char flags):
-		TMsgRespList(firmId, requestId, nodeSize, nodes, M_TR_ETB_RESP_SYMBOL_LIST, sizeof(TMsgRespEtbSymbolList)),
+	TMsgRespEtbSymbolList(const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0,
+		const unsigned short& nodeSize = 0,
+		const unsigned short& nodes = 0,
+		const bool& done = false,
+		const unsigned char& flags = 0):
+		TMsgRespList(firmId, requestId, time, nodeSize, nodes, M_TR_ETB_RESP_SYMBOL_LIST, sizeof(TMsgRespEtbSymbolList)),
 		m_done(done),
 		m_flags(flags)
 	{}
@@ -9615,14 +13404,61 @@ public:
 class TMsgReqLocateInfo : public TMsgReqList
 {
 public:
-	TMsgReqLocateInfo(unsigned int firmId, unsigned int requestId):
-		TMsgReqList(firmId, requestId, M_TR_HTB_REQ_LOCATE_INFO, sizeof(TMsgReqLocateInfo))
+	TMsgReqLocateInfo(const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0):
+		TMsgReqList(firmId, requestId, time, M_TR_HTB_REQ_LOCATE_INFO, sizeof(TMsgReqLocateInfo))
 	{}
 };
 
 class BorrowNode
 {
 public:
+	BorrowNode(const char* const& symbol = "",
+		const unsigned int& priceToBorrowDollar = 0,
+		const unsigned int& priceToBorrowFraction = 0,
+		const unsigned int& quantity = 0,
+		const unsigned char& discountFlag = 0,
+		const unsigned char& htbType = 0,
+		const unsigned char& margin = 0,
+		const double& beta = 0,
+		const unsigned char& PM_EL_Rate = 15,
+		const unsigned char& PM_ES_Rate = 15,
+		const unsigned char& PM_HL_Rate = 15,
+		const unsigned char& PM_HS_Rate = 15,
+		const unsigned char& EL_Rate = 25,
+		const unsigned char& ES_Rate = 30,
+		const unsigned char& HL_Rate = 30,
+		const unsigned char& HS_Rate = 30,
+		const unsigned char& Fed_Req = 50,
+		const unsigned char& Asset_Type = 'E',
+		const bool& Marginable = true,
+		const unsigned char& Sec_Type = 'C',
+		const unsigned char& Status = 0):
+		m_priceToBorrowDollar(priceToBorrowDollar),
+		m_priceToBorrowFraction(priceToBorrowFraction),
+		m_quantity(quantity),
+		m_discountFlag(discountFlag),
+		m_htbType(htbType),
+		m_margin(margin),
+		m_beta(beta),
+
+		m_PM_EL_Rate(PM_EL_Rate),
+		m_PM_ES_Rate(PM_ES_Rate),
+		m_PM_HL_Rate(PM_HL_Rate),
+		m_PM_HS_Rate(PM_HS_Rate),
+		m_EL_Rate(EL_Rate),
+		m_ES_Rate(ES_Rate),
+		m_HL_Rate(HL_Rate),
+		m_HS_Rate(HS_Rate),
+		m_Fed_Req(Fed_Req),
+		m_Asset_Type(Asset_Type),
+		m_Marginable(Marginable),
+		m_Sec_Type(Sec_Type),
+		m_Status(Status)
+	{
+		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
+	}
 	Symbol m_symbol;
 	unsigned int m_priceToBorrowDollar;
 	unsigned int m_priceToBorrowFraction;
@@ -9630,35 +13466,122 @@ public:
 	unsigned char m_discountFlag;
 //02/19/2014
 	unsigned char m_htbType;
+
+//10/26/2018
+	unsigned char	m_margin;
+	double			m_beta;
+//07/02/2019
+	unsigned char m_PM_EL_Rate;
+	unsigned char m_PM_ES_Rate;
+	unsigned char m_PM_HL_Rate;
+	unsigned char m_PM_HS_Rate;
+	unsigned char m_EL_Rate;
+	unsigned char m_ES_Rate;
+	unsigned char m_HL_Rate;
+	unsigned char m_HS_Rate;
+	unsigned char m_Fed_Req;
+	unsigned char m_Asset_Type;
+	bool m_Marginable;
+	unsigned char m_Sec_Type;
+	unsigned char m_Status;
 };
 
 class TMsgRespLocateInfo : public TMsgRespListWithDone
 {
 public:
-	TMsgRespLocateInfo(unsigned int firmId, unsigned int requestId, unsigned short nodeSize, unsigned short nodes, bool done):
-		TMsgRespListWithDone(firmId, requestId, nodeSize, nodes, done, M_TR_HTB_RESP_LOCATE_INFO, sizeof(TMsgRespLocateInfo))
+	TMsgRespLocateInfo(const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0,
+		const unsigned short& nodeSize = 0,
+		const unsigned short& nodes = 0,
+		const bool& done = false):
+		TMsgRespListWithDone(firmId, requestId, time, nodeSize, nodes, done, M_TR_HTB_RESP_LOCATE_INFO, sizeof(TMsgRespLocateInfo))
 	{}
 };
-/*
-class TMessageTimeSymbol : public TMessageTime
+
+class TMsgBetaInfo : public TMessageTimeSymbol
 {
 public:
-	Symbol m_symbol;
-protected:
-	TMessageTimeSymbol(const char* symbol, unsigned int time, unsigned short type, unsigned short length);
-	TMessageTimeSymbol(const unsigned __int64& symbol, unsigned int time, unsigned short type, unsigned short length):TMessageTime(time, type, length){*(unsigned __int64*)m_symbol = symbol;}
+	TMsgBetaInfo(const unsigned __int64& symbol = 0,
+		const unsigned int& time = 0,
+//		const char* const& firmId = "",
+		const unsigned int& firmId = 0,
+		const unsigned char& margin = 0,
+		const double& beta = 0,
+		const unsigned char& PM_EL_Rate = 15,
+		const unsigned char& PM_ES_Rate = 15,
+		const unsigned char& PM_HL_Rate = 15,
+		const unsigned char& PM_HS_Rate = 15,
+		const unsigned char& EL_Rate = 25,
+		const unsigned char& ES_Rate = 30,
+		const unsigned char& HL_Rate = 30,
+		const unsigned char& HS_Rate = 30,
+		const unsigned char& Fed_Req = 50,
+		const unsigned char& Asset_Type = 'E',
+		const bool& Marginable = true,
+		const unsigned char& Sec_Type = 'C',
+		const unsigned char& Status = 0):
+		TMessageTimeSymbol(symbol, time, M_TR_BETA_INFO, sizeof(TMsgBetaInfo)),
+
+		m_beta(beta),
+		m_firmId(firmId),
+		m_margin(margin),
+		m_PM_EL_Rate(PM_EL_Rate),
+		m_PM_ES_Rate(PM_ES_Rate),
+		m_PM_HL_Rate(PM_HL_Rate),
+		m_PM_HS_Rate(PM_HS_Rate),
+		m_EL_Rate(EL_Rate),
+		m_ES_Rate(ES_Rate),
+		m_HL_Rate(HL_Rate),
+		m_HS_Rate(HS_Rate),
+		m_Fed_Req(Fed_Req),
+		m_Asset_Type(Asset_Type),
+		m_Marginable(Marginable),
+		m_Sec_Type(Sec_Type),
+		m_Status(Status)
+	{
+//		*(unsigned int*)m_firmId = firmId;
+//		m_firmId[sizeof(unsigned int)] = '\0';
+	}
+	
+	double m_beta;
+//	char m_firmId[MAX_MMID_SIZE];
+	unsigned int m_firmId;
+	unsigned char m_margin;
+
+	unsigned char m_PM_EL_Rate;
+	unsigned char m_PM_ES_Rate;
+	unsigned char m_PM_HL_Rate;
+	unsigned char m_PM_HS_Rate;
+	unsigned char m_EL_Rate;
+	unsigned char m_ES_Rate;
+	unsigned char m_HL_Rate;
+	unsigned char m_HS_Rate;
+	unsigned char m_Fed_Req;
+	unsigned char m_Asset_Type;
+	bool m_Marginable;
+	unsigned char m_Sec_Type;
+	unsigned char m_Status;
 };
-*/
+
 class TMsgLocateInfo : public TMessageTimeSymbol
 {
 public:
-	TMsgLocateInfo(const char* symbol, unsigned int priceDollar, unsigned int priceFraction, unsigned int size, unsigned int mmid, unsigned int discountFlag, unsigned int time):
+	TMsgLocateInfo(const char* const& symbol = "",
+		const unsigned int& priceDollar = 0,
+		const unsigned int& priceFraction = 0,
+		const unsigned int& size = 0,
+		const unsigned int& mmid = 0,
+		const unsigned char& discountFlag = 0,
+		const unsigned int& firmId = 0,
+		const unsigned int& time = 0):
 		TMessageTimeSymbol(symbol, time, M_TR_HTB_LOCATE_INFO, sizeof(TMsgLocateInfo)),
 		m_priceDollar(priceDollar),
 		m_priceFraction(priceFraction),
 		m_size(size),
 		m_locateMPID(mmid),
-		m_discountFlag(discountFlag)
+		m_discountFlag(discountFlag),
+		m_firmId(firmId)
 	{
 //		*(unsigned int*)m_locateMPID = mmid;
 //		m_locateMPID[sizeof(unsigned int)] = '\0';
@@ -9670,14 +13593,80 @@ public:
 	unsigned int m_locateMPID;
 //	char m_locateMPID[sizeof(unsigned int) + 1];
 	unsigned char m_discountFlag;
+	unsigned int m_firmId;
 };
 
+class TMsgReqRestrictedSymbolList : public TMsgReqList
+{
+public:
+	TMsgReqRestrictedSymbolList(const char* const& accountName = "",
+		const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0):
+		TMsgReqList(firmId, requestId, time, M_TR_RESTR_REQ_SYMBOL_LIST, sizeof(TMsgReqRestrictedSymbolList))
+	{
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountName, '\0', true);
+	}
+	char m_accountId[MAX_ACCOUNT_SIZE];
+};
+
+class RestrictedNode
+{
+public:
+	Symbol m_symbol;
+	unsigned __int64 m_venues;
+};
+
+class TMsgRespRestrictedSymbolList : public TMsgRespList
+{
+public:
+	TMsgRespRestrictedSymbolList(const char* const& accountName = "",
+		const unsigned int& firmId = 0,
+		const unsigned int& requestId = 0,
+		const unsigned int& time = 0,
+		const unsigned short& nodeSize = 0,
+		const unsigned short& nodes = 0,
+		const bool& done = false,
+		const unsigned char& flags = 0):
+		TMsgRespList(firmId, requestId, time, nodeSize, nodes, M_TR_RESTR_RESP_SYMBOL_LIST, sizeof(TMsgRespRestrictedSymbolList)),
+		m_done(done),
+		m_flags(flags)
+	{
+		U_CopyAndPad(m_accountId, sizeof(m_accountId), accountName, '\0', true);
+	}
+	bool m_done;
+//Flags Same as EtbSymbolListFlags
+	unsigned char m_flags;
+	char m_accountId[MAX_ACCOUNT_SIZE];
+// Followed by m_nodes of RestrictedNode points
+};
+
+
+class TMsgAccountRestrictedSymbolListLoaded : public TMsgAccountObject
+{
+public:
+	TMsgAccountRestrictedSymbolListLoaded(const char* const& accountName = ""):
+		TMsgAccountObject(accountName, TM_ACCOUNT_RESTRICTED_SYMBOL_LIST_LOADED, sizeof(TMsgAccountRestrictedSymbolListLoaded))
+	{
+	}
+};
+
+class TMsgPositionRestricted : public TMsgAccountStockPositionObject
+{
+public:
+	TMsgPositionRestricted(const char* const& accountName, const bool& restricted, const unsigned __int64& symbol):
+		TMsgAccountStockPositionObject(accountName, symbol, TM_POSITION_RESTRICTED, sizeof(TMsgPositionRestricted)),
+		m_restricted(restricted)
+	{
+	}
+	bool m_restricted;
+};
 
 class TMsgCommissionFee : public TMsgAccountObject
 {
 public:
 //	TMsgCommissionFee(const char* accountName, const Money& fee);
-	TMsgCommissionFee::TMsgCommissionFee(const char* accountName, const Money& fee):
+	TMsgCommissionFee(const char* const& accountName, const Money& fee):
 		TMsgAccountObject(accountName, TM_DEFAULT_COMMISSION_FEE, sizeof(TMsgCommissionFee)),
 		m_fee(fee)
 	{
@@ -9685,11 +13674,37 @@ public:
 	Money m_fee;
 };
 
+class TMsgUpdateAccountSimulation : public TMsgAccountObject
+{
+public:
+	TMsgUpdateAccountSimulation(const char* const& accountName):
+		TMsgAccountObject(accountName, TM_ACCOUNT_SIMULATION, sizeof(TMsgUpdateAccountSimulation))
+	{
+	}
+};
+
+class TMsgUpdateAccountRetailInSimulation : public TMsgAccountObject
+{
+public:
+	TMsgUpdateAccountRetailInSimulation(const char* const& accountName, const bool& retail):
+		TMsgAccountObject(accountName, TM_ACCOUNT_RETAIL_IN_SIMULATION, sizeof(TMsgUpdateAccountRetailInSimulation)),
+		m_retail(retail)
+	{
+	}
+	bool m_retail;
+};
+
 class TMsgCustomAccountConstraints : public Message
 {
 public:
 	TMsgCustomAccountConstraints(const ConstraintCollection& constraints):Message(TM_ACCOUNT_CONSTRAINTS, sizeof(TMsgCustomAccountConstraints)), m_constraintCollection(constraints){}
 	ConstraintCollection m_constraintCollection;
+};
+
+class TMsgIpChange : public Message
+{
+public:
+	TMsgIpChange():Message(TM_IP_CHANGE, sizeof(TMsgIpChange)){}
 };
 
 enum NewsStoryFilter : unsigned char
@@ -9712,26 +13727,33 @@ enum NewsMetaFilter : unsigned char
 class NewsHeadline// : public Observable
 {
 public:
+#if (_MSC_VER > 1600)
+	typedef std::unordered_set<unsigned __int64> SymbolSet;
+#else
 	typedef std::hash_set<unsigned __int64> SymbolSet;
+#endif
 
 	NewsHeadline(const SymbolSet& symbolSet,
 		const unsigned __int64& dateTime,
 		const unsigned __int64& dateTimePublished,
 		const unsigned __int64& numericSymbol,
 
-		unsigned int ordinal,
-		unsigned int alertTakeNumber,
-		unsigned int relevance,
-		unsigned int extDisplayWireId,
-		unsigned short subWireId,
-		unsigned char headlineType,
-		bool update,
+		const unsigned int& timeArrived,
+		const unsigned int& ordinal,
+		const unsigned int& alertTakeNumber,
+		const unsigned int& relevance,
+		const unsigned int& extDisplayWireId,
+		const unsigned short& subWireId,
+		const unsigned short& baseWireId,
+		const unsigned char& headlineType,
+		const bool& update,
 //		const std::string& resourceId,
 		const NewsResourceAsNumberArray& resourceId,
 		const std::string& text,
 		const std::string& tickerSymbols,
 //		const std::string& symbol,
-		const std::string& storyCodes,
+		const std::string& valuedStoryCodes,
+//		const std::string& storyCodes,
 		const std::string& providerService,
 		const std::string& synopsis):
 
@@ -9740,34 +13762,42 @@ public:
 		m_dateTime(dateTime),
 		m_dateTimePublished(dateTimePublished),
 		m_numericSymbol(numericSymbol),
+		m_timeArrived(timeArrived),
 		m_ordinal(ordinal),
 		m_alertTakeNumber(alertTakeNumber),
 		m_relevance(relevance),
 		m_extDisplayWireId(extDisplayWireId),
 		m_subWireId(subWireId),
+		m_baseWireId(baseWireId),
 		m_headlineType(headlineType),
 		m_update(update),
 		m_resourceId(resourceId),
 		m_text(text),
 		m_tickerSymbols(tickerSymbols),
 		m_symbol((const char*)&m_numericSymbol),//symbol),
-		m_storyCodes(storyCodes),
+		m_valuedStoryCodes(valuedStoryCodes),
+//		m_storyCodes(storyCodes),
 		m_providerService(providerService),
 		m_synopsis(synopsis)
 	{
 	}
 
+#ifdef _DEBUG
+	~NewsHeadline(){}
+#endif
 	const SymbolSet& GetSymbolSet() const{return m_symbolSet;}
 	bool SymbolBelongs(const unsigned __int64& symbol) const{return m_symbolSet.find(symbol) != m_symbolSetEnd;}
-	bool SymbolBelongs(const char* symbol) const{return m_symbolSet.find(U_StringToUInt64Term0(symbol)) != m_symbolSetEnd;}
+	bool SymbolBelongs(const char* symbol) const{return m_symbolSet.find(U_RepresentStringAsUnsignedNumber<unsigned __int64>(symbol, sizeof(unsigned __int64) - 1)) != m_symbolSetEnd;}
 	const unsigned __int64& GetDateTime() const{return m_dateTime;}
 	const unsigned __int64& GetDateTimePublished() const{return m_dateTimePublished;}
 	const unsigned __int64& GetNumericSymbol() const{return m_numericSymbol;}
+	const unsigned int& GetTimeArrived() const{return m_timeArrived;}
 	const unsigned int& GetOrdinal() const{return m_ordinal;}
 	const unsigned int& GetAlertTakeNumber() const{return m_alertTakeNumber;}
 	const unsigned int& GetRelevance() const{return m_relevance;}
 	const unsigned int& GetExtDisplayWireId() const{return m_extDisplayWireId;}
 	const unsigned short& GetSubWireId() const{return m_subWireId;}
+	const unsigned short& GetBaseWireId() const{return m_baseWireId;}
 	const unsigned char& GetHeadlineType() const{return m_headlineType;}
 	const bool& isUpdate() const{return m_update;}
 	const NewsResourceAsNumberArray& GetResourceId() const{return m_resourceId;}
@@ -9775,7 +13805,8 @@ public:
 	const std::string& GetText() const{return m_text;}
 	const std::string& GetTickerSymbols() const{return m_tickerSymbols;}
 	const std::string& GetSymbol() const{return m_symbol;}
-	const std::string& GetStoryCodes() const{return m_storyCodes;}
+//	const std::string& GetStoryCodes() const{return m_storyCodes;}
+	const std::string& GetValuedStoryCodes() const{return m_valuedStoryCodes;}
 	const std::string& GetProviderService() const{return m_providerService;}
 	const std::string& GetSynopsis() const{return m_synopsis;}
 
@@ -9787,20 +13818,23 @@ public:
 	void SetRelevance(const unsigned int& relevance){m_relevance = relevance;}
 	void SetExtDisplayWireId(const unsigned int& extDisplayWireId){m_extDisplayWireId = extDisplayWireId;}
 	void SetSubWireId(const unsigned short& subWireId){m_subWireId = subWireId;}
+	void SetBaseWireId(const unsigned short& baseWireId){m_baseWireId = baseWireId;}
 	void SetHeadlineType(const unsigned char& headlineType){m_headlineType = headlineType;}
 	void SetUpdate(const bool& update){m_update = update;}
 //	void SetResourceId(const std::string& resourceId){m_resourceId = resourceId;}
 	void SetText(const std::string& text){m_text = text;}
 	void SetTickerSymbols(const std::string& tickerSymbols){m_tickerSymbols = tickerSymbols;}
 //	void SetSymbol(const std::string& symbol){m_symbol = symbol;}
-	void SetStoryCodes(const std::string& storyCodes){m_storyCodes = storyCodes;}
+	void SetValuedStoryCodes(const std::string& storyCodes){m_valuedStoryCodes = storyCodes;}
+//	void SetStoryCodes(const std::string& storyCodes){m_storyCodes = storyCodes;}
 	void SetProviderService(const std::string& providerService){m_providerService = providerService;}
 	void SetSynopsis(const std::string& synopsis){m_synopsis = synopsis;}
 
 	const std::string& GetStoryText() const{return m_storyText;}
 	bool isShowChain() const{return m_showChain;}
+	bool isStoryError() const{return m_storyError;}
 
-	void SetStoryText(const std::string& text, bool showChain){m_storyText = text; m_showChain = showChain;}
+	void SetStoryText(const std::string& text, bool showChain, bool storyError){m_storyText = text; m_showChain = showChain; m_storyError = storyError;}
 
 	bool LockInquiry() const{return m_lock.LockInquiry();}
 	void LockInquiryWait() const{m_lock.LockInquiryWait();}
@@ -9814,6 +13848,26 @@ public:
 	bool LockStoryModification() const{return m_lockStory.LockModification();}
 	void UnlockStoryModification() const{m_lockStory.UnlockModification();}
 
+	bool isTodays() const{return (m_dateTimePublished >> 32) >= TL_GetTodaysDateInShiftFormat();}
+	bool isYestAfterMarket() const
+	{
+		const unsigned int date = (unsigned int)(m_dateTimePublished >> 32);
+		if(date < TL_GetTodaysDateInShiftFormat())
+		{
+			const unsigned int prevDate = TL_GetPreviousBusinessDateInShiftFormat();
+			if(date > prevDate)
+			{
+				return true;
+			}
+			else
+			{
+				const unsigned int yestTime = (unsigned int)m_dateTimePublished;
+				return yestTime >= TL_GetPreviousMarketCloseTimeInShiftFormat();
+			}
+		}
+		return false;
+	}
+
 	DECLARE_NED_NEW
 protected:
 	SymbolSet m_symbolSet;
@@ -9821,11 +13875,13 @@ protected:
 	unsigned __int64 m_dateTime;
 	unsigned __int64 m_dateTimePublished;
 	unsigned __int64 m_numericSymbol;
+	unsigned int m_timeArrived;
 	unsigned int m_ordinal;
 	unsigned int m_alertTakeNumber;
 	unsigned int m_relevance;
 	unsigned int m_extDisplayWireId;
 	unsigned short m_subWireId;
+	unsigned short m_baseWireId;
 	unsigned char m_headlineType;
 	bool m_update;
 	NewsResourceAsNumberArray m_resourceId;
@@ -9833,11 +13889,13 @@ protected:
 	std::string m_text;
 	std::string m_tickerSymbols;
 	std::string m_symbol;
-	std::string m_storyCodes;
+	std::string m_valuedStoryCodes;
+//	std::string m_storyCodes;
 	std::string m_providerService;
 	std::string m_synopsis;
 	std::string m_storyText;
 	bool m_showChain;
+	bool m_storyError;
 	TakionLock m_lock;
 	TakionLock m_lockStory;
 };
@@ -9881,27 +13939,45 @@ typedef bool (WINAPI* ApiGetFilterDialogValues)(WireSet& wireSet,
 typedef void (WINAPI* ApiNewsDisplayLimitsDialog)(CWnd* receipient,
 	unsigned int code,
 	unsigned short daysBack,
-	unsigned short headlineCount,
+	unsigned int headlineCount,
+	bool afterMarket,
 	CWnd* parent,
 	const CPoint& mousePoint);
 typedef bool (WINAPI* ApiGetLimitsDialogValues)(unsigned short& daysBack,
-	unsigned short& headlineCount);
-
+	unsigned int& headlineCount,
+	bool& afterMarket);
+/*
 typedef Observable* (WINAPI* ApiGetStockNewsByUInt64)(Observable* oldStockNews, const Observable* newsCollection, const unsigned __int64& symbol);
 typedef Observable* (WINAPI* ApiGetStockNewsByCharPtr)(Observable* oldStockNews, const Observable* newsCollection, const char* symbol);
 typedef Observable* (WINAPI* ApiGetStockNewsByString)(Observable* oldStockNews, const Observable* newsCollection, const FilterStringAsNumberArray& symbol, const std::hash_set<unsigned __int64>* stockSet);
+*/
+typedef Observable* (WINAPI* ApiGetStockNewsByUInt64)(const Observable* newsCollection, const unsigned __int64& symbol);
+typedef Observable* (WINAPI* ApiGetStockNewsByCharPtr)(const Observable* newsCollection, const char* symbol);
+typedef Observable* (WINAPI* ApiGetStockNewsByString)(const Observable* newsCollection, const FilterStringAsNumberArray& symbol,
+#if (_MSC_VER > 1600)
+	const std::unordered_set<unsigned __int64>* stockSet
+#else
+	const std::hash_set<unsigned __int64>* stockSet
+#endif
+	);
+
 typedef Observable* (WINAPI* ApiFindStockNewsByString)(const Observable* newsCollection, const FilterStringAsNumberArray& symbol);
 
 typedef unsigned char (WINAPI* ApiReleaseNewsCollection)(Observable* newsCollection, Observer* observer);
-typedef Observable* (WINAPI* ApiUpdateNewsCollectionFilter)(Observable* newsCollection, Observer* observer, const WireSet& wireSet, unsigned int storyFilter, unsigned int metaFilter, unsigned int relevance);
-typedef bool (WINAPI* ApiGetWireInfoAt)(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled);
-typedef bool (WINAPI* ApiGetNextWireInfo)(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled);
+typedef Observable* (WINAPI* ApiUpdateNewsCollectionFilter)(Observable* newsCollection, Observer* observer, const WireSet& wireSet, unsigned int storyFilter, unsigned int metaFilter, unsigned int relevance, bool& oldCollectionDeleted);
+typedef bool (WINAPI* ApiGetWireInfoAt)(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled);
+typedef bool (WINAPI* ApiGetNextWireInfo)(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled);
 typedef const std::string* (WINAPI* ApiGetNextTopicInfo)(TakionIterator* iterator, std::string* description);
-typedef bool (WINAPI* ApiRequestHeadlines)(Observable* stockNews, unsigned short daysBack, unsigned short headlineCount);
+typedef bool (WINAPI* ApiRequestHeadlines)(Observable* stockNews, unsigned short daysBack, unsigned int headlineCount, bool afterMarket);
 typedef bool (WINAPI* ApiRequestStory)(const NewsHeadline* headline, bool showChain);
 typedef const LineBufferArray* (WINAPI* ApiGetUnappliedHeadlines)(Observable* stockNews);
 typedef Observable* (WINAPI* ApiFindNewsCollectionById)(unsigned int id);
 typedef const NewsHeadline* (WINAPI* ApiFindHeadline)(const Observable* stockNews, const NewsResourceAsNumberArray& resourceId);
+
+typedef bool (WINAPI* ApiBoolObservable)(const Observable* observable);
+
+typedef unsigned int (WINAPI* ApiGetUIntByUInt64)(const unsigned __int64& numericSymbol);
+typedef unsigned int (WINAPI* ApiGetUIntAndUInt64ByUInt64)(const unsigned __int64& numericSymbol, unsigned __int64& latestHeadlineDateTime);
 
 typedef unsigned int (WINAPI* ApiGetHeadlineCount)(const Observable* stockNews);
 typedef TakionIterator* (WINAPI* ApiCreateHeadlineIterator)(const Observable* stockNews);
@@ -9914,29 +13990,50 @@ typedef const NewsStory* (WINAPI* ApiGetStory)();
 bool WINAPI TN_IsTakionNewsConnected();
 Observable* WINAPI TN_GetTakionNewsObservable();
 void WINAPI TN_SetTakionNewsLogFile(void* logFileHandle);
-
+/*
 Observable* WINAPI TN_ObtainStockNewsByNum(Observable* oldStockNews, const Observable* newsCollection, const unsigned __int64& symbol);
 Observable* WINAPI TN_ObtainStockNews(Observable* oldStockNews, const Observable* newsCollection, const char* symbol);
-Observable* WINAPI TN_FindStockNewsByNum(const Observable* newsCollection, const unsigned __int64& symbol);
-
 Observable* WINAPI TN_ObtainStringNews(Observable* oldStockNews, const Observable* newsCollection, const FilterStringAsNumberArray& symbol, const std::hash_set<unsigned __int64>* stockSet);
+*/
+Observable* WINAPI TN_ObtainStockNewsByNum(const Observable* newsCollection, const unsigned __int64& symbol);
+Observable* WINAPI TN_ObtainStockNews(const Observable* newsCollection, const char* symbol);
+Observable* WINAPI TN_ObtainStringNews(const Observable* newsCollection, const FilterStringAsNumberArray& symbol,
+#if (_MSC_VER > 1600)
+	const std::unordered_set<unsigned __int64>*
+#else
+	const std::hash_set<unsigned __int64>*
+#endif
+	stockSet);
+
+Observable* WINAPI TN_FindStockNewsByNum(const Observable* newsCollection, const unsigned __int64& symbol);
 Observable* WINAPI TN_FindStringNews(const Observable* newsCollection, const FilterStringAsNumberArray& symbol);
+
+bool WINAPI TN_IsNewsCollectionInvalid(const Observable* newsCollection);
+bool WINAPI TN_IsStringNewsInvalid(const Observable* stringNews);
 
 bool WINAPI TN_DoMainThreadIdleTasks(LONG lCount);
 
 unsigned char WINAPI TN_ReleaseNewsCollection(Observable* newsCollection, Observer* observer);
-Observable* WINAPI TN_UpdateNewsCollectionFilter(Observable* newsCollection, Observer* observer, const WireSet& wireSet, unsigned int storyFilter, unsigned int metaFilter, unsigned int relevance);
+Observable* WINAPI TN_UpdateNewsCollectionFilter(Observable* newsCollection, Observer* observer, const WireSet& wireSet, unsigned int storyFilter, unsigned int metaFilter, unsigned int relevance, bool& oldCollectionDeleted);
+
+unsigned int WINAPI TN_GetStockHeadlineCount(const unsigned __int64& numericSymbol);//ApiGetUIntByUInt64
+unsigned int WINAPI TN_GetStockHeadlineCountAndLatestDateTime(const unsigned __int64& numericSymbol, unsigned __int64& latestHeadlineDateTime);//ApiGetUIntAndUInt64ByUInt64
+
+unsigned int WINAPI TN_GetStockTodaysHeadlineCount(const unsigned __int64& numericSymbol);//ApiGetUIntByUInt64
+unsigned int WINAPI TN_GetStockTodaysHeadlineCountAndLatestDateTime(const unsigned __int64& numericSymbol, unsigned __int64& latestHeadlineDateTime);//ApiGetUIntAndUInt64ByUInt64
+
+unsigned int WINAPI TN_GetStockYestAfterMarketHeadlineCount(const unsigned __int64& numericSymbol);//ApiGetUIntByUInt64
+unsigned int WINAPI TN_GetStockYestAfterMarketHeadlineCountAndLatestDateTime(const unsigned __int64& numericSymbol, unsigned __int64& latestHeadlineDateTime);//ApiGetUIntAndUInt64ByUInt64
 
 unsigned int WINAPI TN_GetWireCount();//ApiGetUInt
-bool WINAPI TN_GetWireInfoAt(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled);
+bool WINAPI TN_GetWireInfoAt(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled);
 TakionIterator* WINAPI TN_CreateWireIterator();//ApiCreateIterator
-bool WINAPI TN_GetNextWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled);
+bool WINAPI TN_GetNextWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled);
 
 const char* WINAPI TN_GetConnectionStatusInfo();
 unsigned int WINAPI TN_GetAllWireCount();//ApiGetUInt
-//bool WINAPI TN_GetAllWireInfoAt(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled);
 TakionIterator* WINAPI TN_CreateAllWireIterator();//ApiCreateIterator
-bool WINAPI TN_GetNextAllWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled);
+bool WINAPI TN_GetNextAllWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled);
 
 unsigned int WINAPI TN_GetTopicCount();
 TakionIterator* WINAPI TN_CreateTopicIterator();
@@ -9960,12 +14057,14 @@ bool WINAPI TN_NewsGetFilterDialogValues(WireSet& wireSet,
 void WINAPI TN_NewsDisplayLimitsDialog(CWnd* receipient,
 	unsigned int code,
 	unsigned short daysBack,
-	unsigned short headlineCount,
+	unsigned int headlineCount,
+	bool afterMarket,
 	CWnd* parent,
 	const CPoint& mousePoint);
 
 bool WINAPI TN_NewsGetLimitsDialogValues(unsigned short& daysBack,
-	unsigned short& headlineCount);
+	unsigned int& headlineCount,
+	bool& afterMarket);
 
 unsigned char WINAPI TN_TakionNewsConnect(const char* hostName,
 	unsigned short port,
@@ -9982,7 +14081,7 @@ unsigned char WINAPI TN_TakionNewsConnect(const char* hostName,
 	const char* proxyPassword,
 	const char* newPassword);
 
-bool WINAPI TN_RequestHeadlines(Observable* stockNews, unsigned short daysBack, unsigned short headlineCount);
+bool WINAPI TN_RequestHeadlines(Observable* stockNews, unsigned short daysBack, unsigned int headlineCount, bool afterMarket);
 bool WINAPI TN_RequestStory(const NewsHeadline* headline, bool showChain);
 const LineBufferArray* WINAPI TN_GetUnappliedHeadlines(Observable* stockNews);
 Observable* WINAPI TN_FindNewsCollectionById(unsigned int id);
@@ -9999,6 +14098,7 @@ void WINAPI TN_LockInquiryWaitHeadlines(Observable* stockNews);
 void WINAPI TN_UnlockInquiryHeadlines(Observable* stockNews);
 bool WINAPI TN_IsStockNewsRequested(const Observable* stockNews);
 
+const std::string* WINAPI TN_GetSearchStringUnfiltered();
 const std::string* WINAPI TN_GetSearchStringAll();
 const std::string* WINAPI TN_GetSearchStringAllUs();
 
@@ -10037,20 +14137,21 @@ const char* WINAPI TD_GetPlatform();
 const char* WINAPI TD_GetFileDescription();
 void WINAPI TD_GetDllBuildDescription(std::string& buildStr);
 
-void WINAPI TD_Initialize(unsigned __int64 exeVersion);//, const char* argLine);//RingBufferListEventNotification* ringBuffer);
+void WINAPI TD_Initialize(const unsigned __int64& exeVersion, const unsigned __int64& guiVersion, const unsigned __int64& utilsGuiVersion);
 bool WINAPI TD_Terminate();
-unsigned __int64 WINAPI TD_GetExeVersion();
-HANDLE WINAPI TD_GetUiEvent();
+const unsigned __int64& WINAPI TD_GetExeVersion();
+const unsigned int& WINAPI TD_GetExeVersion32();
 
 void WINAPI TD_WriteToMainThread(const char* data, unsigned int length);
-void WINAPI TD_WriteBuffersToMainThread(WSABUF* data, unsigned int count);
+void WINAPI TD_WriteBuffersToMainThread(WSABUF* data, unsigned int count, unsigned int totalLength);
 void WINAPI TD_WriteMessageToMainThread(const Message* message);
-bool WINAPI TD_ProcessMainThreadData();
 
 Observable& WINAPI TD_GetCustomInternalObservable();
 Observable& WINAPI TD_GetCustomExternalObservable();
 Observable& WINAPI TD_GetAdminObservable();
+Observable& WINAPI TD_GetExpirationObservable();
 Observable& WINAPI TD_GetExternalCommandObservable();
+Observable& WINAPI TD_GetNewClearingFirmObservable();
 Observable& WINAPI TD_GetNewAccountObservable();
 Observable& WINAPI TD_GetNewPositionObservable();
 Observable& WINAPI TD_GetPositionExecutedObservable();
@@ -10059,12 +14160,15 @@ Observable& WINAPI TD_GetOrderErrorObservable();
 Observable& WINAPI TD_GetExecutionObservable();
 Observable& WINAPI TD_GetNewIndexObservable();
 Observable& WINAPI TD_GetNewEquityObservable();
-Observable& WINAPI TD_GetQuoteMoveObservable();
+Observable& WINAPI TD_GetNewRsiObservable();
+Observable& WINAPI TD_GetNewSubscribedStockObservable();
 Observable& WINAPI TD_GetExtensionObservable();
 Observable& WINAPI TD_GetHistoricalPrintObservable();
 Observable& WINAPI TD_GetHistoricalChartObservable();
-Observable& WINAPI TD_GetAllPrintObservable();
 
+#ifndef TAKION_NO_OPTIONS
+Observable* WINAPI TD_GetNewSubscribedOptionObservable();
+#endif
 //const LineBufferArray* WINAPI TD_GetUnappliedMessages();
 
 //const char* WINAPI TD_GetDefaultTraderId();
@@ -10091,507 +14195,305 @@ enum ConnectionDataType : unsigned char
 	CDT_ReservedConnectionTypes = 64
 };
 
-class TD_API ConnectionLine
-{
-public:
-	ConnectionLine(const char* addressName,
-		unsigned short port,
-		const char* bindAddressName = NULL,
-		unsigned short bindPort = 0);
-	ConnectionLine(const ConnectionLine& other);
-	ConnectionLine& operator=(const ConnectionLine& other);
-	unsigned __int64 GetIpPort() const{return m_ipport;}
-	unsigned __int64 GetBindIpPort() const{return m_bindIpport;}
-	const char* GetIpAddressName() const{return m_addressName.c_str();}
-	const char* GetIpBindAddressName() const{return m_bindAddressName.c_str();}
-	const char* GetIpAddress() const{return m_address.c_str();}
-	const char* GetIpBindAddress() const{return m_bindAddress.c_str();}
-	unsigned short GetPort() const{return m_port;}
-	unsigned short GetBindPort() const{return m_bindPort;}
-
-	const std::string& GetIpAddressNameStr() const{return m_addressName;}
-	const std::string& GetIpBindAddressNameStr() const{return m_bindAddressName;}
-	const std::string& GetIpAddressStr() const{return m_address;}
-	const std::string& GetIpBindAddressStr() const{return m_bindAddress;}
-
-	unsigned int GetIpNumAddress() const{return m_ipNumAddress;}
-	unsigned int GetIpInvAddress() const{return m_ipInvAddress;}
-	unsigned int GetIpNumBindAddress() const{return m_ipNumBindAddress;}
-	unsigned int GetIpInvBindAddress() const{return m_ipInvBindAddress;}
-
-	static unsigned __int64 CalculateIpPort(unsigned int ip, unsigned short port){return ((unsigned __int64)ip << 16) | (unsigned __int64)port;}
-//	static unsigned int GetNumIp(const char* ip);
-	static unsigned __int64 CalculateIpPort(const char* ip, unsigned short port);
-
-	void UpdateIpPort(){m_ipport = CalculateIpPort(m_ipInvAddress, m_port); m_bindIpport = CalculateIpPort(m_ipInvBindAddress, m_bindPort);}
-
-	bool isIdentical(const ConnectionLine& other) const{return m_ipport == other.m_ipport && m_bindIpport == other.m_bindIpport;}
-	bool operator==(const ConnectionLine& other) const{return m_ipport == other.m_ipport;}// && m_bindIpport == other.m_bindIpport;}
-	bool operator<(const ConnectionLine& other) const{return m_ipport < other.m_ipport;}// || m_ipport == other.m_ipport && m_bindIpport < other.m_bindIpport;}
-	bool operator>(const ConnectionLine& other) const{return m_ipport > other.m_ipport;}// || m_ipport == other.m_ipport && m_bindIpport > other.m_bindIpport;}
-	bool operator!=(const ConnectionLine& other) const{return !operator==(other);}
-	bool operator<=(const ConnectionLine& other) const{return !operator>(other);}
-	bool operator>=(const ConnectionLine& other) const{return !operator<(other);}
-	void UpdatePrevious()
-	{
-		m_prevAddress = m_address;
-		m_prevPort = m_port;
-//		m_prevConnectionDataType = m_connectionDataType;
-	}
-	const char* GetPrevIpAddress() const{return m_prevAddress.c_str();}
-	unsigned short GetPrevPort() const{return m_prevPort;}
-protected:
-	std::string m_addressName;
-
-	std::string m_prevAddress;
-
-	std::string m_bindAddressName;
-	std::string m_address;
-	std::string m_bindAddress;
-	unsigned short m_port;
-	unsigned short m_bindPort;
-	unsigned short m_prevPort;
-
-	unsigned __int64 m_ipport;
-	unsigned __int64 m_bindIpport;
-//	JetByteTools::Socket::CAddressIPv4 m_ipAddress;
-//	JetByteTools::Socket::CAddressIPv4 m_ipBindAddress;
-
-	unsigned int m_ipNumAddress;
-	unsigned int m_ipInvAddress;
-	unsigned int m_ipNumBindAddress;
-	unsigned int m_ipInvBindAddress;
-};
-
-class TD_API ConnectionBase
-{
-public:
-
-	virtual ~ConnectionBase(){}
-	Chain<ConnectionLine>& GetConnectionLineChain(){return m_connectionLineChain;}
-	const Chain<ConnectionLine>& GetConnectionLineChain() const{return m_connectionLineChain;}
-	void ClearConnectionLines()
-	{
-//		m_connectionLineVector.clear();
-//		m_ipPortSet.clear();
-		m_connectionLineChain.Clear();
-	}
-	bool AddConnectionLine(const ConnectionLine& connectionLine)
-	{
-		return m_connectionLineChain.AddChainItem(connectionLine);//, true);
-//		bool ret = m_ipPortSet.insert(connectionLine).second;
-//		m_connectionLineVector.push_back(connectionLine);
-//		return ret;
-	}
-	bool AddConnectionLine(const char* addressName, unsigned short port, const char* bindAddressName = NULL, unsigned short bindPort = 0)
-	{
-		return AddConnectionLine(ConnectionLine(addressName, port, bindAddressName, bindPort));
-	}
-	bool SameConnectionList(const ConnectionBase& other) const{return m_connectionLineChain.SameList(other.m_connectionLineChain);}
-	bool isIntersectConnectionList(const ConnectionBase& other) const{return m_connectionLineChain.isListIntersect(other.m_connectionLineChain);}
-	unsigned int GetConnectionLineCount() const{return m_connectionLineChain.GetCount();}
-	void ResetConnectionLines()
-	{
-		m_connectionLineChain.Reset();
-//		m_connectionLineChain.GetNext();
-	}
-	virtual const ConnectionLine* GetCurrentConnectionLine() const{return m_connectionLineChain.GetCurrent();}
-	virtual ConnectionLine* GetCurrentConnectionLine(){return m_connectionLineChain.GetCurrent();}
-/*
-	typedef std::vector<ConnectionLine> ConnectionLineVector;
-	typedef std::set<ConnectionLine> IpPortSet;
-	void ClearConnectionLines(){m_connectionLineVector.clear();m_ipPortSet.clear();}
-	bool AddConnectionLine(const ConnectionLine& connectionLine)
-	{
-		bool ret = m_ipPortSet.insert(connectionLine).second;
-		m_connectionLineVector.push_back(connectionLine);
-		return ret;
-	}
-	bool AddConnectionLine(const char* addressName, unsigned short port, const char* bindAddressName = NULL, unsigned short bindPort = 0)
-	{
-		return AddConnectionLine(ConnectionLine(addressName, port, bindAddressName, bindPort);
-	}
-*/
-	void Initialize();
-
-	const char* GetName() const{return m_connectionName.c_str();}
-	const char* GetLoginId() const{return m_loginID.c_str();}
-	const char* GetPassword() const{return m_password.c_str();}
-	virtual const char* GetPrevIpAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetPrevIpAddress() : "";
-//		return m_prevAddress.c_str();
-	}
-	virtual unsigned short GetPrevPort() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetPrevPort() : 0;
-//		return m_prevAddress.c_str();
-	}
-//
-	virtual unsigned __int64 GetIpPort() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpPort() : 0;
-	}
-	virtual const char* GetIpAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpAddress() : "";
-	}
-	virtual unsigned short GetPort() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetPort() : 0;
-	}
-	virtual const char* GetIpBindAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpBindAddress() : "";
-	}
-	virtual unsigned short GetBindPort() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetBindPort() : 0;
-	}
-	virtual unsigned int GetIpNumAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpNumAddress() : 0;
-	}
-	virtual unsigned int GetIpInvAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpInvAddress() : 0;
-	}
-
-	virtual unsigned int GetIpNumBindAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpNumBindAddress() : 0;
-	}
-	virtual unsigned int GetIpInvBindAddress() const
-	{
-		const ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		return connectionLine ? connectionLine->GetIpInvBindAddress() : 0;
-	}
-
-	unsigned char GetConnectionDataType() const{return m_connectionDataType;}
-	void SetConnectionDataType(unsigned char connectionDataType){m_connectionDataType = connectionDataType;}
-	unsigned char GetPrevConnectionDataType() const{return m_prevConnectionDataType;}
-	unsigned long GetReconnectInterval() const{return m_reconnectInterval;}
-
-	unsigned int GetBufferSizeReceiveRequested() const{return m_bufferSizeReceiveRequested;}
-	unsigned int GetBufferSizeSendRequested() const{return m_bufferSizeSendRequested;}
-
-	void SetReconnectInterval(unsigned long interval){m_reconnectInterval = interval;}
-
-//	virtual bool SetIpAddressAndPort(const char* ip, unsigned short port) = 0;
-//	virtual bool SetBindIpAddressAndPort(const char* ip = NULL, unsigned short port = 0) = 0;
-
-//	virtual bool CopyIpAddressAndPort(const ConnectionBase& other);
-//	virtual bool CopyBindIpAddressAndPort(const ConnectionBase& other);
-
-	bool SameIpPortList(const ConnectionBase& other) const;
-	bool SetIpPort(unsigned __int64 ipport);
-
-	bool operator==(const ConnectionBase& other) const
-	{
-//		return m_ipport == other.m_ipport;
-		return SameIpPortList(other);
-	}
-	bool operator!=(const ConnectionBase& other) const{return !operator==(other);}
-//	bool operator<(const ConnectionBase& other) const{return m_ipport < other.m_ipport;}
-
-	bool isSameName(const ConnectionBase& other) const{return m_connectionName == other.m_connectionName;}
-	bool isSameReconnectInterval(const ConnectionBase& other) const{return m_reconnectInterval == other.m_reconnectInterval;}
-	bool isIdentical(const ConnectionBase& other) const;
-
-//	static unsigned __int64 CalculateIpPort(unsigned int ip, unsigned short port){return ((unsigned __int64)ip << 16) | (unsigned __int64)port;}
-
-	unsigned int GetReconnectTries() const{return m_reconnectTries;}
-	unsigned int GetMaxReconnectTries() const{return m_maxReconnectTries;}
-	virtual unsigned int GetReconnectCount() const{return 0;}
-
-	void SetReconnectTries(unsigned int tries){m_reconnectTries = tries;}
-	void SetMaxReconnectTries(unsigned int tries){m_maxReconnectTries = tries;}
-	void ResetReconnectTries(){m_reconnectTries = m_maxReconnectTries;}
-	bool isReconnectable() const{return GetReconnectCount() < m_reconnectTries;}
-
-	virtual void UpdatePrevious()
-	{
-		ConnectionLine* connectionLine = GetCurrentConnectionLine();
-		if(connectionLine)connectionLine->UpdatePrevious();
-//		m_prevAddress = m_address;
-//		m_prevPort = m_port;
-		m_prevConnectionDataType = m_connectionDataType;
-	}
-
-	ConnectionBase& operator=(const ConnectionBase& other);
-	const ConnectionLine* CreateNextIpAddress();
-protected:
-	ConnectionBase(const char* connectionName,
-/*
-		const char* address,
-		const unsigned short port,
-		const char* address2,
-		const unsigned short port2,
-*/
-		const unsigned char connectionDataType,
-		unsigned int receiveBufferSize = 0xFFFFFFFF,
-		unsigned int sendBufferSize = 0xFFFFFFFF,
-		int reconnectInterval = 5,
-		unsigned int reconnectTries = 0,
-		unsigned int maxReconnectTries = 0xFFFFFFFF,
-/*
-		const char* bindAddress = NULL,
-		unsigned short bindPort = 0,
-		const char* bindAddress2 = NULL,
-		unsigned short bindPort2 = 0,
-*/
-		const char* loginID = "",
-		const char* password = "")
-		: m_connectionName( connectionName )
-/*
-		, m_addressName( address )
-		, m_addressName1( address )
-		, m_addressName2( address2 )
-		, m_bindAddress(bindAddress ? bindAddress : "0.0.0.0")
-		, m_bindAddress1(bindAddress ? bindAddress : "0.0.0.0")
-		, m_bindAddress2(bindAddress2 ? bindAddress2 : "0.0.0.0")
-*/
-		, m_loginID( loginID )
-		, m_password( password )
-/*
-		, m_ipport(0)
-		, m_port( port )
-		, m_port1( port )
-		, m_port2( port2 )
-		, m_prevPort(port)
-		, m_bindPort(bindPort)
-		, m_bindPort1(bindPort)
-		, m_bindPort2(bindPort2)
-*/
-		, m_connectionDataType(connectionDataType)
-		, m_prevConnectionDataType(connectionDataType)
-		, m_reconnectInterval( reconnectInterval )
-/*
-		, m_ipNumAddress(0)
-		, m_ipInvAddress(0)
-		, m_ipNumBindAddress(0)
-		, m_ipInvBindAddress(0)
-*/
-		, m_bufferSizeReceiveRequested(receiveBufferSize)
-		, m_bufferSizeSendRequested(sendBufferSize)
-		, m_reconnectTries(reconnectTries)
-		, m_maxReconnectTries(maxReconnectTries)
-		, m_connectionLineChain(0xFFFFFFFF, false)
-	{
-		UpdatePrevious();
-	}
-	ConnectionBase(const ConnectionBase& other):
-		m_connectionName(other.m_connectionName),
-		m_loginID(other.m_loginID),
-		m_password(other.m_password),
-		m_connectionDataType(other.m_connectionDataType),
-		m_prevConnectionDataType(other.m_connectionDataType),
-		m_reconnectInterval(other.m_reconnectInterval),
-		m_bufferSizeReceiveRequested(other.m_bufferSizeReceiveRequested),
-		m_bufferSizeSendRequested(other.m_bufferSizeSendRequested),
-		m_reconnectTries(other.m_reconnectTries),
-		m_maxReconnectTries(other.m_maxReconnectTries),
-		m_connectionLineChain(other.m_connectionLineChain)
-	{
-		ResetConnectionLines();
-		CreateNextIpAddress();
-		UpdatePrevious();
-	}
-//	void UpdateIpPort(){m_ipport = CalculateIpPort(m_ipInvAddress, m_port);}
-	std::string	m_connectionName;
-	std::string	m_loginID;
-	std::string m_password;
-/*
-	std::string	m_addressName;
-	std::string	m_addressName1;
-	std::string	m_addressName2;
-	std::string m_address;
-	std::string m_prevAddress;
-	std::string m_bindAddress;
-	std::string m_bindAddress1;
-	std::string m_bindAddress2;
-
-	unsigned __int64 m_ipport;
-	unsigned short m_port;
-	unsigned short m_port1;
-	unsigned short m_port2;
-	unsigned short m_prevPort;
-	unsigned short m_bindPort;
-	unsigned short m_bindPort1;
-	unsigned short m_bindPort2;
-
-	unsigned int m_ipNumAddress;
-	unsigned int m_ipInvAddress;
-	unsigned int m_ipNumBindAddress;
-	unsigned int m_ipInvBindAddress;
-*/
-	unsigned char m_connectionDataType;
-	unsigned char m_prevConnectionDataType;
-	unsigned long m_reconnectInterval;
-	unsigned int m_bufferSizeReceiveRequested;
-	unsigned int m_bufferSizeSendRequested;
-
-	unsigned int m_reconnectTries;
-	unsigned int m_maxReconnectTries;
-
-	ThreadSafeChain<ConnectionLine> m_connectionLineChain;
-//	ConnectionLineVector m_connectionLineVector;
-//	IpPortSet m_ipPortSet;
-};
-
-class TD_API ActiveConnection : public ConnectionBase
-{
-public:
-	unsigned int GetBufferSizeReceiveActual() const{return m_bufferSizeReceiveActual;}
-	unsigned int GetBufferSizeSendActual() const{return m_bufferSizeSendActual;}
-
-	bool isConnected() const{return m_bConnected;}
-	bool isConnecting() const{return m_bConnecting;}
-	bool isDisconnecting() const{return m_bDisconnecting;}
-
-	unsigned short GetLocalPort() const{return m_localPort;}
-
-	virtual unsigned int GetBytesReceived() const{return 0;}
-	virtual unsigned int GetBytesSent() const{return 0;}
-protected:
-	ActiveConnection(const char* connectionName, 
-/*
-		const char* address,
-		const unsigned short port,
-		const char* address2,
-		const unsigned short port2,
-*/
-		const unsigned char connectionDataType,
-		unsigned int receiveBufferSize = 0xFFFFFFFF,
-		unsigned int sendBufferSize = 0xFFFFFFFF,
-		int reconnectSeconds = 5,
-		unsigned int reconnectTries = 0,
-		unsigned int maxReconnectTries = 0xFFFFFFFF,
-/*
-		const char* bindAddress = NULL,
-		unsigned short bindPort = 0,
-		const char* bindAddress2 = NULL,
-		unsigned short bindPort2 = 0,
-*/
-		const char* loginID = "",
-		const char* password = ""):
-
-		ConnectionBase(connectionName,
-/*
-			address,
-			port,
-			address2,
-			port2,
-*/
-			connectionDataType,
-			receiveBufferSize,
-			sendBufferSize,
-			reconnectSeconds,
-			reconnectTries,
-			maxReconnectTries,
-/*
-			bindAddress,
-			bindPort,
-			bindAddress2,
-			bindPort2,
-*/
-			loginID,
-			password)
-		, m_bufferSizeReceiveActual(0)
-		, m_bufferSizeSendActual(0)
-		, m_localPort(0)
-		, m_bConnected(false)
-		, m_bConnecting(false)
-		, m_bDisconnecting(false)
-	{
-	}
-	ActiveConnection(const ConnectionBase& connectionBase):
-		ConnectionBase(connectionBase),
-		m_bufferSizeReceiveActual(0),
-		m_bufferSizeSendActual(0),
-		m_localPort(0),
-		m_bConnected(false),
-		m_bConnecting(false),
-		m_bDisconnecting(false)
-	{
-	}
-	unsigned int m_bufferSizeReceiveActual;
-	unsigned int m_bufferSizeSendActual;
-	unsigned short m_localPort;
-	bool m_bConnected;
-	bool m_bConnecting;
-	bool m_bDisconnecting;
-};
-
-class TD_API Connection : public ConnectionBase
-{
-public:
-	Connection(const char* connectionName, 
-/*
-		const char* address,
-		const unsigned short port,
-		const char* address2,
-		const unsigned short port2,
-*/
-		const unsigned char connectionDataType,
-		unsigned int receiveBufferSize = 0xFFFFFFFF,
-		unsigned int sendBufferSize = 0xFFFFFFFF,
-		int reconnectSeconds = 5,
-		unsigned int reconnectTries = 0,
-		unsigned int maxReconnectTries = 0xFFFFFFFF,
-/*
-		const char* bindAddress = NULL,
-		unsigned short bindPort = 0,
-		const char* bindAddress2 = NULL,
-		unsigned short bindPort2 = 0,
-*/
-		const char* loginID = "",
-		const char* password = "");
-//	virtual bool SetIpAddressAndPort(const char* ip, unsigned short port);
-//	virtual bool SetBindIpAddressAndPort(const char* ip = NULL, unsigned short port = 0);
-	Connection(const ConnectionBase& connectionBase);
-};
-
-class TMsgSecurity : public Message
-{
-public:
-	Security* m_security;
-protected:
-	TMsgSecurity(Security* security, unsigned short type, unsigned short length):Message(type, length), m_security(security){}
-};
-
 class TMsgSecurityDelete : public TMsgSecurity
 {
 public:
-	TMsgSecurityDelete(Security* security):TMsgSecurity(security, TM_STOCK_DELETE, sizeof(TMsgSecurityDelete)){}
+	TMsgSecurityDelete(const Security* const& security):TMsgSecurity(security, TM_STOCK_DELETE, sizeof(TMsgSecurityDelete)){}
+};
+
+class TMsgSortableSecurityDelete : public TMsgSecurity
+{
+public:
+	TMsgSortableSecurityDelete(const Security* const& security):TMsgSecurity(security, TM_SORTABLE_SECURITY_DELETE, sizeof(TMsgSortableSecurityDelete)){}
+};
+/*
+class TMsgSecurityAddIdle : public TMsgSecurity
+{
+public:
+	TMsgSecurityAddIdle(Security* security):TMsgSecurity(security, TM_STOCK_ADD_IDLE, sizeof(TMsgSecurityAddIdle)){}
+};
+
+class TMsgSecurityRemoveIdle : public TMsgSecurity
+{
+public:
+	TMsgSecurityRemoveIdle(Security* security):TMsgSecurity(security, TM_STOCK_REMOVE_IDLE, sizeof(TMsgSecurityRemoveIdle)){}
+};
+*/
+
+class TMsgL1EntitlementsChanged : public TMessageSymbolMap
+{
+public:
+	bool m_entitledPrintChanged;
+	bool m_entitledL1Changed;
+protected:
+	TMsgL1EntitlementsChanged(const unsigned short& symbolMap,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageSymbolMap(symbolMap, type, length),
+		m_entitledPrintChanged(entitledPrintChanged),
+		m_entitledL1Changed(entitledL1Changed)
+	{}
+};
+
+class TMsgSortableSecurityEntitlementsChanged : public TMsgL1EntitlementsChanged
+{
+public:
+	TMsgSortableSecurityEntitlementsChanged(const unsigned short& symbolMap,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed):
+		TMsgL1EntitlementsChanged(symbolMap,
+			entitledPrintChanged,
+			entitledL1Changed,
+			TM_SORTABLE_SECURITY_ENTITLEMENTS_CHANGED, 
+			sizeof(TMsgSortableSecurityEntitlementsChanged))
+	{}
+};
+
+class TMsgSortableSecurityExtEntitlementsChanged : public TMsgL1EntitlementsChanged
+{
+public:
+	TMsgSortableSecurityExtEntitlementsChanged(const unsigned short& symbolMap,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed) :
+		TMsgL1EntitlementsChanged(symbolMap,
+			entitledPrintChanged,
+			entitledL1Changed,
+			TM_SORTABLE_SECURITY_EXT_ENTITLEMENTS_CHANGED,
+			sizeof(TMsgSortableSecurityExtEntitlementsChanged))
+	{}
+};
+
+class TMsgStockEntitlements : public TMsgL1EntitlementsChanged
+{
+public:
+	bool m_entitledL2Changed;
+protected:
+	TMsgStockEntitlements(const unsigned short& symbolMap,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgL1EntitlementsChanged(symbolMap,
+			entitledPrintChanged,
+			entitledL1Changed,
+			type,
+			length),
+		m_entitledL2Changed(entitledL2Changed)
+	{}
+};
+
+class TMsgStockEntitlementsChanged : public TMsgStockEntitlements
+{
+public:
+	TMsgStockEntitlementsChanged(const unsigned short& symbolMap,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed):
+		TMsgStockEntitlements(symbolMap,
+			entitledPrintChanged,
+			entitledL1Changed,
+			entitledL2Changed,
+			TM_STOCK_ENTITLEMENTS_CHANGED, 
+			sizeof(TMsgStockEntitlementsChanged))
+	{}
+};
+
+class TMsgStockExtEntitlementsChanged : public TMsgStockEntitlements
+{
+public:
+	TMsgStockExtEntitlementsChanged(const unsigned short& symbolMap,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed) :
+		TMsgStockEntitlements(symbolMap,
+			entitledPrintChanged,
+			entitledL1Changed,
+			entitledL2Changed,
+			TM_STOCK_EXT_ENTITLEMENTS_CHANGED,
+			sizeof(TMsgStockExtEntitlementsChanged))
+	{}
+};
+
+#ifndef TAKION_NO_OPTIONS
+class TMsgOptionEntitlements : public TMessageOptionBlock
+{
+public:
+	bool m_entitledPrintChanged;
+	bool m_entitledL1Changed;
+	bool m_entitledL2Changed;
+protected:
+	TMsgOptionEntitlements(const char* const& symbol,
+		const unsigned __int64& optionBlock,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageOptionBlock(symbol,
+			optionBlock,
+			type,
+			length),
+		m_entitledPrintChanged(entitledPrintChanged),
+		m_entitledL1Changed(entitledL1Changed),
+		m_entitledL2Changed(entitledL2Changed)
+	{}
+	TMsgOptionEntitlements(const unsigned __int64& symbol,
+		const unsigned __int64& optionBlock,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMessageOptionBlock(symbol,
+			optionBlock,
+			type,
+			length),
+		m_entitledPrintChanged(entitledPrintChanged),
+		m_entitledL1Changed(entitledL1Changed),
+		m_entitledL2Changed(entitledL2Changed)
+	{}
+};
+
+
+class TMsgOptionEntitlementsChanged : public TMsgOptionEntitlements
+{
+public:
+	TMsgOptionEntitlementsChanged(const char* const& symbol,
+		const unsigned __int64& optionBlock,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed):
+		TMsgOptionEntitlements(symbol,
+			optionBlock,
+			entitledPrintChanged,
+			entitledL1Changed,
+			entitledL2Changed,
+			TM_OPTION_ENTITLEMENTS_CHANGED,
+			sizeof(TMsgOptionEntitlementsChanged))
+	{}
+	TMsgOptionEntitlementsChanged(const unsigned __int64& symbol,
+		const unsigned __int64& optionBlock,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed):
+		TMsgOptionEntitlements(symbol,
+			optionBlock,
+			entitledPrintChanged,
+			entitledL1Changed,
+			entitledL2Changed,
+			TM_OPTION_ENTITLEMENTS_CHANGED,
+			sizeof(TMsgOptionEntitlementsChanged))
+	{}
+};
+
+class TMsgOptionExtEntitlementsChanged : public TMsgOptionEntitlements
+{
+public:
+	TMsgOptionExtEntitlementsChanged(const char* const& symbol,
+		const unsigned __int64& optionBlock,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed) :
+		TMsgOptionEntitlements(symbol,
+			optionBlock,
+			entitledPrintChanged,
+			entitledL1Changed,
+			entitledL2Changed,
+			TM_OPTION_EXT_ENTITLEMENTS_CHANGED,
+			sizeof(TMsgOptionExtEntitlementsChanged))
+	{}
+	TMsgOptionExtEntitlementsChanged(const unsigned __int64& symbol,
+		const unsigned __int64& optionBlock,
+		const bool& entitledPrintChanged,
+		const bool& entitledL1Changed,
+		const bool& entitledL2Changed) :
+		TMsgOptionEntitlements(symbol,
+			optionBlock,
+			entitledPrintChanged,
+			entitledL1Changed,
+			entitledL2Changed,
+			TM_OPTION_EXT_ENTITLEMENTS_CHANGED,
+			sizeof(TMsgOptionExtEntitlementsChanged))
+	{}
+};
+
+#endif
+
+class TMsgSecurityAddIdle : public TMessageSymbol
+{
+public:
+	TMsgSecurityAddIdle(const char* symbol):TMessageSymbol(symbol, TM_STOCK_ADD_IDLE, sizeof(TMsgSecurityAddIdle)){}
+	TMsgSecurityAddIdle(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_ADD_IDLE, sizeof(TMsgSecurityAddIdle)){}
+	TMsgSecurityAddIdle():TMessageSymbol(TM_STOCK_ADD_IDLE, sizeof(TMsgSecurityAddIdle)){}
+};
+
+class TMsgSecurityRemoveIdle : public TMessageSymbol
+{
+public:
+	TMsgSecurityRemoveIdle(const char* symbol):TMessageSymbol(symbol, TM_STOCK_REMOVE_IDLE, sizeof(TMsgSecurityRemoveIdle)){}
+	TMsgSecurityRemoveIdle(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_STOCK_REMOVE_IDLE, sizeof(TMsgSecurityRemoveIdle)){}
+	TMsgSecurityRemoveIdle():TMessageSymbol(TM_STOCK_REMOVE_IDLE, sizeof(TMsgSecurityRemoveIdle)){}
+};
+
+class TMsgSortableSecurityAddIdle : public TMessageSymbol
+{
+public:
+	TMsgSortableSecurityAddIdle(const char* symbol):TMessageSymbol(symbol, TM_SORTABLE_SECURITY_ADD_IDLE, sizeof(TMsgSortableSecurityAddIdle)){}
+	TMsgSortableSecurityAddIdle(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_SORTABLE_SECURITY_ADD_IDLE, sizeof(TMsgSortableSecurityAddIdle)){}
+	TMsgSortableSecurityAddIdle():TMessageSymbol(TM_SORTABLE_SECURITY_ADD_IDLE, sizeof(TMsgSortableSecurityAddIdle)){}
+};
+
+class TMsgSortableSecurityRemoveIdle : public TMessageSymbol
+{
+public:
+	TMsgSortableSecurityRemoveIdle(const char* symbol):TMessageSymbol(symbol, TM_SORTABLE_SECURITY_REMOVE_IDLE, sizeof(TMsgSortableSecurityRemoveIdle)){}
+	TMsgSortableSecurityRemoveIdle(const unsigned __int64& symbol):TMessageSymbol(symbol, TM_SORTABLE_SECURITY_REMOVE_IDLE, sizeof(TMsgSortableSecurityRemoveIdle)){}
+	TMsgSortableSecurityRemoveIdle():TMessageSymbol(TM_SORTABLE_SECURITY_REMOVE_IDLE, sizeof(TMsgSortableSecurityRemoveIdle)){}
+};
+
+class TMsgPositionSortableSecurityInitialized : public TMsgSecurity
+{
+public:
+	TMsgPositionSortableSecurityInitialized(const Security* const& security):TMsgSecurity(security, TM_POSITION_SORTABLE_SECURITY_INITIALIZED, sizeof(TMsgPositionSortableSecurityInitialized)){}
 };
 
 class TMsgPositionSecurityInitialized : public TMsgSecurity
 {
 public:
-	TMsgPositionSecurityInitialized(Security* security):TMsgSecurity(security, TM_POSITION_SECURITY_INITIALIZED, sizeof(TMsgPositionSecurityInitialized)){}
+	TMsgPositionSecurityInitialized(const Security* const& security):TMsgSecurity(security, TM_POSITION_SECURITY_INITIALIZED, sizeof(TMsgPositionSecurityInitialized)){}
 };
+
+#ifndef TAKION_NO_OPTIONS
+class TMsgPositionUnderlierSortableSecurityInitialized : public TMsgSecurity
+{
+public:
+	TMsgPositionUnderlierSortableSecurityInitialized(const Security* const& security) :TMsgSecurity(security, TM_POSITION_UNDERLIER_SORTABLE_SECURITY_INITIALIZED, sizeof(TMsgPositionUnderlierSortableSecurityInitialized)) {}
+};
+
+class TMsgPositionUnderlierSecurityInitialized : public TMsgSecurity
+{
+public:
+	TMsgPositionUnderlierSecurityInitialized(const Security* const& security) :TMsgSecurity(security, TM_POSITION_UNDERLIER_SECURITY_INITIALIZED, sizeof(TMsgPositionUnderlierSecurityInitialized)) {}
+};
+#endif
 
 class TMsgPositionSecurityUpdated : public TMsgSecurity
 {
 public:
-	TMsgPositionSecurityUpdated(Security* security):TMsgSecurity(security, TM_POSITION_SECURITY_UPDATED, sizeof(TMsgPositionSecurityUpdated)){}
+	TMsgPositionSecurityUpdated(const Security* const& security, const bool& hasPrints):
+		TMsgSecurity(security, TM_POSITION_SECURITY_UPDATED, sizeof(TMsgPositionSecurityUpdated)),
+		m_hasPrints(hasPrints)
+	{}
+	bool m_hasPrints;
 };
 
 class PositionPhantomSharesChanged : public Message
 {
 public:
-	PositionPhantomSharesChanged(char phantomShares):Message(TM_POSITION_PHANTOM_SHARES_CHANGED, sizeof(PositionPhantomSharesChanged)), m_phantomShares(phantomShares){}
+	PositionPhantomSharesChanged(const char& phantomShares):Message(TM_POSITION_PHANTOM_SHARES_CHANGED, sizeof(PositionPhantomSharesChanged)), m_phantomShares(phantomShares){}
 	char m_phantomShares;
 };
 
@@ -10599,32 +14501,46 @@ class TMsgOrder : public Message
 {
 public:
 	Order* m_order;
+	unsigned int m_pendingShares;
 protected:
-	TMsgOrder(Order* order, unsigned short type, unsigned short length):Message(type, length), m_order(order){}
+	TMsgOrder(Order* const& order, const unsigned int& pendingShares, const unsigned short& type, const unsigned short& length):Message(type, length), m_order(order), m_pendingShares(pendingShares){}
 };
 
 class TMsgNewOrder : public TMsgOrder
 {
 public:
-	TMsgNewOrder(Order* order):TMsgOrder(order, TM_NEW_ORDER, sizeof(TMsgNewOrder)){}
+	TMsgNewOrder(Order* const& order, const unsigned int& pendingShares):TMsgOrder(order, pendingShares, TM_NEW_ORDER, sizeof(TMsgNewOrder)){}
 };
 
 class TMsgDeadOrder : public TMsgOrder
 {
 public:
-	TMsgDeadOrder(Order* order):TMsgOrder(order, TM_DEAD_ORDER, sizeof(TMsgDeadOrder)){}
+	TMsgDeadOrder(Order* const& order, const unsigned int& pendingShares):TMsgOrder(order, pendingShares, TM_DEAD_ORDER, sizeof(TMsgDeadOrder)){}
 };
+
+class TMsgCancelRejected : public TMsgOrder
+{
+public:
+	TMsgCancelRejected(Order* const& order, const unsigned int& pendingShares):TMsgOrder(order, pendingShares, TM_CANCEL_REJECTED, sizeof(TMsgCancelRejected)){}
+};
+
 
 class TMsgOrderDelete : public TMsgOrder
 {
 public:
-	TMsgOrderDelete(Order* order):TMsgOrder(order, TM_ORDER_DELETE, sizeof(TMsgOrderDelete)){}
+	TMsgOrderDelete(Order* const& order):TMsgOrder(order, 0, TM_ORDER_DELETE, sizeof(TMsgOrderDelete)){}
 };
 
 class TMsgUpdatedOrder : public TMsgOrder
 {
 public:
-	TMsgUpdatedOrder(Order* order):TMsgOrder(order, TM_UPDATED_ORDER, sizeof(TMsgUpdatedOrder)){}
+	TMsgUpdatedOrder(Order* const& order, const unsigned int& pendingShares, const unsigned char& orderState)://, const unsigned char& flags):
+		TMsgOrder(order, pendingShares, TM_UPDATED_ORDER, sizeof(TMsgUpdatedOrder)),
+		m_orderState(orderState)
+//		m_flags(flags)
+	{}
+//	unsigned char m_flags;
+	unsigned char m_orderState;//enum OrderState
 };
 
 class TMsgExecution : public Message
@@ -10632,14 +14548,30 @@ class TMsgExecution : public Message
 public:
 	Execution* m_execution;
 protected:
-	TMsgExecution(Execution* execution, unsigned short type, unsigned short length):Message(type, length), m_execution(execution){}
+	TMsgExecution(Execution* const& execution, const unsigned short& type, const unsigned short& length):Message(type, length), m_execution(execution){}
 };
 
 class TMsgNewExecution : public TMsgExecution
 {
 public:
-	TMsgNewExecution(Execution* execution, unsigned int remainingQuantity):TMsgExecution(execution, TM_NEW_EXECUTION, sizeof(TMsgNewExecution)), m_remainingQuantity(remainingQuantity){}
+	TMsgNewExecution(Execution* const& execution,
+		const unsigned int& remainingQuantity,
+		const unsigned int& cumulativeFilledQuantity):
+		
+		TMsgExecution(execution, TM_NEW_EXECUTION, sizeof(TMsgNewExecution)),
+		m_remainingQuantity(remainingQuantity),
+		m_cumulativeFilledQuantity(cumulativeFilledQuantity)
+	{}
 	unsigned int m_remainingQuantity;
+	unsigned int m_cumulativeFilledQuantity;
+};
+
+class TMsgOtherOrderExecuted : public TMsgExecution
+{
+public:
+	TMsgOtherOrderExecuted(Execution* const& execution):
+		TMsgExecution(execution, TM_OTHER_ORDER_EXECUTED, sizeof(TMsgOtherOrderExecuted))
+	{}
 };
 
 class TMsgPositionDataObject : public Message
@@ -10647,7 +14579,7 @@ class TMsgPositionDataObject : public Message
 public:
 	const PositionData* m_position;
 protected:
-	TMsgPositionDataObject(const PositionData* position, unsigned short type, unsigned short length):Message(type, length), m_position(position){}
+	TMsgPositionDataObject(const PositionData* const& position, const unsigned short& type, const unsigned short& length):Message(type, length), m_position(position){}
 };
 
 class TMsgPositionObject : public Message
@@ -10655,13 +14587,13 @@ class TMsgPositionObject : public Message
 public:
 	const Position* m_position;
 protected:
-	TMsgPositionObject(const Position* position, unsigned short type, unsigned short length):Message(type, length), m_position(position){}
+	TMsgPositionObject(const Position* const& position, const unsigned short& type, const unsigned short& length):Message(type, length), m_position(position){}
 };
 
 class TMsgNewPosition : public TMsgPositionObject
 {
 public:
-	TMsgNewPosition(const Position* position):TMsgPositionObject(position, TM_NEW_POSITION, sizeof(TMsgNewPosition)){}
+	TMsgNewPosition(const Position* const& position):TMsgPositionObject(position, TM_NEW_POSITION, sizeof(TMsgNewPosition)){}
 };
 /*
 class TMsgAddPositionToSecurity : public TMsgPositionObject
@@ -10674,14 +14606,84 @@ public:
 class TMsgUpdatedPosition : public TMsgPositionDataObject
 {
 public:
-	TMsgUpdatedPosition(const PositionData* position):TMsgPositionDataObject(position, TM_UPDATED_POSITION, sizeof(TMsgUpdatedPosition)){}
+	TMsgUpdatedPosition(const PositionData* const& position):TMsgPositionDataObject(position, TM_UPDATED_POSITION, sizeof(TMsgUpdatedPosition)){}
+};
+
+class TMsgPositionDelete : public TMsgPositionObject
+{
+public:
+	TMsgPositionDelete(const Position* const& position):TMsgPositionObject(position, TM_POSITION_DELETE, sizeof(TMsgPositionDelete)){}
 };
 
 class TMsgExecutedPosition : public TMsgPositionObject
 {
 public:
-	TMsgExecutedPosition(const Position* position, unsigned char positionUpdateFlags):TMsgPositionObject(position, TM_EXECUTED_POSITION, sizeof(TMsgExecutedPosition)), m_positionUpdateFlags(positionUpdateFlags){}
+	TMsgExecutedPosition(const Position* const& position, const unsigned char& positionUpdateFlags):TMsgPositionObject(position, TM_EXECUTED_POSITION, sizeof(TMsgExecutedPosition)), m_positionUpdateFlags(positionUpdateFlags){}
 	unsigned char m_positionUpdateFlags;
+};
+
+class TMsgOrdinal : public Message
+{
+public:
+	unsigned short m_ordinal;
+protected:
+	TMsgOrdinal(const unsigned short& ordinal, const unsigned short& type, const unsigned short& length) :Message(type, length), m_ordinal(ordinal) {}
+};
+
+class TMsgClearingFirmUpdate : public TMsgOrdinal
+{
+public:
+	TMsgClearingFirmUpdate(const unsigned short& clearingFirmOrdinal):TMsgOrdinal(clearingFirmOrdinal, TM_CLEARING_FIRM_UPDATE, sizeof(TMsgClearingFirmUpdate)){}
+};
+
+class TMsgClearingFirmConstraintsUpdate : public TMsgOrdinal
+{
+public:
+	TMsgClearingFirmConstraintsUpdate(const unsigned short& clearingFirmOrdinal):TMsgOrdinal(clearingFirmOrdinal, TM_CLEARING_FIRM_CONSTRAINTS_UPDATE, sizeof(TMsgClearingFirmConstraintsUpdate)){}
+};
+
+class TMsgClearingFirmRetailUpdate : public TMsgOrdinal
+{
+public:
+	TMsgClearingFirmRetailUpdate(const unsigned short& clearingFirmOrdinal):TMsgOrdinal(clearingFirmOrdinal, TM_CLEARING_FIRM_RETAIL_UPDATE, sizeof(TMsgClearingFirmRetailUpdate)){}
+};
+
+class TMsgClearingFirm : public Message
+{
+public:
+	ClearingFirm* m_clearingFirm;
+protected:
+	TMsgClearingFirm(ClearingFirm* const& clearingFirm, const unsigned short& type, const unsigned short& length):Message(type, length), m_clearingFirm(clearingFirm){}
+};
+
+class TMsgNewClearingFirm : public TMsgClearingFirm
+{
+public:
+	TMsgNewClearingFirm(ClearingFirm* const& clearingFirm):TMsgClearingFirm(clearingFirm, TM_NEW_CLEARING_FIRM, sizeof(TMsgNewClearingFirm)){}
+};
+
+class TMsgUpdatedClearingFirm : public TMsgClearingFirm
+{
+public:
+	TMsgUpdatedClearingFirm(ClearingFirm* const& clearingFirm):TMsgClearingFirm(clearingFirm, TM_UPDATED_CLEARING_FIRM, sizeof(TMsgUpdatedClearingFirm)){}
+};
+
+class TMsgUpdatedClearingFirmConstraints : public TMsgClearingFirm
+{
+public:
+	TMsgUpdatedClearingFirmConstraints(ClearingFirm* const& clearingFirm):TMsgClearingFirm(clearingFirm, TM_UPDATED_CLEARING_FIRM_CONSTRAINTS, sizeof(TMsgUpdatedClearingFirmConstraints)){}
+};
+
+class TMsgUpdatedClearingFirmRetail : public TMsgClearingFirm
+{
+public:
+	TMsgUpdatedClearingFirmRetail(ClearingFirm* const& clearingFirm):TMsgClearingFirm(clearingFirm, TM_UPDATED_CLEARING_FIRM_RETAIL, sizeof(TMsgUpdatedClearingFirmRetail)){}
+};
+
+class TMsgDeleteAllClearingFirms : public Message
+{
+public:
+	TMsgDeleteAllClearingFirms():Message(TM_DELETE_ALL_CLEARING_FIRMS, sizeof(TMsgDeleteAllClearingFirms)) {}
 };
 
 class TMsgDeleteAllAccounts : public Message
@@ -10690,12 +14692,18 @@ public:
 	TMsgDeleteAllAccounts():Message(TM_DELETE_ALL_ACCOUNTS, sizeof(TMsgDeleteAllAccounts)){}
 };
 
+class TMsgAllAccountsLoaded : public Message
+{
+public:
+	TMsgAllAccountsLoaded():Message(TM_ALL_ACCOUNTS_LOADED, sizeof(TMsgAllAccountsLoaded)){}
+};
+
 class TMsgAccount : public Message
 {
 public:
 	Account* m_account;
 protected:
-	TMsgAccount(Account* account, unsigned short type, unsigned short length):Message(type, length), m_account(account){}
+	TMsgAccount(Account* const& account, const unsigned short& type, const unsigned short& length):Message(type, length), m_account(account){}
 };
 /*
 class TMsgAccountObject : public Message
@@ -10714,7 +14722,7 @@ protected:
 class TMsgHardBuyingPowerHit : public TMsgAccountObject
 {
 public:
-	TMsgHardBuyingPowerHit(const char* accountName, const Money& hardBpUsed, const Money& hardBuyingPower, bool hardBpHit):
+	TMsgHardBuyingPowerHit(const char* const& accountName, const Money& hardBpUsed, const Money& hardBuyingPower, const bool& hardBpHit):
 		TMsgAccountObject(accountName, TM_HARD_BP_HIT, sizeof(TMsgHardBuyingPowerHit)),
 		m_hardBpUsed(hardBpUsed),
 		m_hardBuyingPower(hardBuyingPower),
@@ -10726,10 +14734,25 @@ public:
 	bool m_hardBpHit;
 };
 
+class TMsgHardMarginExcessHit : public TMsgAccountObject
+{
+public:
+	TMsgHardMarginExcessHit(const char* const& accountName, const Money& hardMeUsed, const Money& hardMarginExcess, const bool& hardMeHit):
+		TMsgAccountObject(accountName, TM_HARD_ME_HIT, sizeof(TMsgHardMarginExcessHit)),
+		m_hardMeUsed(hardMeUsed),
+		m_hardMarginExcess(hardMarginExcess),
+		m_hardMeHit(hardMeHit)
+	{
+	}
+	Money m_hardMeUsed;
+	Money m_hardMarginExcess;
+	bool m_hardMeHit;
+};
+
 class TMsgAccountDelete : public TMsgAccount
 {
 public:
-	TMsgAccountDelete(Account* account):TMsgAccount(account, TM_ACCOUNT_DELETE, sizeof(TMsgAccountDelete)){}
+	TMsgAccountDelete(Account* const& account):TMsgAccount(account, TM_ACCOUNT_DELETE, sizeof(TMsgAccountDelete)){}
 };
 
 class TMsgUpdatedAccountBase : public TMsgAccount
@@ -10737,32 +14760,47 @@ class TMsgUpdatedAccountBase : public TMsgAccount
 public:
 	bool m_constraintsChanged;
 protected:
-	TMsgUpdatedAccountBase(Account* account, bool constraintsChanged, unsigned short type, unsigned short length):TMsgAccount(account, type, length), m_constraintsChanged(constraintsChanged){}
+	TMsgUpdatedAccountBase(Account* const& account, const bool& constraintsChanged, const unsigned short& type, const unsigned short& length):TMsgAccount(account, type, length), m_constraintsChanged(constraintsChanged){}
 };
 
 class TMsgUpdatedAccount : public TMsgUpdatedAccountBase
 {
 public:
-	TMsgUpdatedAccount(Account* account, bool constraintsChanged):TMsgUpdatedAccountBase(account, constraintsChanged, TM_UPDATED_ACCOUNT, sizeof(TMsgUpdatedAccount)){}
+	TMsgUpdatedAccount(Account* const& account, const bool& constraintsChanged):TMsgUpdatedAccountBase(account, constraintsChanged, TM_UPDATED_ACCOUNT, sizeof(TMsgUpdatedAccount)){}
 };
 
-class TMsgUpdatedAccountAndPosition : public TMsgUpdatedAccountBase//used for providing "info" to the Notify function
+class TMsgUpdatedAccountAndPositionBase : public TMsgUpdatedAccountBase
 {
 public:
-	TMsgUpdatedAccountAndPosition(Account* account, bool constraintsChanged, const Position* position):TMsgUpdatedAccountBase(account, constraintsChanged, TM_UPDATED_ACCOUNT_AND_POSITION, sizeof(TMsgUpdatedAccountAndPosition)), m_position(position){}
 	const Position* m_position;
+protected:
+	TMsgUpdatedAccountAndPositionBase(Account* const& account, const bool& constraintsChanged, const Position* const& position, const unsigned short& type, const unsigned short& length):TMsgUpdatedAccountBase(account, constraintsChanged, type, length), m_position(position){}
+};
+
+class TMsgUpdatedAccountAndPosition : public TMsgUpdatedAccountAndPositionBase//used for providing "info" to the Notify function
+{
+public:
+	TMsgUpdatedAccountAndPosition(Account* const& account, const bool& constraintsChanged, const Position* const& position, const unsigned int& level1Bid, const unsigned int& level1Ask):
+		TMsgUpdatedAccountAndPositionBase(account, constraintsChanged, position, TM_UPDATED_ACCOUNT_AND_POSITION, sizeof(TMsgUpdatedAccountAndPosition)),
+		m_level1Bid(level1Bid),
+		m_level1Ask(level1Ask)
+	{}
+	unsigned int m_level1Bid;//Use Price(m_level1Bid) to create a Price object
+	unsigned int m_level1Ask;//Use Price(m_level1Ask) to create a Price object
 };
 
 class TMsgNewAccountObject : public TMsgAccount
 {
 public:
-	TMsgNewAccountObject(Account* account):TMsgAccount(account, TM_NEW_ACCOUNT, sizeof(TMsgNewAccountObject)){}
+	TMsgNewAccountObject(Account* const& account):TMsgAccount(account, TM_NEW_ACCOUNT, sizeof(TMsgNewAccountObject)){}
 };
+
+class Connection;
 
 class TMsgConnectionObject : public Message
 {
 public:
-	TMsgConnectionObject(Connection* connection):Message(TM_CONNECTION_OBJECT, sizeof(TMsgConnectionObject)), m_connection(connection){}
+	TMsgConnectionObject(Connection* const& connection):Message(TM_CONNECTION_OBJECT, sizeof(TMsgConnectionObject)), m_connection(connection){}
 	Connection* m_connection;
 };
 
@@ -10771,18 +14809,18 @@ class TMsgSetTierSize : public TMessageSymbol//sent internally to threads
 public:
 	unsigned int m_newTierSize;
 protected:
-	TMsgSetTierSize(const char* symbol, unsigned int newTierSize, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length),m_newTierSize(newTierSize){}
-	TMsgSetTierSize(const unsigned __int64& symbol, unsigned int newTierSize, unsigned short type, unsigned short length):TMessageSymbol(symbol, type, length),m_newTierSize(newTierSize){}
+	TMsgSetTierSize(const char* const& symbol, const unsigned int& newTierSize, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length),m_newTierSize(newTierSize){}
+	TMsgSetTierSize(const unsigned __int64& symbol, const unsigned int& newTierSize, const unsigned short& type, const unsigned short& length):TMessageSymbol(symbol, type, length),m_newTierSize(newTierSize){}
 };
 
-class TMsgSetStockTierSize : public TMsgSetTierSize//sent internally to threads
+class TMsgSetStockTierSize : public TMsgSetTierSize
 {
 public:
-	TMsgSetStockTierSize(const char* symbol,
+	TMsgSetStockTierSize(const char* const& symbol,
 #ifndef TAKION_NO_OPTIONS
 		const unsigned __int64& optionKey,
 #endif
-		unsigned int newTierSize):
+		const unsigned int& newTierSize):
 		TMsgSetTierSize(symbol, newTierSize, TM_SET_STOCK_TIER_SIZE, sizeof(TMsgSetStockTierSize))
 #ifndef TAKION_NO_OPTIONS
 		,m_optionKey(optionKey)
@@ -10792,7 +14830,7 @@ public:
 #ifndef TAKION_NO_OPTIONS
 		const unsigned __int64& optionKey,
 #endif
-		unsigned int newTierSize):
+		const unsigned int& newTierSize):
 		TMsgSetTierSize(symbol, newTierSize, TM_SET_STOCK_TIER_SIZE, sizeof(TMsgSetStockTierSize))
 #ifndef TAKION_NO_OPTIONS
 		,m_optionKey(optionKey)
@@ -10801,12 +14839,185 @@ public:
 	unsigned __int64 m_optionKey;
 };
 
-class TMsgSetEquityTierSize : public TMsgSetTierSize//sent internally to threads
+class TMsgSetEquityTierSize : public TMsgSetTierSize
 {
 public:
-	TMsgSetEquityTierSize(const char* symbol, unsigned int newTierSize):TMsgSetTierSize(symbol, newTierSize, TM_SET_EQUITY_TIER_SIZE, sizeof(TMsgSetStockTierSize)){}
-	TMsgSetEquityTierSize(const unsigned __int64& symbol, unsigned int newTierSize):TMsgSetTierSize(symbol, newTierSize, TM_SET_EQUITY_TIER_SIZE, sizeof(TMsgSetStockTierSize)){}
+	TMsgSetEquityTierSize(const char* const& symbol, const unsigned int& newTierSize):TMsgSetTierSize(symbol, newTierSize, TM_SET_EQUITY_TIER_SIZE, sizeof(TMsgSetEquityTierSize)){}
+	TMsgSetEquityTierSize(const unsigned __int64& symbol, const unsigned int& newTierSize):TMsgSetTierSize(symbol, newTierSize, TM_SET_EQUITY_TIER_SIZE, sizeof(TMsgSetEquityTierSize)){}
 };
+
+////
+class TMsgSetStockCustomPriceBase : public TMsgSetTierSize
+{
+public:
+	TMsgSetStockCustomPriceBase(const char* const& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionKey,
+#endif
+		const unsigned int& newCustomPriceBaseCompact):
+		TMsgSetTierSize(symbol, newCustomPriceBaseCompact, TM_SET_STOCK_CUSTOM_PRICE_BASE, sizeof(TMsgSetStockCustomPriceBase))
+#ifndef TAKION_NO_OPTIONS
+		,m_optionKey(optionKey)
+#endif
+	{}
+	TMsgSetStockCustomPriceBase(const unsigned __int64& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionKey,
+#endif
+		const unsigned int& newCustomPriceBaseCompact):
+		TMsgSetTierSize(symbol, newCustomPriceBaseCompact, TM_SET_STOCK_CUSTOM_PRICE_BASE, sizeof(TMsgSetStockCustomPriceBase))
+#ifndef TAKION_NO_OPTIONS
+		,m_optionKey(optionKey)
+#endif
+	{}
+	unsigned __int64 m_optionKey;
+};
+
+class TMsgSetEquityCustomPriceBase : public TMsgSetTierSize
+{
+public:
+	TMsgSetEquityCustomPriceBase(const char* const& symbol, const unsigned int& newCustomPriceBaseCompact):TMsgSetTierSize(symbol, newCustomPriceBaseCompact, TM_SET_EQUITY_CUSTOM_PRICE_BASE, sizeof(TMsgSetEquityCustomPriceBase)){}
+	TMsgSetEquityCustomPriceBase(const unsigned __int64& symbol, const unsigned int& newCustomPriceBaseCompact):TMsgSetTierSize(symbol, newCustomPriceBaseCompact, TM_SET_EQUITY_CUSTOM_PRICE_BASE, sizeof(TMsgSetEquityCustomPriceBase)){}
+};
+
+////
+class TMsgSetStockCustomDate : public TMsgSetTierSize
+{
+public:
+	TMsgSetStockCustomDate(const char* const& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionKey,
+#endif
+		const unsigned int& newCustomDate):
+		TMsgSetTierSize(symbol, newCustomDate, TM_SET_STOCK_CUSTOM_DATE, sizeof(TMsgSetStockCustomDate))
+#ifndef TAKION_NO_OPTIONS
+		,m_optionKey(optionKey)
+#endif
+	{}
+	TMsgSetStockCustomDate(const unsigned __int64& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionKey,
+#endif
+		const unsigned int& newCustomDateCompact):
+		TMsgSetTierSize(symbol, newCustomDateCompact, TM_SET_STOCK_CUSTOM_DATE, sizeof(TMsgSetStockCustomDate))
+#ifndef TAKION_NO_OPTIONS
+		,m_optionKey(optionKey)
+#endif
+	{}
+	unsigned __int64 m_optionKey;
+};
+
+class TMsgSetEquityCustomDate : public TMsgSetTierSize
+{
+public:
+	TMsgSetEquityCustomDate(const char* const& symbol, const unsigned int& newCustomDateCompact):TMsgSetTierSize(symbol, newCustomDateCompact, TM_SET_EQUITY_CUSTOM_DATE, sizeof(TMsgSetEquityCustomDate)){}
+	TMsgSetEquityCustomDate(const unsigned __int64& symbol, const unsigned int& newCustomDateCompact):TMsgSetTierSize(symbol, newCustomDateCompact, TM_SET_EQUITY_CUSTOM_DATE, sizeof(TMsgSetEquityCustomDate)){}
+};
+
+////
+
+class TMsgSetStockTemporaryTierSize : public TMsgSetTierSize
+{
+public:
+	TMsgSetStockTemporaryTierSize(const char* const& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionKey,
+#endif
+		const unsigned int& newTierSize):
+		TMsgSetTierSize(symbol, newTierSize, TM_SET_STOCK_TEMPORARY_TIER_SIZE, sizeof(TMsgSetStockTemporaryTierSize))
+#ifndef TAKION_NO_OPTIONS
+		,m_optionKey(optionKey)
+#endif
+	{}
+	TMsgSetStockTemporaryTierSize(const unsigned __int64& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionKey,
+#endif
+		const unsigned int& newTierSize):
+		TMsgSetTierSize(symbol, newTierSize, TM_SET_STOCK_TEMPORARY_TIER_SIZE, sizeof(TMsgSetStockTemporaryTierSize))
+#ifndef TAKION_NO_OPTIONS
+		,m_optionKey(optionKey)
+#endif
+	{}
+	unsigned __int64 m_optionKey;
+};
+
+class TMsgSetEquityTemporaryTierSize : public TMsgSetTierSize//Observers notified in main thread
+{
+public:
+	TMsgSetEquityTemporaryTierSize(const char* const& symbol, const unsigned int& newTierSize):TMsgSetTierSize(symbol, newTierSize, TM_SET_EQUITY_TEMPORARY_TIER_SIZE, sizeof(TMsgSetEquityTemporaryTierSize)){}
+	TMsgSetEquityTemporaryTierSize(const unsigned __int64& symbol, const unsigned int& newTierSize):TMsgSetTierSize(symbol, newTierSize, TM_SET_EQUITY_TEMPORARY_TIER_SIZE, sizeof(TMsgSetEquityTemporaryTierSize)){}
+};
+
+class TMsgSendOrderAlgorithm : public
+#ifndef TAKION_NO_OPTIONS
+	TMsgOptionSymbol
+#else
+	TMessageSymbol
+#endif
+{
+public:
+	TMsgSendOrderAlgorithm(const char* const& symbol,
+#ifndef TAKION_NO_OPTIONS
+		const unsigned __int64& optionBlock,
+#endif
+		const char* const& accountName,
+		const OrderAlgorithm* const& orderAlgorithm,
+		const char& tradingState,
+		const char& shortable,
+		const char& regSho,
+		const unsigned char& htb,
+		const unsigned char& primaryExchangeEntitlementFlag,
+		const bool& fromExtension):
+
+#ifndef TAKION_NO_OPTIONS
+		TMsgOptionSymbol(symbol, optionBlock,
+#else
+		TMessageSymbol(symbol,
+#endif
+			TM_SEND_ORDER_ALGORITHM, sizeof(TMsgSendOrderAlgorithm) + orderAlgorithm->GetAlgorithmSize()),
+//		m_compactOpenPrice(compactOpenPrice),
+//		m_ipo(ipo),
+		m_tradingState(tradingState),
+		m_shortable(shortable),
+		m_regSho(regSho),
+		m_htb(htb),
+		m_primaryExchangeEntitlementFlag(primaryExchangeEntitlementFlag),
+		m_fromExtension(fromExtension)
+	{
+		U_CopyAndPad(m_accountName, sizeof(m_accountName), accountName, '\0', true);
+	}
+
+	char m_accountName[MAX_ACCOUNT_SIZE];
+	char m_tradingState;
+	char m_shortable;
+	char m_regSho;
+	unsigned char m_htb;
+	unsigned char m_primaryExchangeEntitlementFlag;
+	bool m_fromExtension;
+};
+
+class TMsgPositionRemoveDelayedOrders : public TMsgAccountPositionObject
+{
+public:
+	TMsgPositionRemoveDelayedOrders(const char* const& accountName = "", const unsigned __int64& symbol = 0//const char* symbol
+#ifndef TAKION_NO_OPTIONS
+		,const unsigned __int64& optionBlock = 0
+#endif
+//		unsigned char securityType
+		):
+		TMsgAccountPositionObject(accountName, symbol,
+//			securityType,
+#ifndef TAKION_NO_OPTIONS
+			optionBlock,
+#endif
+			TM_POSITION_REMOVE_DELAYED_ORDERS, sizeof(TMsgPositionRemoveDelayedOrders))
+	{
+	}
+};
+
+
+
 /*
 class TMsgTierSizeChanged : public Message//notification
 {
@@ -10816,7 +15027,7 @@ public:
 	unsigned int m_newTierSize;
 };
 */
-enum TakionOrderAlgorithmId
+enum TakionOrderAlgorithmId : unsigned int
 {
 	TOA_SMART_SWIPE = OA_COUNT,
 	TOA_SPIDER_SWIPE,
@@ -10825,11 +15036,642 @@ enum TakionOrderAlgorithmId
 	TOA_PRE_FIRM_SUBSCRIBE,
 	TOA_DUMB_SWIPE,
 	TOA_MEGA_SWIPE,
+	TOA_POSTPONED,
 
+	TOA_GTC,
+	TOA_GTC_ALGO_SPIDER,
+
+	TOA_WAIT_WASH,
+#ifndef TAKION_NO_OPTIONS
+	TOA_PLUS_OPTION,
+#endif
 	TOA_COUNT
 };
 
-class TD_API TakionAlgorithm : public OrderAlgorithm
+class TD_API AlgorithmSendOrder : public SecurityAlgorithm
+{
+public:
+	void SetUpdated(){m_updateOrdinalOrderAlgorithm = m_invalidateOrdinalOrderAlgorithm;}
+//	bool isUpdated(unsigned int updateOrdinal) const{return m_invalidateOrdinalOrderAlgorithm <= m_updateOrdinalOrderAlgorithm;}
+	bool isUpdated() const{return m_invalidateOrdinalOrderAlgorithm <= m_updateOrdinalOrderAlgorithm;}
+	unsigned int GetInvalidateOrdinalOrderAlgorithm() const{return m_invalidateOrdinalOrderAlgorithm;}
+	unsigned int GetUpdateOrdinalOrderAlgorithm() const{return m_updateOrdinalOrderAlgorithm;}
+
+	virtual void WriteOrderCancelToMainThread(bool deleteUntradedPosition = false) override;
+	void DoSendOrder(unsigned int orderSize, bool finalOrder);
+	void DoSendOrder(unsigned int orderSize);
+
+	void WriteUpdateMessageToMainThread();
+//	virtual void WriteOrderUpdateMessageToMainThread(unsigned int pendingShares, bool killed, bool rejected, unsigned char flags, unsigned char orderState) override;//OrderUpdateFlags; 1 - OUF_CANCEL_ACKNOWLEDGED, 2 - OUF_EXECUTION_LOADED:loaded order updated with an execution
+	virtual void WriteOrderUpdateMessageToMainThread(unsigned int pendingShares, bool rejected, unsigned char flags, unsigned char orderState) const override;//OrderUpdateFlags; 1 - OUF_CANCEL_ACKNOWLEDGED, 2 - OUF_EXECUTION_LOADED:loaded order updated with an execution
+
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	virtual bool isQuoteOrder() const override{return !isBorrow() && m_postponed;}
+	const bool& isPreBorrow() const{return m_preBorrow;}
+//	void SetPreBorrow(const bool& preBorrow){m_preBorrow = preBorrow;}
+//	const Price& GetPreBorrowPrice() const{return m_preBorrowPrice;}//price in cents
+//	void SetPreBorrowPrice(const Price& preBorrowPrice){m_preBorrowPrice = preBorrowPrice;}//price in cents
+	bool GetBorrowPrice(Price& loanPrice) const;
+	virtual bool isMarketOrder() const override
+	{
+		switch(m_orderType)
+		{
+			case ORDER_TYPE_MARKET:
+			case ORDER_TYPE_STOP:
+			return true;
+
+			default:
+			return false;
+		}
+	}
+	virtual const char* GetIsoAttachment() const{return NULL;}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	static void InsertLiveOrder(OrderSet& orderSet, Order* const& order)
+	{
+		if(order && !order->isDead())
+		{
+			orderSet.insert(order);
+		}
+	}
+	virtual void GetAlgoLiveOrders(OrderSet& orderSet) const override
+	{
+		InsertLiveOrder(orderSet, m_order);
+		InsertLiveOrder(orderSet, m_firmSplitOrder);
+		InsertLiveOrder(orderSet, m_splitOrder);
+	}
+	static void InsertOrder(OrderSet& orderSet, Order* const& order)
+	{
+		if(order)
+		{
+			orderSet.insert(order);
+		}
+	}
+	virtual void GetAlgoOrders(OrderSet& orderSet) const override
+	{
+		InsertOrder(orderSet, m_order);
+		InsertOrder(orderSet, m_firmSplitOrder);
+		InsertOrder(orderSet, m_splitOrder);
+	}
+/*
+	virtual const Order* GetAlgoSentOrder() const override{return m_order;}
+	virtual const Order* GetAlgoFirmSplitOrder() const override{return m_firmSplitOrder;}
+	virtual const Order* GetAlgoSplitOrder() const override{return m_splitOrder;}
+*/
+protected:
+	AlgorithmSendOrder(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,
+		unsigned int clientId,
+		unsigned int clientIdBeingReplaced,
+//		unsigned int clientIdOriginal,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+		const unsigned __int64& destinationId,
+		unsigned int destinationName,
+
+		char side,
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
+
+		unsigned char orderType,
+		unsigned short userOrderType,//usually should be 0
+		const char* userOrderInfo,//usually should be NULL
+		const Price& limitPrice,
+
+		const Price& discretionaryPrice,
+
+		unsigned char stopOrderType,
+		unsigned char stopOrderBase,
+		const Price& stopPrice,
+
+		const Price& level1Price,
+		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
+
+		unsigned int quantity,
+		unsigned int displayQuantity,
+		unsigned int reserveQuantity,
+
+//		bool proactive,
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+		unsigned int mnemonic,
+		bool dma,
+		bool imbalanceOnly,
+		bool iso,
+		bool aggressive,
+		unsigned int roundLot,
+		bool borrow,
+		unsigned char borrowConfirmMask,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
+		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
+		bool resizeShortToBorrowed,
+		bool preBorrow,
+		const Price& preBorrowPrice,
+		bool noRedirect,
+		bool closeOnly,
+		bool resizeToClose,
+//		bool proAts,
+		bool blockAggressiveOrders,
+		unsigned char roundLotPolicy,
+		unsigned char pegType,
+		const SignedPrice& pegOffset,
+
+		unsigned char tifType,
+		unsigned int tifMillisecond,
+		unsigned int parentId,
+		const unsigned __int64& userId,
+		bool useSecurityNotification);
+	AlgorithmSendOrder(const char*& fromString, bool useSecurityNotification);
+	void DoWriteCancel(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);//from account thread
+	void CancelAndReportErrorInMainThread(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);//from main thread
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) override;
+	virtual void NullifySecurity();
+	bool m_blockAggressiveOrders;
+//	bool m_preBorrow;
+//	Price m_preBorrowPrice;
+	Order* m_order;
+	Order* m_firmSplitOrder;
+	Order* m_splitOrder;
+	mutable unsigned int m_invalidateOrdinalOrderAlgorithm;
+	unsigned int m_updateOrdinalOrderAlgorithm;
+	unsigned int m_clientIdBeingReplaced;
+	bool m_algoCancelSentToMainThread;
+};
+
+class TD_API AlgorithmPostponed : public AlgorithmSendOrder
+{
+public:
+	AlgorithmPostponed(const Position* position,
+		unsigned int timeToActivate,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,//0 - none; ocoId to be used in the generated order(s)
+		unsigned int clientId,
+		unsigned int clientIdBeingReplaced,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+		const unsigned __int64& destinationId,
+		unsigned int destinationName,
+
+		char side,
+/*
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
+*/
+		unsigned char orderType,
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		const Price& limitPrice,
+		
+		const Price& discretionaryPrice,
+		unsigned char stopOrderType,
+		unsigned char stopOrderBase,
+		const Price& stopPrice,
+		
+		const Price& level1Price,
+		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
+
+		unsigned int quantity,
+		unsigned int displayQuantity,
+		unsigned int reserveQuantity,
+
+//		bool proactive,
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+		unsigned int mnemonic,
+		bool dma,
+		bool imbalanceOnly,
+		bool iso,
+		bool aggressive,
+		unsigned int roundLot,
+		bool borrow,
+		unsigned char borrowConfirmMask,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
+		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
+		bool resizeShortToBorrowed,
+		bool preBorrow,
+		const Price& preBorrowPrice,
+		bool noRedirect,
+		bool closeOnly,
+		bool resizeToClose,
+//		bool proAts,
+		bool blockAggressiveOrders,
+		unsigned char roundLotPolicy,
+		unsigned char pegType,
+		const SignedPrice& pegOffset,
+
+		char tifType,
+		unsigned int tifMillisecond,
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId);
+//		const char* isoAttachment);
+//	AlgorithmPostponed(const AlgorithmPostponed& other);
+	AlgorithmPostponed(const char*& fromString);
+//	virtual ~AlgorithmPostponed();
+//	AlgorithmPostponed& operator=(const AlgorithmPostponed& other);
+//	virtual char* toString(char* buf) const;
+//	virtual unsigned short GetAlgorithmSize() const;
+//	virtual const char* GetIsoAttachment() const override{return m_isoAttachment;}
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_POSTPONED;}
+	virtual bool isOrderVariation() const override{return true;}
+	virtual const char* GetAlgorithmName() const override{return "Post";}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	virtual bool isNotifyCancel() const override{return false;}
+	DECLARE_NED_NEW
+	virtual bool CanBeWashOrder() const override{return false;}
+	virtual void InThreadUpdate(unsigned short code, unsigned short eventCode) override;
+	virtual bool CanBeMadeGtc() const override{return Order::CanBeMadeGtc();}
+	virtual bool isGtc() const override{return Order::isGtc();}
+protected:
+//	virtual bool DoMakeGtc(bool gtc);
+//	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
+//	virtual void DoSecurityUpdate();
+	void DoSendOrder();
+};
+
+class TD_API AlgorithmGtc : public AlgorithmSendOrder
+{
+public:
+//	virtual ~AlgorithmGtc();
+//	AlgorithmGtc& operator=(const AlgorithmGtc& other);
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+//	virtual const char* GetIsoAttachment() const override{return m_isoAttachment;}
+//	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	virtual bool isNotifyCancel() const override{return false;}
+//	virtual bool CanBeMadeGtc() const{return false;}
+	virtual bool isGtc() const override{return true;}
+	virtual bool CanBeFired() const override;
+	virtual void Fire() override;//enum TifType
+	DECLARE_NED_NEW
+	virtual bool CanBeWashOrder() const override{return false;}
+	virtual void InThreadUpdate(unsigned short code, unsigned short eventCode) override;
+	virtual unsigned int GetGtcAlgoId() const override{return m_gtcAlgoId;}
+	virtual bool isWaiting() const override{return true;}
+	bool isPreBorrowDone() const;
+	virtual bool CanLimitPriceBeZero() const{return false;}
+	virtual bool CanBeReplaced() const override{return m_postponed;}
+	virtual unsigned char ReplacePriceAndSize(unsigned int* const& sendId,//output parameter; can be NULL
+		const bool& replaceNative,
+		const bool& marketOrder,
+		const SignedPrice& replacePriceOffset,
+		const bool& replacePriceOffsetPercent,
+		const int& replaceSizeOffset,
+		const bool& preBorrow,
+		const Price& preBorrowPrice,
+		const unsigned __int64& userId,
+		const unsigned char& displaySizeMode,//0 - size fraction, 1 - round lot, 2 - no change
+		const unsigned int& displaySize,
+		const unsigned int& displaySizeFraction,
+		const unsigned int& remainingSize,
+		const bool& swapLimitStop = false) override;
+protected:
+	AlgorithmGtc(const Position* position,
+		bool postponed,
+		bool initialized,
+		unsigned int timeToActivate,
+		unsigned int gtcAlgoId,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,//0 - none; ocoId to be used in the generated order(s)
+		unsigned int clientId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+//		unsigned int clientIdOriginal,
+		const unsigned __int64& destinationId,
+		unsigned int destinationName,
+
+		char side,
+/*
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
+*/
+		unsigned char orderType,
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		const Price& limitPrice,
+		
+		const Price& discretionaryPrice,
+		unsigned char stopOrderType,
+		unsigned char stopOrderBase,
+		const Price& stopPrice,
+		
+		const Price& level1Price,
+		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
+
+		unsigned int quantity,
+		unsigned int pendingQuantity,
+		unsigned int filledQuantity,
+		unsigned int displayQuantity,
+		unsigned int reserveQuantity,
+
+//		bool proactive,
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+		unsigned int mnemonic,
+		bool dma,
+		bool imbalanceOnly,
+		bool iso,
+		bool aggressive,
+		unsigned int roundLot,
+		bool borrow,
+		unsigned char borrowConfirmMask,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
+		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
+		bool resizeShortToBorrowed,
+		bool preBorrow,
+		const Price& preBorrowPrice,
+		bool noRedirect,
+		bool closeOnly,
+		bool resizeToClose,
+//		bool proAts,
+		bool blockAggressiveOrders,
+		unsigned char roundLotPolicy,
+		unsigned char pegType,
+		const SignedPrice& pegOffset,
+
+		char tifType,
+		unsigned int tifMillisecond,
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId);
+//		const char* isoAttachment);
+//	AlgorithmGtc(const AlgorithmGtc& other);
+	AlgorithmGtc(const char*& fromString);
+
+	virtual bool DoMakeGtc(bool gtc) override;
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) override;
+	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info) override;//in thread
+//	virtual void DoSecurityUpdate();
+	void StockRefreshed();
+	void AttemptSendingOrder();
+	void DoAttemptSendingOrder();
+
+	void SendOrder();
+	virtual void DoSendOrder() = 0;
+
+	void ProcessPreBorrowOrder();
+	void ProcessGtcOrder();
+	void ProcessGtcSplitOrder();
+	void ProcessGtcFirmSplitOrder();
+
+	void FireOrder()
+	{
+		if(m_pendingQuantity)DoFireOrder();
+	}
+
+	virtual void DoFireOrder() = 0;
+
+	virtual void GtcAlgoReplaced() = 0;
+
+	bool SendBorrow();
+
+	void PreBorrowDone();
+
+	Order* m_preBorrowOrder;
+//	Order* m_order;
+
+	unsigned int m_sizeToBorrow;
+	unsigned int m_sizeBorrowed;
+
+	bool m_borrowFailed;
+	bool m_stockLoaded;
+	bool m_initialized;
+
+	unsigned int m_gtcAlgoId;
+};
+
+class TD_API AlgorithmGtcOrder : public AlgorithmGtc
+{
+public:
+	AlgorithmGtcOrder(const Position* position,
+		bool postponed,
+		bool initialized,
+		unsigned int timeToActivate,
+		unsigned int gtcAlgoId,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,//0 - none; ocoId to be used in the generated order(s)
+		unsigned int clientId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+//		unsigned int clientIdOriginal,
+		const unsigned __int64& destinationId,
+		unsigned int destinationName,
+
+		char side,
+/*
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
+*/
+		unsigned char orderType,
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		const Price& limitPrice,
+		
+		const Price& discretionaryPrice,
+		unsigned char stopOrderType,
+		unsigned char stopOrderBase,
+		const Price& stopPrice,
+		
+		const Price& level1Price,
+		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
+
+		unsigned int quantity,
+		unsigned int pendingQuantity,
+		unsigned int filledQuantity,
+		unsigned int displayQuantity,
+		unsigned int reserveQuantity,
+
+//		bool proactive,
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+		unsigned int mnemonic,
+		bool dma,
+		bool imbalanceOnly,
+		bool iso,
+		bool aggressive,
+		unsigned int roundLot,
+		bool borrow,
+		unsigned char borrowConfirmMask,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
+		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
+		bool resizeShortToBorrowed,
+		bool preBorrow,
+		const Price& preBorrowPrice,
+		bool noRedirect,
+		bool closeOnly,
+		bool resizeToClose,
+//		bool proAts,
+		bool blockAggressiveOrders,
+		unsigned char roundLotPolicy,
+		unsigned char pegType,
+		const SignedPrice& pegOffset,
+
+		char tifType,
+		unsigned int tifMillisecond,
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId);
+//		const char* isoAttachment);
+//	AlgorithmGtc(const AlgorithmGtc& other);
+	AlgorithmGtcOrder(const char*& fromString);
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_GTC;}
+	virtual const char* GetAlgorithmName() const override{return "GTC";}
+protected:
+	virtual void DoFireOrder() override;
+	virtual void DoSendOrder() override;
+	virtual void GtcAlgoReplaced() override;
+};
+
+class TD_API AlgorithmGtcAlgoSpider : public AlgorithmGtc
+{
+public:
+	typedef std::set<unsigned int> UIntSet;
+	AlgorithmGtcAlgoSpider(const Position* position,
+		bool postponed,
+		bool initialized,
+		unsigned int timeToActivate,
+		unsigned int gtcAlgoId,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,//0 - none; ocoId to be used in the generated order(s)
+		unsigned int clientId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+
+//		const unsigned __int64& destinationId,
+//		unsigned int destinationName,
+
+		char side,
+/*
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
+*/
+//		unsigned char orderType,
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		const Price& limitPrice,
+		
+//		const Price& discretionaryPrice,
+//		unsigned char stopOrderType,
+//		unsigned char stopOrderBase,
+//		const Price& stopPrice,
+		
+//		const Price& level1Price,
+//		const Price& level1SameSidePrice,
+//		const Price& lastPrintPrice,
+
+		unsigned int quantity,
+		unsigned int pendingQuantity,
+		unsigned int filledQuantity,
+		unsigned int displayQuantity,
+		unsigned int reserveQuantity,
+
+		bool proactive,
+
+		bool hideSlowQuotes,
+		bool excludeDestinations,
+		const UIntSet& destinationSet,
+		const UIntSet& filterSet,
+
+/*
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+		unsigned int mnemonic,
+		bool dma,
+*/
+//		bool imbalanceOnly,
+//		bool iso,//!proactive
+//		bool aggressive,
+		unsigned int roundLot,
+//		bool borrow,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
+		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
+		bool resizeShortToBorrowed,
+		bool preBorrow,
+		const Price& preBorrowPrice,
+		bool noRedirect,
+		bool closeOnly,
+		bool resizeToClose,
+		bool blockAggressiveOrders,
+		unsigned char roundLotPolicy,
+		unsigned char pegType,
+		const SignedPrice& pegOffset,
+
+//		char tifType,
+//		unsigned int tifMillisecond,
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId);
+//	AlgorithmGtcAlgoSpider(const AlgorithmGtcAlgoSpider& other);
+	AlgorithmGtcAlgoSpider(const char*& fromString);
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_GTC_ALGO_SPIDER;}
+	virtual const char* GetAlgorithmName() const override{return "GTCspdr";}
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	const bool& isHideSlowQuotes() const{return m_hideSlowQuotes;}
+	const bool& isExcludeDestinations() const{return m_excludeDestinations;}
+	const UIntSet& GetDestinationSet() const{return m_destinationSet;}
+	const UIntSet& GetFilterSet() const{return m_filterSet;}
+	virtual bool CanLimitPriceBeZero() const{return true;}
+protected:
+	virtual void DoSendOrder() override;
+	virtual void DoFireOrder() override;
+	virtual void GtcAlgoReplaced() override;
+	bool m_hideSlowQuotes;
+	bool m_excludeDestinations;
+
+	bool m_spiderSent;
+
+	UIntSet m_destinationSet;
+	UIntSet m_filterSet;
+};
+
+class TD_API TakionAlgorithm : public AlgorithmSendOrder
 {
 public:
 	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
@@ -10837,22 +15679,32 @@ public:
 	virtual void EndAlgorithmInThread();
 	virtual char* toString(char* buf) const;
 	virtual unsigned short GetAlgorithmSize() const;
-	virtual void WriteOrderCancelToMainThread();
+//	virtual void WriteOrderCancelToMainThread(bool deleteUntradedPosition = false) override;
 
-	bool isPreBorrow() const{return m_preBorrow;}
-	void SetPreBorrow(bool preBorrow){m_preBorrow = preBorrow;}
-	unsigned int GetSizeToBorrow() const{return m_sizeToBorrow;}
-	void SetSizeToBorrow(unsigned int size){m_sizeToBorrow = size;}
-	const Price& GetPreBorrowPrice() const{return m_preBorrowPrice;}//price in cents
-	void SetPreBorrowPrice(const Price& preBorrowPrice){m_preBorrowPrice = preBorrowPrice;}//price in cents
+	const unsigned int& GetSizeToBorrow() const{return m_sizeToBorrow;}
+	void SetSizeToBorrow(const unsigned int& size){m_sizeToBorrow = size;}
+	virtual bool isPreBorrowDone() const;
 protected:
 	TakionAlgorithm(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
 		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,
 		unsigned int clientId,
-		unsigned int destinationId,
+		unsigned int clientIdBeingReplaced,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+		const unsigned __int64& destinationId,
 		unsigned int destinationName,
 
 		char side,
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
 
 		unsigned char orderType,
 		unsigned short userOrderType,
@@ -10863,10 +15715,11 @@ protected:
 
 		unsigned char stopOrderType,
 		unsigned char stopOrderBase,
-		const SignedPrice& stopPrice,
+		const Price& stopPrice,
 
 		const Price& level1Price,
 		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
 
 		unsigned int quantity,
 		unsigned int displayQuantity,
@@ -10878,10 +15731,11 @@ protected:
 		unsigned int mnemonic,
 
 //		bool proactive,
+		bool imbalanceOnly,
 		bool iso,
 		bool aggressive,
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool preBorrow,//XX
@@ -10889,7 +15743,7 @@ protected:
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 
@@ -10901,23 +15755,35 @@ protected:
 		unsigned int parentId,// = 0,
 		const unsigned __int64& userId,// = 0);
 		bool useSecurityNotification,//XX
-		unsigned int preBorrowSize);
+		unsigned int preBorrowSize,
+		bool observePosition = true);
 
 	TakionAlgorithm(const char*& fromString, bool useSecurityNotification);
 //	virtual void DoSendOrder(){}
 
-	bool GetBorrowPrice(Price& loanPrice) const;
-	void DoWriteCancel(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);//from account thread
-	void CancelAndReportErrorInMainThread(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);//from main thread
+//	bool GetBorrowPrice(Price& loanPrice) const;
+//	void DoWriteCancel(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);//from account thread
+//	void CancelAndReportErrorInMainThread(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);//from main thread
+
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
 
 	bool SendBorrow();
 
-	bool m_blockAggressiveOrders;
-	bool m_preBorrow;
+	void ProcessPreBorrowOrder();
+
+	virtual void PreBorrowDone(){}
+
+	virtual void AllOrdersCanceled() override;
+
+//	bool m_blockAggressiveOrders;
 	Order* m_preBorrowOrder;
-	Price m_preBorrowPrice;
+//	bool m_preBorrow;
+//	Price m_preBorrowPrice;
 	unsigned int m_sizeToBorrow;
 	unsigned int m_sizeBorrowed;
+	bool m_borrowFailed;
+
+	bool m_observePosition;
 };
 
 class TD_API AlgorithmPreBorrow : public TakionAlgorithm
@@ -10925,12 +15791,21 @@ class TD_API AlgorithmPreBorrow : public TakionAlgorithm
 public:
 	AlgorithmPreBorrow(const Position* position,
 		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,//0 - none; ocoId to be used in the generated order(s)
 		unsigned int clientId,
+		unsigned int clientIdBeingReplaced,
 //		unsigned int clientIdOriginal,
-		unsigned int destinationId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+		const unsigned __int64& destinationId,
 		unsigned int destinationName,
 
 		char side,
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
 
 		unsigned char orderType,
 		unsigned short userOrderType,
@@ -10940,10 +15815,11 @@ public:
 		const Price& discretionaryPrice,
 		unsigned char stopOrderType,
 		unsigned char stopOrderBase,
-		const SignedPrice& stopPrice,
+		const Price& stopPrice,
 		
 		const Price& level1Price,
 		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
 
 		unsigned int quantity,
 		unsigned int displayQuantity,
@@ -10954,17 +15830,18 @@ public:
 		unsigned short routingSubType,
 		unsigned int routingName,
 		unsigned int mnemonic,
+		bool imbalanceOnly,
 		bool iso,
 		bool aggressive,
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		const Price& preBorrowPrice,
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 		unsigned char pegType,
@@ -10980,21 +15857,28 @@ public:
 	AlgorithmPreBorrow(const char*& fromString);
 	virtual ~AlgorithmPreBorrow();
 	AlgorithmPreBorrow& operator=(const AlgorithmPreBorrow& other);
-	virtual OrderAlgorithm* CloneAlgorithm() const;
-	virtual unsigned int GetAlgorithmId() const{return TOA_PRE_BORROW;}
-	virtual const char* GetAlgorithmName() const{return "PreBorrow";}
-	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
-	virtual void EndAlgorithm();
-	virtual void EndAlgorithmInThread();
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_PRE_BORROW;}
+	virtual const char* GetAlgorithmName() const override{return "PreBorrow";}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	virtual bool CanShowInPosMan() const override{return false;}
 	DECLARE_NED_NEW
-	virtual char* toString(char* buf) const;
-	virtual unsigned short GetAlgorithmSize() const;
+	virtual bool CanBeWashOrder() const override{return false;}
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
 //	virtual void WriteOrderCancelToMainThread();
-	const char* const& GetIsoAttachment() const{return m_isoAttachment;}
+	virtual const char* GetIsoAttachment() const override{return m_isoAttachment;}
 //	const unsigned short& GetIsoAttachmentLength() const{return m_isoAttachmentLength;}
+//	const unsigned int& GetOco() const{return m_oco;}
+	virtual void InThreadUpdate(unsigned short code, unsigned short eventCode) override;
+	virtual bool isPreBorrowDone() const override;
 protected:
-	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) override;
 	void DoSendOrder();
+	virtual void PreBorrowDone() override;
+//	virtual void StockRefreshed override();
 /*
 	Order* m_preBorrowOrder;
 	Price m_preBorrowPrice;
@@ -11003,16 +15887,13 @@ protected:
 */
 	char* m_isoAttachment;
 //	unsigned short m_isoAttachmentLength;
+//	unsigned int m_oco;
+//	bool m_preborrowDone;
 };
 
 class TD_API TakionOrderAlgorithm : public TakionAlgorithm
 {
 public:
-	void SetUpdated();
-	bool isUpdated(unsigned int updateOrdinal) const;
-	unsigned int GetInvalidateOrdinalOrderAlgorithm() const{return m_invalidateOrdinalOrderAlgorithm;}
-	unsigned int GetUpdateOrdinalOrderAlgorithm() const{return m_updateOrdinalOrderAlgorithm;}
-	void WriteUpdateMessageToMainThread();
 //	virtual void WriteOrderCancelToMainThread();
 	unsigned int GetLastExecutionMillisecond() const{return m_lastExecutionMillisecond;}
 	virtual char* toString(char* buf) const;
@@ -11023,12 +15904,27 @@ public:
 //	virtual unsigned int GetTotalSize() const{return m_quantity;}
 protected:
 	TakionOrderAlgorithm(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+
+		unsigned int sendId,
 //		unsigned int traderId,
 //		unsigned int clientId,
-		unsigned int destinationId,
+		unsigned int ocoId,
+		unsigned int clientIdBeingReplaced,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+		const unsigned __int64& destinationId,
 		unsigned int destinationName,
 
 		char side,
+#ifdef FIRM_VALUES
+		char firmSide,
+#endif
 
 		unsigned char orderType,
 		unsigned short userOrderType,
@@ -11039,10 +15935,11 @@ protected:
 
 		unsigned char stopOrderType,
 		unsigned char stopOrderBase,
-		const SignedPrice& stopPrice,
+		const Price& stopPrice,
 
 		const Price& level1Price,
 		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
 
 		unsigned int quantity,
 		unsigned int displayQuantity,
@@ -11057,7 +15954,7 @@ protected:
 		bool iso,
 		bool aggressive,
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool preBorrow,
@@ -11065,7 +15962,7 @@ protected:
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 
@@ -11080,9 +15977,9 @@ protected:
 		unsigned int preBorrowSize);
 
 	TakionOrderAlgorithm(const char*& fromString, bool useSecurityNotification);
-	bool OrderExecuted(Order* order, unsigned int executionFilledQuantity, const Price& price, unsigned int lastExecutionMillisecond);
-	unsigned int m_invalidateOrdinalOrderAlgorithm;
-	unsigned int m_updateOrdinalOrderAlgorithm;
+	virtual void NullifySecurity();
+	virtual void StockRefreshed();
+	bool OrderExecuted(const Order* order, unsigned int executionFilledQuantity, const Price& price, unsigned int lastExecutionMillisecond);
 	unsigned int m_lastExecutionMillisecond;
 /*
 	bool m_preBorrow;
@@ -11092,30 +15989,55 @@ protected:
 	unsigned int m_sizeBorrowed;
 */
 	unsigned int m_realQuantity;
+	bool m_stockLoaded;
 
-	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
+//	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
 	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info);//in thread
-	virtual void PreBorrowDone(){}
-	void DoSendOrder();
+
+//	void DoSendOrder();
+	virtual void PreBorrowDone() override;
 };
 
 class TD_API AlgorithmSwipe : public TakionOrderAlgorithm
 {
 public:
 	typedef std::set<unsigned int> UIntSet;
+#if (_MSC_VER > 1600)
+	typedef std::unordered_map<TradedQuote, unsigned int, TakionHashValue<TradedQuote> > TradedQuoteMap;
+	typedef std::unordered_set<unsigned int> MmidSet;
+#else
 	typedef std::hash_map<TradedQuote, unsigned int> TradedQuoteMap;
-	virtual ~AlgorithmSwipe();
-	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
-	virtual void EndAlgorithm();
-	virtual void EndAlgorithmInThread();
-	unsigned int CalculateFloatingLimitPrice() const;
-	virtual char* toString(char* buf) const;
-	virtual unsigned short GetAlgorithmSize() const;
-	virtual bool SecurityMustBeLoaded() const{return true;}
 	typedef std::hash_set<unsigned int> MmidSet;
-	typedef std::hash_set<Order*> OrderSet;
+#endif
+	virtual ~AlgorithmSwipe();
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	unsigned int CalculateFloatingLimitPrice() const;
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	virtual bool SecurityMustBeLoaded() const override{return true;}
+	virtual bool isQuoteOrder() const override{return m_useSecurityNotification || m_postponed;}
+	virtual void InThreadUpdate(unsigned short code, unsigned short eventCode) override;
+	virtual unsigned char GetAlgorithmMask() const override{return 1 << ALGORITHMMASK_LIMIT;}
+	OrderSet::const_iterator FindLiveOrder(const Observable* from) const;
+	const bool& isHideSlowQuotes() const{return m_hideSlowQuotes;}
+	const bool& isExcludeDestinations() const{return m_excludeDestinations;}
+	const UIntSet& GetDestinationSet() const{return m_destinationSet;}
+	const UIntSet& GetFilterSet() const{return m_filterSet;}
+	virtual bool CanBeReplaced() const override{return m_useSecurityNotification;}
 protected:
 	AlgorithmSwipe(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+
+		unsigned int sendId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
 		unsigned int destinationName,
 
 		char side,
@@ -11136,7 +16058,7 @@ protected:
 		unsigned int routingName,
 
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool preBorrow,
@@ -11144,7 +16066,7 @@ protected:
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 
@@ -11157,7 +16079,7 @@ protected:
 		unsigned int tifMillisecond,
 
 		bool postRemainder,
-		unsigned int postDestination,
+		const unsigned __int64& postDestinationId,
 		unsigned int postDestinationName,
 		unsigned int postRoutingName,
 		unsigned short postRoutingId,
@@ -11175,17 +16097,21 @@ protected:
 
 	AlgorithmSwipe(const char*& fromString, bool spider);
 
+	void UpdateStockOpen();
+
+	virtual void UpdateMarketDataEntitlements() override;//Called only from account thread
+	virtual void StockRefreshed() override;
 //	void DoWriteCancel(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);
-	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) override;
 //	bool CanGrabQuote(const MsgQuote& quote, bool bidQuote) const;
 	bool CanGrabQuote(unsigned char source, unsigned char bookId, const Price& price, unsigned int mmid, unsigned char quoteCondition, bool bidQuote) const;
-	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const;
-	virtual void DoSecurityUpdate();
-	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL);
+	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const override;
+	virtual void DoSecurityUpdate() override;
+	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL) override;
 	void InitializeFloatingLimitPrice();
 	virtual void StartSwiping();
 	virtual void Swipe(){}
-	virtual void PreBorrowDone();
+	virtual void PreBorrowDone() override;
 	TakionIterator* m_quoteIterator;
 	bool m_bypassedQuote;
 	bool m_nasdaq;
@@ -11198,8 +16124,10 @@ protected:
 	TradedQuoteMap m_currentOrderQuotes;
 	MmidSet m_rejectedMmids;
 
+	bool m_stockOpen;
+
 	bool m_postRemainder;
-	unsigned int m_postDestination;
+	unsigned __int64 m_postDestinationId;
 	unsigned int m_postDestinationName;
 	unsigned int m_postRoutingName;
 	unsigned short m_postRoutingId;
@@ -11208,7 +16136,6 @@ protected:
 	unsigned char m_postTifType;
 	unsigned int m_postTif;
 	bool m_postRemainderOnIsoViolation;
-
 	unsigned int m_floatingLimitPriceCompact;
 
 	OrderSet m_liveOrders;
@@ -11221,7 +16148,15 @@ public:
 //	typedef std::set<unsigned int> UIntSet;
 //	typedef std::hash_map<TradedQuote, unsigned int> TradedQuoteMap;
 	AlgorithmSmartSwipe(const Position* position,
-//		unsigned int destinationId,
+		bool postponed,
+		unsigned int timeToActivate,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
+
+		unsigned int sendId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
 
 		char side,
 
@@ -11245,7 +16180,7 @@ public:
 //		bool proactive,
 //		bool iso,
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool preBorrow,
@@ -11253,7 +16188,7 @@ public:
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 
@@ -11266,7 +16201,7 @@ public:
 		unsigned int tifMillisecond,
 
 		bool postRemainder,
-		unsigned int postDestination,
+		const unsigned __int64& postDestinationId,
 		unsigned int postDestinationName,
 		unsigned int postRoutingName,
 		unsigned short postRoutingId,
@@ -11282,50 +16217,48 @@ public:
 		unsigned int preBorrowSize);// = 0);
 	AlgorithmSmartSwipe(const char*& fromString, bool spider);
 //	virtual ~AlgorithmSmartSwipe();
-	virtual OrderAlgorithm* CloneAlgorithm() const;
-	virtual const char* GetAlgorithmName() const{return m_useSecurityNotification ? "Spider" : "SmartSwipe";}
-	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
-	virtual void EndAlgorithm();
-	virtual void EndAlgorithmInThread();
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual const char* GetAlgorithmName() const override{return m_useSecurityNotification ? "Spider" : "SmartSwipe";}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
 	DECLARE_NED_NEW
 //	unsigned int CalculateFloatingLimitPrice() const;
-	virtual char* toString(char* buf) const;
-	virtual unsigned short GetAlgorithmSize() const;
-	virtual unsigned int GetAlgorithmId() const{return m_useSecurityNotification ? TOA_SPIDER_SWIPE : TOA_SMART_SWIPE;}
-//	virtual bool SecurityMustBeLoaded() const{return true;}
-//	typedef std::hash_set<unsigned int> MmidSet;
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	virtual unsigned int GetAlgorithmId() const override{return m_useSecurityNotification ? TOA_SPIDER_SWIPE : TOA_SMART_SWIPE;}
+	virtual bool isGtc() const override{return m_useSecurityNotification && TIF_GTC == m_tifType;}
+	virtual bool CanBeMadeGtc() const override{return m_useSecurityNotification && TIF_GTC != m_tifType;}
+//	virtual bool CanBeReplaced() const override{return m_useSecurityNotification;}
+	virtual unsigned char ReplacePriceAndSize(unsigned int* const& sendId,//output parameter; can be NULL
+		const bool& replaceNative,
+		const bool& marketOrder,
+		const SignedPrice& replacePriceOffset,
+		const bool& replacePriceOffsetPercent,
+		const int& replaceSizeOffset,
+		const bool& preBorrow,
+		const Price& preBorrowPrice,
+		const unsigned __int64& userId,
+		const unsigned char& displaySizeMode,//0 - size fraction, 1 - round lot, 2 - no change
+		const unsigned int& displaySize,
+		const unsigned int& displaySizeFraction,
+		const unsigned int& remainingSize,
+		const bool& swapLimitStop = false) override;
 protected:
-//	void DoWriteCancel(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);
-//	bool CanGrabQuote(const MsgQuote& quote, bool bidQuote) const;
-//	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const;
-//	virtual void DoSecurityUpdate();
-//	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL);
-//	void InitializeFloatingLimitPrice();
-//	virtual void StartSwiping();
-	virtual void Swipe();
-//	virtual void PreBorrowDone();
-//	Order* m_order;
-//	Order* m_orderSplit;
-//	TakionIterator* m_quoteIterator;
-/*
-	bool m_bypassedQuote;
-	bool m_nasdaq;
-	bool m_hideSlowQuotes;
-	bool m_blockAggressiveOrders;
-	bool m_excludeDestinations;
-	UIntSet m_destinationSet;
-	UIntSet m_filterSet;
-	TradedQuoteMap m_tradedQuotes;
-	TradedQuoteMap m_currentOrderQuotes;
-	MmidSet m_rejectedMmids;
-*/
-//	unsigned int m_floatingLimitPriceCompact;
+	virtual void Swipe() override;
+	bool m_spiderWaitingForQuotes;
 };
 
 class TD_API AlgorithmDumbSwipe : public AlgorithmSwipe//TakionOrderAlgorithm
 {
 public:
 	AlgorithmDumbSwipe(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+		unsigned int sendId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
 
 		char side,
 
@@ -11345,7 +16278,7 @@ public:
 		unsigned int routingName,
 
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool preBorrow,
@@ -11353,7 +16286,7 @@ public:
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 
@@ -11366,7 +16299,7 @@ public:
 		unsigned int tifMillisecond,
 
 		bool postRemainder,
-		unsigned int postDestination,
+		const unsigned __int64& postDestinationId,
 		unsigned int postDestinationName,
 		unsigned int postRoutingName,
 		unsigned short postRoutingId,
@@ -11381,21 +16314,21 @@ public:
 		bool spider,
 		unsigned int preBorrowSize);// = 0);
 	AlgorithmDumbSwipe(const char*& fromString, bool spider);
-	virtual OrderAlgorithm* CloneAlgorithm() const;
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
 //	virtual const char* GetAlgorithmName() const{return m_useSecurityNotification ? "Spider" : "SmartSwipe";}
-	virtual const char* GetAlgorithmName() const{return "DumbSwipe";}
-	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
-	virtual void EndAlgorithm();
-	virtual void EndAlgorithmInThread();
+	virtual const char* GetAlgorithmName() const override{return m_reiterate ? "DumbSwipeRE" : "DumbSwipe";}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
 	DECLARE_NED_NEW
-	virtual char* toString(char* buf) const;
-	virtual unsigned short GetAlgorithmSize() const;
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
 //	virtual unsigned int GetAlgorithmId() const{return m_useSecurityNotification ? TOA_SPIDER_SWIPE : TOA_SMART_SWIPE;}
-	virtual unsigned int GetAlgorithmId() const{return TOA_DUMB_SWIPE;}
-	bool isReiterate() const{return m_reiterate;}
-	void SetReiterate(bool reiterate){m_reiterate = reiterate;}
+	virtual unsigned int GetAlgorithmId() const override{return TOA_DUMB_SWIPE;}
+	const bool& isReiterate() const{return m_reiterate;}
+	void SetReiterate(const bool& reiterate){m_reiterate = reiterate;}
 protected:
-	virtual void Swipe();
+	virtual void Swipe() override;
 	bool m_reiterate;
 };
 
@@ -11403,6 +16336,12 @@ class TD_API AlgorithmMegaSwipe : public AlgorithmSwipe//TakionOrderAlgorithm
 {
 public:
 	AlgorithmMegaSwipe(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+		unsigned int sendId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
 
 		char side,
 
@@ -11422,7 +16361,7 @@ public:
 		unsigned int routingName,
 
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool preBorrow,
@@ -11430,7 +16369,275 @@ public:
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
+		bool blockAggressiveOrders,
+		unsigned char roundLotPolicy,
+
+		unsigned char pegType,
+		const SignedPrice& pegOffset,
+
+		bool hideSlowQuotes,
+
+		char tifType,
+		unsigned int tifMillisecond,
+
+		bool postRemainder,
+		const unsigned __int64& postDestinationId,
+		unsigned int postDestinationName,
+		unsigned int postRoutingName,
+		unsigned short postRoutingId,
+		unsigned short postRoutingSubType,
+		unsigned int postMnemonic,
+		unsigned char postTifType,
+		unsigned int postTif,
+		bool postRemainderOnIsoViolation,
+
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId,
+		bool spider,
+		unsigned int preBorrowSize);// = 0);
+	AlgorithmMegaSwipe(const char*& fromString, bool spider);
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual const char* GetAlgorithmName() const override{return "MegaSwipe";}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
+	DECLARE_NED_NEW
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_MEGA_SWIPE;}
+	virtual unsigned int GetAlgorithmQuantity() const override{return m_quantity * m_orderToSendCount;}
+protected:
+	virtual void Swipe() override;
+	unsigned int m_orderToSendCount;
+};
+
+#ifndef TAKION_NO_OPTIONS
+
+class TD_API AlgorithmMultipleOptionsBase : public UnderlierAlgorithm//TakionOrderAlgorithm
+{
+public:
+	virtual bool isMarketOrder() const
+	{
+		switch(m_orderType)
+		{
+			case ORDER_TYPE_MARKET:
+			case ORDER_TYPE_STOP:
+			return true;
+
+			default:
+			return false;
+		}
+	}
+	virtual bool CanBeWashOrder() const override{return false;}
+
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+
+	virtual const char* GetSymbol() const override{return (const char*)&m_numericSymbol;}
+	virtual const unsigned __int64& GetNumericSymbol() const override{return m_numericSymbol;}
+	virtual SecurityType GetSecurityType() const override{return ST_OPTION;}
+	virtual const unsigned __int64& GetUnderlierNumericSymbol() const override{return m_underlier ? m_underlier->GetNumericSymbol() : uint64Zero;}
+	bool isInventoryView() const{return m_inventoryView;}
+	virtual void WriteOrderCancelToMainThread(bool deleteUntradedPosition = false) override;
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+protected:
+	AlgorithmMultipleOptionsBase(char side,
+		int positionSize,
+		unsigned int quantity,
+		const Price& orderBasePrice,
+		const Price& orderPrice,
+		const Price& limitPrice,
+		const Price& stopPrice,
+		const Price& discretionaryPrice,
+
+		const unsigned __int64& destinationId,
+		unsigned int destinationName,
+
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+
+		unsigned int mnemonic,
+
+		unsigned int sprayCount,
+		int spraySizeOffset,
+		const SignedPrice& sprayPriceOffset,
+
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		unsigned int sendId,
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId,
+
+		const unsigned __int64& numericSymbol,
+		unsigned int expirationDate,
+		unsigned int strikePrice,
+
+		unsigned int optionStrikeCountUp,
+		unsigned int optionStrikeCountDown,
+		unsigned int optionExpirationCountUp,
+		unsigned int optionExpirationCountDown,
+
+		bool call,
+
+		bool sprayPriceOffsetPercent,
+		bool inventoryView,
+		bool useNoPrintPrice,
+		unsigned char priceBase,
+		unsigned char priceBaseIfNoPrint,
+		unsigned char stopOrderType,
+		unsigned char stopOrderBase,
+		bool blockAggressiveOrders);
+	AlgorithmMultipleOptionsBase(const char*& fromString);
+
+	virtual bool PreProcessUnderlierNotification(const Message* message, const Message* info = NULL) override;
+
+	unsigned __int64 m_numericSymbol;
+	unsigned int m_expirationDate;
+	unsigned int m_strikePrice;
+
+	int m_positionSize;
+	Price m_orderBasePrice;
+	Price m_orderPrice;
+//	Price m_discretionaryPrice;
+
+	unsigned int m_sprayCount;
+	int m_spraySizeOffset;
+	SignedPrice m_sprayPriceOffset;
+
+	unsigned int m_optionStrikeCountUp;
+	unsigned int m_optionStrikeCountDown;
+	unsigned int m_optionExpirationCountUp;
+	unsigned int m_optionExpirationCountDown;
+
+	bool m_call;
+
+	bool m_sprayPriceOffsetPercent;
+	bool m_inventoryView;
+	bool m_useNoPrintPrice;
+	unsigned char m_priceBase;
+	unsigned char m_priceBaseIfNoPrint;
+	bool m_blockAggressiveOrders;
+};
+
+class TD_API AlgorithmMultipleOptions : public AlgorithmMultipleOptionsBase//UnderlierAlgorithm//TakionOrderAlgorithm
+{
+public:
+	AlgorithmMultipleOptions(char side,
+		int positionSize,
+		unsigned int quantity,
+		const Price& orderBasePrice,
+		const Price& orderPrice,
+		const Price& limitPrice,
+		const Price& stopPrice,
+		const Price& discretionaryPrice,
+
+		const unsigned __int64& destinationId,
+		unsigned int destinationName,
+
+		unsigned short routingId,
+		unsigned short routingSubType,
+		unsigned int routingName,
+
+		unsigned int mnemonic,
+
+		unsigned int sprayCount,
+		int spraySizeOffset,
+		const SignedPrice& sprayPriceOffset,
+
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		unsigned int sendId,
+		unsigned int parentId,// = 0,
+		const unsigned __int64& userId,
+
+		const unsigned __int64& numericSymbol,
+		unsigned int expirationDate,
+		unsigned int strikePrice,
+
+		unsigned int optionStrikeCountUp,
+		unsigned int optionStrikeCountDown,
+		unsigned int optionExpirationCountUp,
+		unsigned int optionExpirationCountDown,
+
+		bool call,
+
+		bool sprayPriceOffsetPercent,
+		bool inventoryView,
+		bool useNoPrintPrice,
+		unsigned char priceBase,
+		unsigned char priceBaseIfNoPrint,
+		unsigned char stopOrderType,
+		unsigned char stopOrderBase,
+		bool blockAggressiveOrders);
+	AlgorithmMultipleOptions(const char*& fromString);
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual const char* GetAlgorithmName() const override{return "+Option";}
+//	virtual void EndAlgorithm() override;
+//	virtual void EndAlgorithmInThread() override;
+	DECLARE_NED_NEW
+//	virtual bool isQuoteOrder() const{return HasPrice();}
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_PLUS_OPTION;}
+
+protected:
+//	virtual void NullifySecurity();
+//	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
+//	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const;
+//	virtual void DoSecurityUpdate();
+//	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL);
+
+//	void DoSendOrder();
+	virtual void OnUnderlierLoaded() override;
+
+	void SendOneOptionOrder(const Security* const option,
+		const char fixSide,
+		const unsigned int absPositionSize,
+		const unsigned int closePositionSize,
+		const unsigned int openPositionSize,
+		std::string& isoAttachment);
+
+//	const Underlier* m_underlier;
+};
+/*
+class TD_API AlgorithmSwipeMultipleOptions : public AlgorithmMultipleOptionsBase
+{
+public:
+	typedef std::set<unsigned int> UIntSet;
+	AlgorithmSwipeMultipleOptions(const Position* position,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+
+		char side,
+
+		unsigned short userOrderType,
+		const char* userOrderInfo,
+		const Price& limitPrice,
+
+		unsigned int quantity,
+		unsigned int displayQuantity,
+		unsigned int reserveQuantity,
+
+		bool excludeDestinations,
+		const UIntSet& destinationSet,
+		const UIntSet& filterSet,
+
+		unsigned short routingId,
+		unsigned int routingName,
+
+		unsigned int roundLot,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
+		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
+		bool resizeShortToBorrowed,
+		bool preBorrow,
+		const Price& preBorrowPrice,
+		bool noRedirect,
+		bool closeOnly,
+		bool resizeToClose,
+//		bool proAts,
 		bool blockAggressiveOrders,
 		unsigned char roundLotPolicy,
 
@@ -11457,100 +16664,196 @@ public:
 		const unsigned __int64& userId,
 		bool spider,
 		unsigned int preBorrowSize);// = 0);
-	AlgorithmMegaSwipe(const char*& fromString, bool spider);
+	AlgorithmSwipeMultipleOptions(const char*& fromString, bool spider);
+//	virtual ~AlgorithmSmartSwipe();
 	virtual OrderAlgorithm* CloneAlgorithm() const;
-	virtual const char* GetAlgorithmName() const{return "MegaSwipe";}
+	virtual const char* GetAlgorithmName() const{return m_spider ? "+OpSpider" : "+OpSmartSwipe";}
 	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
 	virtual void EndAlgorithm();
 	virtual void EndAlgorithmInThread();
 	DECLARE_NED_NEW
+//	unsigned int CalculateFloatingLimitPrice() const;
 	virtual char* toString(char* buf) const;
 	virtual unsigned short GetAlgorithmSize() const;
-	virtual unsigned int GetAlgorithmId() const{return TOA_MEGA_SWIPE;}
-	virtual unsigned int GetAlgorithmQuantity() const{return m_quantity * m_orderToSendCount;}
+	virtual unsigned int GetAlgorithmId() const{return TOA_PLUS_OPTION_SWIPE;}//m_spider ? TOA_SPIDER_SWIPE : TOA_SMART_SWIPE;}
+//	virtual bool SecurityMustBeLoaded() const{return true;}
+//	typedef std::hash_set<unsigned int> MmidSet;
 protected:
-	virtual void Swipe();
-	unsigned int m_orderToSendCount;
+//	void DoWriteCancel(unsigned char errorCode, const Money& moneyValue, const Money& moneyConstraint, unsigned int uintValue, unsigned int uintConstraint);
+//	bool CanGrabQuote(const MsgQuote& quote, bool bidQuote) const;
+//	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const;
+//	virtual void DoSecurityUpdate();
+//	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL);
+//	void InitializeFloatingLimitPrice();
+//	virtual void StartSwiping();
+
+//	virtual void Swipe();
+
+//	virtual void PreBorrowDone();
+//	Order* m_order;
+//	Order* m_orderSplit;
+//	TakionIterator* m_quoteIterator;
+
+//	bool m_bypassedQuote;
+//	bool m_nasdaq;
+//	bool m_hideSlowQuotes;
+//	bool m_blockAggressiveOrders;
+//	bool m_excludeDestinations;
+//	UIntSet m_destinationSet;
+//	UIntSet m_filterSet;
+//	TradedQuoteMap m_tradedQuotes;
+//	TradedQuoteMap m_currentOrderQuotes;
+//	MmidSet m_rejectedMmids;
+
+//	unsigned int m_floatingLimitPriceCompact;
+	bool m_spider;
 };
+*/
+#endif
 
 class TD_API AlgorithmTrigger : public TakionOrderAlgorithm
 {
 public:
 	AlgorithmTrigger(const Position* position,
+		bool postponed,
+		unsigned int timeToActivate,
+		unsigned int timeToExpire,
+		unsigned int sendId,
+		unsigned int ocoId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
 		char side,
 		unsigned short userOrderType,
 		const char* userOrderInfo,
 //		unsigned char orderType,
-		const SignedPrice& stopPrice,
+		const Price& stopPrice,
 		char tifType,
 		unsigned int tifMillisecond,
 		unsigned int tierSize,
 		unsigned int parentId,// = 0,
 		const unsigned __int64& userId,
 		unsigned char triggerType,
+		bool triggerWhenNoLiveOrders,
 		bool mustSubscribe,
 		bool resetPrintSize,
-		unsigned __int64 printSize,
+		const unsigned __int64& printSize,
+		bool trailing,
 		bool closeOnly,
 		bool passiveOnly,
+		bool blockAggressiveOrders,
+		bool triggerOnConditionPreMet,
+		bool inventoryView,
 		int count,
+
+		bool displayNote,
+		COLORREF noteColor,
+		const char* note,
+
 		const char* commandName);
+
 	AlgorithmTrigger(const char*& fromString);
 	virtual ~AlgorithmTrigger();
 	static const char* const triggerVenue;
-	virtual OrderAlgorithm* CloneAlgorithm() const;
-	virtual const char* GetAlgorithmName() const{return "Trigger";}
-	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
-	virtual void EndAlgorithm();
-	virtual void EndAlgorithmInThread();
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
+	virtual const char* GetAlgorithmName() const override{return "Trigger";}
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
 	DECLARE_NED_NEW
-	virtual char* toString(char* buf) const;
-	virtual unsigned short GetAlgorithmSize() const;
-	virtual unsigned int GetAlgorithmId() const{return TOA_TRIGGER;}
-	virtual bool SecurityMustBeLoaded() const{return true;}
-	virtual bool isQuantityValid() const{return true;}
-	virtual bool isPriceValid() const;
-	virtual void ProcessMainThreadNotification(unsigned short code);
+	virtual bool CanBeWashOrder() const override{return false;}
+	virtual bool isQuoteOrder() const override{return HasPrice();}//isPriceValid();}
+	virtual bool HasDirection() const override{return false;}
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
+	virtual unsigned int GetAlgorithmId() const override{return TOA_TRIGGER;}
+	virtual bool SecurityMustBeLoaded() const override{return true;}
+	virtual bool isQuantityValid() const override{return true;}
+	virtual bool isPriceValid() const override;
+	virtual void ProcessMainThreadNotification(unsigned short code) override;
 	bool isConditionAlreadyMet(Money& condition) const;
-	virtual bool HasPrice() const;
-	virtual bool HasSize() const;
+	virtual bool HasPrice() const override;
+	virtual bool HasSize() const override;
+	virtual bool isDone() const override{return false;}
 	bool MustWatchLevel2() const;
-//	bool QuoteGreaterApplies(const MsgQuote& quote, bool bid) const;
 	bool QuoteGreaterApplies(unsigned char bookId, const Price& quotePrice, bool bid) const;
-	bool QuoteLessApplies(unsigned char bookId, bool bid) const;
+	bool QuoteLessApplies(unsigned char bookId, const Price& quotePrice, bool bid) const;//for Modify messages only, when the quote price is available in the message
+//	bool QuoteLessApplies(unsigned char bookId, bool bid) const;//when the quote price is not available in the message
+
+	bool EcnQuoteGreaterApplies(unsigned char bookId, const Price& quotePrice, bool bid) const;
+	bool EcnQuoteLessApplies(unsigned char bookId, const Price& quotePrice, bool bid) const;//for Modify messages only, when the quote price is available in the message
+//	bool EcnQuoteLessApplies(unsigned char bookId, bool bid) const;//when the quote price is not available in the message
+
+//	bool EcnHasSizeForPrice(const Price& price, unsigned int size, bool bid) const;//bool includePrice)
+
 	bool isFollowPosition() const;
 	bool PositionApplies(int executionSize) const;
 	unsigned char CalculateRiPercent(Money& percent) const;//0 - condition already met; 1 - not met; 2: check value 'percent' to find out if met.
 	unsigned char CalculateNyseImbalance(int& imbalance) const;//0 - condition already met; 1 - not met; 2: check value 'percent' to find out if met.
-	unsigned char isRiPercenAlreadyMet(Money& percent) const;//0 - not the right type; 1 - not met; 2 - met; 3 - not applicable
-	unsigned char isNyseImbalanceAlreadyMet(int& imbalance) const;//0 - not the right type; 1 - not met; 2 - met; 3 - not applicable
+	unsigned char CalculateNsdqImbalance(int& imbalance) const;//0 - condition already met; 1 - not met; 2: check value 'percent' to find out if met.
+	unsigned char isRiPercentAlreadyMet(Money& percent) const;//0 - not the right type; 1 - not met; 2 - met; 3 - not applicable
+	unsigned char isImbalanceAlreadyMet(int& imbalance) const;//0 - not the right type; 1 - not met; 2 - met; 3 - not applicable
 //	virtual unsigned int GetTotalSize() const{return m_printSize > 0xFFFFFFFF ? 0xFFFFFFFF : (unsigned int)m_printSize;}
-	virtual const std::string& GetStopOrderTypeStr() const;
-	virtual const std::string& GetStopOrderBaseStr() const;
-	virtual unsigned int GetAlgorithmQuantity() const{return m_printSize > 0xFFFFFFFF ? 0xFFFFFFFF : (unsigned int)m_printSize;}
+	virtual const std::string& GetStopOrderTypeStr() const override;
+	virtual const std::string& GetStopOrderBaseStr() const override;
+	virtual unsigned int GetAlgorithmQuantity() const override{return m_printSize > 0xFFFFFFFF ? 0xFFFFFFFF : (unsigned int)m_printSize;}
+	const bool& isInventoryView() const{return m_inventoryView;}
+	virtual void InThreadUpdate(unsigned short code, unsigned short eventCode) override;
+
+	const bool& isDisplayNote() const{return m_displayNote;}
+	const COLORREF& GetNoteColor() const{return m_noteColor;}
+	const std::string& GetNote() const{return m_note;}
 protected:
-	virtual void NullifySecurity();
-	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
-	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const;
-	virtual void DoSecurityUpdate();
-	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL);
+	void StartTrigger();
+
+	void Fire(bool conditionPreMet);
+
+	virtual void NullifySecurity() override;
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) override;
+	virtual bool ShouldSecurityNotify(const Message* message, const Message* info = NULL) const override;
+	virtual void DoSecurityUpdate() override;
+	virtual bool PreProcessSecurityNotification(const Message* message, const Message* info = NULL) override;
+
+	void HandleNewQuote(const unsigned char bookId, const Price& quotePrice, const bool bid);
+	void HandleModifyQuote(const unsigned char bookId, const Price& oldPrice, const Price& newPrice, const unsigned int oldSize, const unsigned int newSize, const bool bid);
+	void HandleDeleteQuote(const unsigned char bookId, const Price& quotePrice, const bool bid);
+	void HandleDecrementQuote(const unsigned char bookId, const Price& quotePrice, const unsigned int oldSize, const unsigned int newSize, const bool bid);
 
 //	bool TriggerByLastNbboPrint();
 	bool TriggerByPrice(const Price& price, unsigned int printSize);
+	void TrailPriceLess(const Price& price);
+	void TrailPriceGreater(const Price& price);
+	void TrailPriceFrom(const Price& price);
 
 //	bool Done(const Price& price, unsigned printSize);
-	bool Done(unsigned printSize);
+	bool Done(const unsigned __int64& printSize);
 
 	unsigned char m_triggerType;
+	bool m_triggerWhenNoLiveOrders;
 	bool m_mustSubscribe;
 
 	int m_count;
-	bool m_closeOnly;
+
+	bool m_trailing;
+//	bool m_closeOnly;
 	bool m_passiveOnly;
+//	bool m_blockAggressiveOrders;
+
+	bool m_triggerOnConditionPreMet;
+
+	bool m_inventoryView;
+
+	bool m_displayNote;
+	COLORREF m_noteColor;
+	std::string m_note;
 
 	std::string m_commandName;
 
-	std::string m_symbol;
+//	std::string m_symbol;
+	unsigned __int64 m_numericSymbol;
+#ifndef TAKION_NO_OPTIONS
+	unsigned __int64 m_optionBlock;
+#endif
 	Price m_priceTo;
 	Price m_priceFrom;
 	bool m_initialized;
@@ -11568,6 +16871,10 @@ protected:
 //	Position* m_position;
 	const Book* m_book;
 
+	void DeleteEcnBookIterator();
+	TakionIterator* m_ecnBidBookIterator;
+	TakionIterator* m_ecnAskBookIterator;
+
 	Observable* m_newEquityObservable;
 };
 
@@ -11576,10 +16883,17 @@ class TD_API AlgorithmOrderReplacer : public OrderReplacer
 public:
 	AlgorithmOrderReplacer(const Position* position,
 		unsigned int orderToReplaceClientId,
+		unsigned int gtcDateCreated,
+		unsigned int gtcTimeCreated,
 		unsigned int traderId,
+		unsigned int sendId,
+		unsigned int ocoId,
 		unsigned int clientId,
 //		unsigned int clientIdOriginal,
-		unsigned int destinationId,
+		const unsigned __int64& averageDailyVolume,
+		const unsigned __int64& yesterdaysVolume,
+		const unsigned __int64& todaysVolume,
+		const unsigned __int64& destinationId,
 		unsigned int destinationName,
 
 		char side,
@@ -11592,10 +16906,11 @@ public:
 		const Price& discretionaryPrice,
 		unsigned char stopOrderType,
 		unsigned char stopOrderBase,
-		const SignedPrice& stopPrice,
+		const Price& stopPrice,
 		
 		const Price& level1Price,
 		const Price& level1SameSidePrice,
+		const Price& lastPrintPrice,
 
 		int replaceSizeOffset,
 		unsigned int quantity,
@@ -11608,51 +16923,79 @@ public:
 		unsigned short routingSubType,
 		unsigned int routingName,
 		unsigned int mnemonic,
+
+		bool noReplaceIfRejected,
+
+		bool dma,
+		bool imbalanceOnly,
 		bool iso,
 		bool aggressive,
 		unsigned int roundLot,
-		bool cancelWashOrders,
+		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
 		bool noRedirect,
 		bool closeOnly,
 		bool resizeToClose,
-		bool proAts,
+//		bool proAts,
 		unsigned char roundLotPolicy,
 		unsigned char pegType,
 		const SignedPrice& pegOffset,
 
+		bool preBorrow,
+		const Price& preBorrowPrice,
+
 		char tifType,
 		unsigned int tifMillisecond,
 		unsigned int parentId,// = 0,
-		const unsigned __int64& userId);// = 0);
+		const unsigned __int64& userId,
+		bool nativeReplace = false);
 //	AlgorithmSmartSwipe(const AlgorithmSmartSwipe& other):OrderAlgorithm(other){}
 	AlgorithmOrderReplacer(const char*& fromString);
 //	virtual ~AlgorithmOrderReplacer();
-	virtual OrderAlgorithm* CloneAlgorithm() const;
+	virtual OrderAlgorithm* CloneAlgorithm() const override;
 //	virtual const char* GetAlgorithmName() const{return "Replacer";}
-	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position);
-	virtual void EndAlgorithm();
-	virtual void EndAlgorithmInThread();
+	virtual void StartAlgorithm(const Security* security, Account* account, const Position* position) override;
+	virtual void EndAlgorithm() override;
+	virtual void EndAlgorithmInThread() override;
 	DECLARE_NED_NEW
-	virtual char* toString(char* buf) const;
-	virtual unsigned short GetAlgorithmSize() const;
+	virtual char* toString(char* buf) const override;
+	virtual unsigned short GetAlgorithmSize() const override;
 //	virtual unsigned int GetAlgorithmId() const{return OA_ORDER_REPLACER;}
 //	typedef std::hash_set<unsigned int> MmidSet;
-	virtual void WriteOrderCancelToMainThread();
+	virtual void WriteOrderCancelToMainThread(bool deleteUntradedPosition = false) override;
 protected:
-	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL);
-	virtual void DoSendReplacement();
+	virtual void Notify(const Message* message, const Observable* from, const Message* info = NULL) override;
+	virtual void DoSendReplacement() override;
+	virtual unsigned int GetNextClientId() const override;
 };
 
 class TD_API ClientExtensionDll : public ExtensionDll
 {
 public:
 	static const unsigned int validExtensionCode = 1;
-	ClientExtensionDll(const char* absolutePath):ExtensionDll(absolutePath){}
-	ClientExtensionDll(const char* name, const char* path):ExtensionDll(name, path){}
+	ClientExtensionDll(const char* absolutePath, const unsigned __int64& takionGuiHeaderVersion, const unsigned __int64& utilsGuiHeaderVersion):
+		ExtensionDll(absolutePath,
+			U_VersionStrToNum(UtilsHeaderVersion),
+			U_VersionStrToNum(TakionUtilsHeaderVersion),
+			takionGuiHeaderVersion,
+			utilsGuiHeaderVersion,
+			U_VersionStrToNum(TakionDataHeaderVersion),
+			U_VersionStrToNum(TakionLogHeaderVersion),
+			U_VersionStrToNum(ObserverHeaderVersion))
+	{}
+	ClientExtensionDll(const char* name, const char* path, const unsigned __int64& takionGuiHeaderVersion, const unsigned __int64& utilsGuiHeaderVersion):
+		ExtensionDll(name, path,
+			U_VersionStrToNum(UtilsHeaderVersion),
+			U_VersionStrToNum(TakionUtilsHeaderVersion),
+			takionGuiHeaderVersion,
+			utilsGuiHeaderVersion,
+			U_VersionStrToNum(TakionDataHeaderVersion),
+			U_VersionStrToNum(TakionLogHeaderVersion),
+			U_VersionStrToNum(ObserverHeaderVersion))
+	{}
 	virtual unsigned int GetValidExtensionCode() const{return validExtensionCode;}
-protected:
+//protected:
 };
 
 class TD_API NewsDll : public BaseExtensionDll//, public Observable
@@ -11679,31 +17022,102 @@ public:
 //	void AddObserver(Observer* observer);
 	Observable* GetObservable() const{return m_NewsGetObservableFunction ? m_NewsGetObservableFunction() : NULL;}
 	void SetLogFile(void* logFileHandle) const{if(m_NewsSetLogFileFunction)m_NewsSetLogFileFunction(logFileHandle);}
+/*
 	Observable* GetStockNews(Observable* oldStockNews, const Observable* newsCollection, const unsigned __int64& symbol) const{return m_NewsGetStockNewsByNum ? m_NewsGetStockNewsByNum(oldStockNews, newsCollection, symbol) : NULL;}
 	Observable* GetStockNews(Observable* oldStockNews, const Observable* newsCollection, const char* symbol) const{return m_NewsGetStockNewsByCharPtr ? m_NewsGetStockNewsByCharPtr(oldStockNews, newsCollection, symbol) : NULL;}
-	Observable* FindStockNews(const Observable* newsCollection, const unsigned __int64& symbol) const{return m_NewsFindStockNewsByNum ? m_NewsFindStockNewsByNum(newsCollection, symbol) : NULL;}
 	Observable* GetStringNews(Observable* oldStockNews, const Observable* newsCollection, const FilterStringAsNumberArray& str, const std::hash_set<unsigned __int64>* stockSet) const{return m_NewsGetStringNews ? m_NewsGetStringNews(oldStockNews, newsCollection, str, stockSet) : NULL;}
+*/
+	Observable* GetStockNews(const Observable* newsCollection, const unsigned __int64& symbol) const{return m_NewsGetStockNewsByNum ? m_NewsGetStockNewsByNum(newsCollection, symbol) : NULL;}
+	Observable* GetStockNews(const Observable* newsCollection, const char* symbol) const{return m_NewsGetStockNewsByCharPtr ? m_NewsGetStockNewsByCharPtr(newsCollection, symbol) : NULL;}
+	Observable* GetStringNews(const Observable* newsCollection, const FilterStringAsNumberArray& str,
+#if (_MSC_VER > 1600)
+		const std::unordered_set<unsigned __int64>*
+#else
+		const std::hash_set<unsigned __int64>*
+#endif
+		stockSet) const{return m_NewsGetStringNews ? m_NewsGetStringNews(newsCollection, str, stockSet) : NULL;}
+
+	Observable* FindStockNews(const Observable* newsCollection, const unsigned __int64& symbol) const{return m_NewsFindStockNewsByNum ? m_NewsFindStockNewsByNum(newsCollection, symbol) : NULL;}
 	Observable* FindStringNews(const Observable* newsCollection, const FilterStringAsNumberArray& str) const{return m_NewsFindStringNews ? m_NewsFindStringNews(newsCollection, str) : NULL;}
+
+	bool isNewsCollectionInvalid(const Observable* newsCollection) const{return m_NewsIsNewsCollectionInvalid && m_NewsIsNewsCollectionInvalid(newsCollection);}
+	bool isStringNewsInvalid(const Observable* stringNews) const{return m_NewsIsStringNewsInvalid && m_NewsIsStringNewsInvalid(stringNews);}
+
 	bool DoIdle(LONG count) const{return m_NewsDoIdle && m_NewsDoIdle(count);}
 	unsigned char ReleaseNewsCollection(Observable* newsCollection, Observer* observer) const{return m_NewsReleaseNewsCollection ? m_NewsReleaseNewsCollection(newsCollection, observer) : 0;}
-	Observable* UpdateNewsCollectionFilter(Observable* newsCollection, Observer* observer, const WireSet& wireSet, unsigned int storyFilter, unsigned int metaFilter, unsigned int relevance) const{return m_NewsUpdateNewsCollectionFilter ? m_NewsUpdateNewsCollectionFilter(newsCollection, observer, wireSet, storyFilter, metaFilter, relevance) : NULL;}
+	Observable* UpdateNewsCollectionFilter(Observable* newsCollection, Observer* observer, const WireSet& wireSet, unsigned int storyFilter, unsigned int metaFilter, unsigned int relevance, bool& oldCollectionDeleted) const
+	{
+		if(m_NewsUpdateNewsCollectionFilter)
+		{
+			return m_NewsUpdateNewsCollectionFilter(newsCollection, observer, wireSet, storyFilter, metaFilter, relevance, oldCollectionDeleted);
+		}
+		else
+		{
+			oldCollectionDeleted = false;
+			return NULL;
+		}
+	}
+
+	unsigned int GetStockHeadlineCount(const unsigned __int64& numericSymbol) const{return m_NewsGetStockHeadlineCount ? m_NewsGetStockHeadlineCount(numericSymbol) : 0;}
+	unsigned int GetStockHeadlineCountAndLatestDateTime(const unsigned __int64& numericSymbol, unsigned __int64& latestDateTime) const
+	{
+		if(m_NewsGetStockHeadlineCountAndLatestDateTime)
+		{
+			return m_NewsGetStockHeadlineCountAndLatestDateTime(numericSymbol, latestDateTime);
+		}
+		else
+		{
+			latestDateTime = 0;
+			return 0;
+		}
+	}
+
+	unsigned int GetStockTodaysHeadlineCount(const unsigned __int64& numericSymbol) const{return m_NewsGetStockTodaysHeadlineCount ? m_NewsGetStockTodaysHeadlineCount(numericSymbol) : 0;}
+	unsigned int GetStockTodaysHeadlineCountAndLatestDateTime(const unsigned __int64& numericSymbol, unsigned __int64& latestDateTime) const
+	{
+		if(m_NewsGetStockTodaysHeadlineCountAndLatestDateTime)
+		{
+			return m_NewsGetStockTodaysHeadlineCountAndLatestDateTime(numericSymbol, latestDateTime);
+		}
+		else
+		{
+			latestDateTime = 0;
+			return 0;
+		}
+	}
+
+	unsigned int GetStockYestAfterMarketHeadlineCount(const unsigned __int64& numericSymbol) const{return m_NewsGetStockYestAfterMarketHeadlineCount ? m_NewsGetStockYestAfterMarketHeadlineCount(numericSymbol) : 0;}
+	unsigned int GetStockYestAfterMarketHeadlineCountAndLatestDateTime(const unsigned __int64& numericSymbol, unsigned __int64& latestDateTime) const
+	{
+		if(m_NewsGetStockYestAfterMarketHeadlineCountAndLatestDateTime)
+		{
+			return m_NewsGetStockYestAfterMarketHeadlineCountAndLatestDateTime(numericSymbol, latestDateTime);
+		}
+		else
+		{
+			latestDateTime = 0;
+			return 0;
+		}
+	}
 
 	unsigned int GetWireCount() const{return m_NewsGetWireCount ? m_NewsGetWireCount() : 0;}
-	bool GetWireInfoAt(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled) const{return m_NewsGetWireInfoAt && m_NewsGetWireInfoAt(at, description, id, subid, subwire, entitled);}
+	bool GetWireInfoAt(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled) const{return m_NewsGetWireInfoAt && m_NewsGetWireInfoAt(at, description, id, subid, baseId, subwire, entitled);}
 	TakionIterator* CreateWireIterator() const{return m_NewsCreateWireIterator ? m_NewsCreateWireIterator() : NULL;}
-	bool GetNextWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled) const{return m_NewsGetNextWireInfo && m_NewsGetNextWireInfo(iterator, description, id, subid, subwire, entitled);}
+	bool GetNextWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled) const{return m_NewsGetNextWireInfo && m_NewsGetNextWireInfo(iterator, description, id, subid, baseId, subwire, entitled);}
 
 	const char* GetConnectionStatusInfo() const{return m_NewsGetConnectionStatusInfo ? m_NewsGetConnectionStatusInfo() : "";}
 	unsigned int GetAllWireCount() const{return m_NewsGetAllWireCount ? m_NewsGetAllWireCount() : 0;}
-//	bool GetAllWireInfoAt(unsigned int at, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled) const{return m_NewsGetAllWireInfoAt && m_NewsGetAllWireInfoAt(at, description, id, subid, subwire, entitled);}
 	TakionIterator* CreateAllWireIterator() const{return m_NewsCreateAllWireIterator ? m_NewsCreateAllWireIterator() : NULL;}
-	bool GetNextAllWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, bool& subwire, bool& entitled) const{return m_NewsGetNextAllWireInfo && m_NewsGetNextAllWireInfo(iterator, description, id, subid, subwire, entitled);}
+	bool GetNextAllWireInfo(TakionIterator* iterator, std::string& description, unsigned int& id, unsigned short& subid, unsigned short& baseId, bool& subwire, bool& entitled) const{return m_NewsGetNextAllWireInfo && m_NewsGetNextAllWireInfo(iterator, description, id, subid, baseId, subwire, entitled);}
 
 	unsigned int GetTopicCount() const{return m_NewsGetTopicCount ? m_NewsGetTopicCount() : 0;}
 	TakionIterator* CreateTopicIterator() const{return m_NewsCreateTopicIterator ? m_NewsCreateTopicIterator() : NULL;}
 	const std::string* GetNextTopicInfo(TakionIterator* iterator, std::string* description) const{return m_NewsGetNextTopicInfo ? m_NewsGetNextTopicInfo(iterator, description) : NULL;}
 
 	void AdjustToChangedScreen(int dx, int dy) const{if(m_NewsAdjustToChangedScreen)m_NewsAdjustToChangedScreen(dx, dy);}
+
+	bool CanDisplayFilterDialog() const{return m_NewsDisplayFilterDialog != NULL;}
+	bool CanDisplayLimitsDialog() const{ return m_NewsDisplayLimitsDialog != NULL;}
 
 	void DisplayFilterDialog(CWnd* receipient,
 		unsigned int code,
@@ -11721,13 +17135,15 @@ public:
 	void DisplayLimitsDialog(CWnd* receipient,
 		unsigned int code,
 		unsigned short daysBack,
-		unsigned short headlineCount,
+		unsigned int headlineCount,
+		bool afterMarket,
 		CWnd* parent,
 		const CPoint& mousePoint) const;
 	bool GetLimitsDialogValues(unsigned short& daysBack,
-		unsigned short& headlineCount) const;
+		unsigned int& headlineCount,
+		bool& afterMarket) const;
 	
-	bool RequestHeadlines(Observable* stockNews, unsigned short daysBack, unsigned short headlineCount) const{return m_NewsRequestHeadlines && m_NewsRequestHeadlines(stockNews, daysBack, headlineCount);}
+	bool RequestHeadlines(Observable* stockNews, unsigned short daysBack, unsigned int headlineCount, bool afterMarket) const{return m_NewsRequestHeadlines && m_NewsRequestHeadlines(stockNews, daysBack, headlineCount, afterMarket);}
 	bool RequestStory(const NewsHeadline* headline, bool showChain) const{return m_NewsRequestStory && m_NewsRequestStory(headline, showChain);}
 
 	const LineBufferArray* GetUnappliedHeadlines(Observable* stockNews) const{return m_NewsGetUnappliedHeadlines ? m_NewsGetUnappliedHeadlines(stockNews) : NULL;}
@@ -11747,6 +17163,7 @@ public:
 	void UnlockInquiryHeadlines(Observable* stockNews)const{if(m_NewsUnlockInquiryHeadlines)m_NewsUnlockInquiryHeadlines(stockNews);}
 
 	bool isStockNewsRequested(const Observable* stockNews) const{return !m_NewsIsStockNewsRequested || m_NewsIsStockNewsRequested(stockNews);}
+	const std::string* GetSearchStringUnfiltered() const{return m_NewsGetSearchStringUnfiltered ? m_NewsGetSearchStringUnfiltered() : NULL;}
 	const std::string* GetSearchStringAll() const{return m_NewsGetSearchStringAll ? m_NewsGetSearchStringAll() : NULL;}
 	const std::string* GetSearchStringAllUs() const{return m_NewsGetSearchStringAllUs ? m_NewsGetSearchStringAllUs() : NULL;}
 
@@ -11774,8 +17191,8 @@ public:
 	void ProcessConnectionInMainThread(bool connected) const{if(m_NewsProcessConnectionInMainThread)m_NewsProcessConnectionInMainThread(connected);}
 	bool NewsCollectionHasProfile(const Observable* newsCollection) const{return !m_NewsCollectionHasProfile || m_NewsCollectionHasProfile(newsCollection);}
 protected:
-	NewsDll(const char* absolutePath);
-	NewsDll(const char* name, const char* path);
+	NewsDll(const char* absolutePath, const unsigned __int64& takionGuiHeaderVersion, const unsigned __int64& utilsGuiHeaderVersion);
+	NewsDll(const char* name, const char* path, const unsigned __int64& takionGuiHeaderVersion, const unsigned __int64& utilsGuiHeaderVersion);
 	virtual bool DoLoad();
 	virtual void Reset()
 	{
@@ -11793,10 +17210,23 @@ protected:
 	ApiGetObservableUInt64 m_NewsFindStockNewsByNum;
 	ApiGetStockNewsByString m_NewsGetStringNews;
 	ApiFindStockNewsByString m_NewsFindStringNews;
+
+	ApiBoolObservable m_NewsIsNewsCollectionInvalid;
+	ApiBoolObservable m_NewsIsStringNewsInvalid;
+
 	ApiIsLong m_NewsDoIdle;
 //	ApiObtainNewsCollection m_NewsObtainNewsCollection;
 	ApiReleaseNewsCollection m_NewsReleaseNewsCollection;
 	ApiUpdateNewsCollectionFilter m_NewsUpdateNewsCollectionFilter;
+
+	ApiGetUIntByUInt64 m_NewsGetStockHeadlineCount;
+	ApiGetUIntAndUInt64ByUInt64 m_NewsGetStockHeadlineCountAndLatestDateTime;
+
+	ApiGetUIntByUInt64 m_NewsGetStockTodaysHeadlineCount;
+	ApiGetUIntAndUInt64ByUInt64 m_NewsGetStockTodaysHeadlineCountAndLatestDateTime;
+
+	ApiGetUIntByUInt64 m_NewsGetStockYestAfterMarketHeadlineCount;
+	ApiGetUIntAndUInt64ByUInt64 m_NewsGetStockYestAfterMarketHeadlineCountAndLatestDateTime;
 
 	ApiGetUInt m_NewsGetWireCount;
 	ApiGetWireInfoAt m_NewsGetWireInfoAt;
@@ -11833,6 +17263,7 @@ protected:
 	ApiObservable m_NewsLockInquiryWaitHeadlines;
 	ApiObservable m_NewsUnlockInquiryHeadlines;
 	ApiIsObservableConst m_NewsIsStockNewsRequested;
+	ApiGetStdString m_NewsGetSearchStringUnfiltered;
 	ApiGetStdString m_NewsGetSearchStringAll;
 	ApiGetStdString m_NewsGetSearchStringAllUs;
 
@@ -11869,7 +17300,7 @@ public:
 		m_description(description ? description : ""),
 		m_valueTemplate(valueTemplate),
 		m_netTemplate(netTemplate),
-		m_numericSymbol(U_StringToUInt64Term0(symbol))
+		m_numericSymbol(U_RepresentStringAsUnsignedNumber<unsigned __int64>(symbol, sizeof(unsigned __int64) - 1))
 	{
 	}
 	IndexDescription():m_numericSymbol(0){}
@@ -12069,7 +17500,10 @@ public:
 		else
 		{
 			m_dayCount = 0;
-			m_calculatedDayCount = TL_BusinessDateDiffByFormattedDates(historyDate, m_todaysDate);
+			if(historyDate)
+			{
+				m_calculatedDayCount = TL_BusinessDateDiffByFormattedDates(historyDate, m_todaysDate);
+			}
 			return SetHistoryDate(historyDate);
 		}
 		return false;
@@ -12338,6 +17772,7 @@ public:
 	void ClearChart()
 	{
 		m_historicalChart.clear();
+		m_historicalChart.reserve(0);
 		m_historicalChartStartDate = 0;
 		m_prevHistoricalChartStartDate = 0;
 		m_packCount = 0;
@@ -12614,6 +18049,295 @@ public:
 	const HistoricalChart* m_replaceWith;
 };
 
+class TMsgTakionFix : public Message
+{
+public:
+	unsigned int m_fixLength;
+	unsigned int m_fixVersion;
+	unsigned short m_fixType;
+protected:
+	TMsgTakionFix(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned short& type,
+		const unsigned short& length):
+		Message(type, length),
+		m_fixLength(fixLength),
+		m_fixVersion(fixVersion),
+		m_fixType(fixType)
+	{}
+};
+
+class TMsgTakionClientFixBase : public TMsgTakionFix
+{
+public:
+	unsigned char m_clientId;
+protected:
+	TMsgTakionClientFixBase(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned char& clientId,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgTakionFix(fixLength, fixVersion, fixType, type, length),
+		m_clientId(clientId)
+	{}
+};
+
+class TMsgTakionClientFix : public TMsgTakionClientFixBase
+{
+public:
+	TMsgTakionClientFix(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned char& clientId,
+		const unsigned short& length):
+		TMsgTakionClientFixBase(fixLength, fixVersion, fixType, clientId, TM_TAKION_CLIENT_FIX_MESSAGE, sizeof(TMsgTakionClientFix) + length)
+	{}
+};
+
+class TMsgTakionClientFixError : public Message
+{
+public:
+	TMsgTakionClientFixError(const unsigned char& clientId, const unsigned char& errorCode, const unsigned short& charCount, const unsigned short& length):
+		Message(TM_TAKION_CLIENT_FIX_ERROR, sizeof(TMsgTakionClientFixError) + length),
+		m_clientId(clientId),
+		m_errorCode(errorCode),
+		m_charCount(charCount)
+	{
+	}
+	unsigned char m_clientId;
+	unsigned char m_errorCode;
+	unsigned short m_charCount;
+};
+
+class TMsgTakionClientFixControlSumError : public TMsgTakionClientFixBase
+{
+public:
+	TMsgTakionClientFixControlSumError(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned char& clientId,
+		const unsigned char& expectedControlSum,
+		const unsigned short& controlSum,
+		const unsigned short& length):
+		TMsgTakionClientFixBase(fixLength, fixVersion, fixType, clientId, TM_TAKION_CLIENT_FIX_CONTROL_SUM_ERROR, sizeof(TMsgTakionClientFixControlSumError) + length),
+		m_expectedControlSum(expectedControlSum),
+		m_controlSum(controlSum)
+	{
+	}
+	const unsigned char m_expectedControlSum;
+	const unsigned short m_controlSum;
+};
+
+class TMsgServer : public Message
+{
+public:
+	unsigned int m_clientIp;
+	unsigned short m_clientPort;
+	unsigned short m_serverPort;
+protected:
+	TMsgServer(const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned short& type,
+		const unsigned short& length):
+	Message(type, length),
+	m_clientIp(clientIp),
+	m_clientPort(clientPort),
+	m_serverPort(serverPort)
+	{}
+};
+
+class TMsgTakionServerFixError : public TMsgServer
+{
+public:
+	TMsgTakionServerFixError(const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned char& errorCode,
+		const unsigned short& charCount,
+		const unsigned short& length):
+		TMsgServer(clientIp, clientPort, serverPort, TM_TAKION_SERVER_FIX_ERROR, sizeof(TMsgTakionServerFixError) + length),
+		m_errorCode(errorCode),
+		m_charCount(charCount)
+	{
+	}
+	unsigned char m_errorCode;
+	unsigned short m_charCount;
+};
+
+class TMsgTakionServerFixBase : public TMsgTakionFix
+{
+public:
+	unsigned int m_clientIp;
+	unsigned short m_clientPort;
+	unsigned short m_serverPort;
+protected:
+	TMsgTakionServerFixBase(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned short& type,
+		const unsigned short& length):
+		TMsgTakionFix(fixLength, fixVersion, fixType, type, length),
+		m_clientIp(clientIp),
+		m_clientPort(clientPort),
+		m_serverPort(serverPort)
+	{}
+};
+
+class TMsgTakionServerFixControlSumError : public TMsgTakionServerFixBase
+{
+public:
+	TMsgTakionServerFixControlSumError(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned short& controlSum,
+		const unsigned char& expectedControlSum,
+		const unsigned short& length):
+		TMsgTakionServerFixBase(fixLength, fixVersion, fixType, clientIp, clientPort, serverPort, TM_TAKION_SERVER_FIX_CONTROL_SUM_ERROR, sizeof(TMsgTakionServerFixControlSumError) + length),
+		m_controlSum(controlSum),
+		m_expectedControlSum(expectedControlSum)
+	{
+	}
+	const unsigned short m_controlSum;
+	const unsigned char m_expectedControlSum;
+};
+
+class TMsgTakionServerFix : public TMsgTakionServerFixBase
+{
+public:
+	TMsgTakionServerFix(const unsigned int& fixLength,
+		const unsigned int& fixVersion,
+		const unsigned short& fixType,
+		const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned short& length):
+		TMsgTakionServerFixBase(fixLength, fixVersion, fixType, clientIp, clientPort, serverPort, TM_TAKION_SERVER_FIX_MESSAGE, sizeof(TMsgTakionServerFix) + length)
+	{}
+};
+
+class TMsgTakionServer : public TMsgServer
+{
+public:
+	TMsgTakionServer(const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned short& length):
+
+		TMsgServer(clientIp, clientPort, serverPort, TM_TAKION_SERVER_MESSAGE, sizeof(TMsgTakionServer) + length)
+	{}
+};
+
+template<class T>
+class TMsgAdditionalInfo : public Message
+{
+public:
+	typedef T ValueType;
+	ValueType m_value;
+protected:
+	TMsgAdditionalInfo(const ValueType& value, const unsigned short& type):Message(type, sizeof(TMsgAdditionalInfo)), m_value(value){}
+};
+
+class TMsgAdditionalInfoUChar : public TMsgAdditionalInfo<unsigned char>
+{
+public:
+	TMsgAdditionalInfoUChar(const ValueType& value):TMsgAdditionalInfo(value, TM_ADDITIONAL_DATA_UCHAR){}
+};
+
+//TS->TSClient Sent to all Firm's clients, Used to distribute untradeable stocks and status change
+class TMsgFirmUntradeableStatusUpdate : public TMessageTime//TMsgFirmPosition
+{
+public:
+	TMsgFirmUntradeableStatusUpdate(const char* const& traderId,
+		const char* const& clearingAccountName,
+		const char* const& symbol,
+		const char* const& firmId,
+		const unsigned int& timestamp = 0,
+		const unsigned char& untradeable = 0,
+		const unsigned int& ipAddress = 0):
+//		TMsgFirmPosition(clearingAccountName, symbol, firmId, timestamp, TS_UNTRADEABLE_STATUS_UPDATE, sizeof(TMsgFirmUntradeableStatusUpdate)),
+		TMessageTime(timestamp, TS_UNTRADEABLE_STATUS_UPDATE, sizeof(TMsgFirmUntradeableStatusUpdate)),
+		m_untradeable(untradeable),
+		m_ipAddress(ipAddress)
+	{
+		U_CopyAndPad(m_traderId, sizeof(m_traderId), traderId, '\0', true);
+
+		U_CopyAndPad(m_clearingAccountName, sizeof(m_clearingAccountName), clearingAccountName, '\0', true);
+		U_CopyAndPad(m_symbol, sizeof(m_symbol), symbol, '\0');
+		U_CopyAndPad(m_firmId, sizeof(m_firmId), firmId, '\0', true);
+	}
+	TMsgFirmUntradeableStatusUpdate(const unsigned int& traderId = 0, const unsigned __int64& clearingNamePart1 = 0, const unsigned __int64& clearingNamePart2 = 0, const unsigned __int64& symbol = 0, const unsigned int& firmId = 0, const unsigned int& timestamp = 0, const unsigned char& untradeable = 0, const unsigned int& ipAddress = 0):
+//		TMsgFirmPosition(clearingNamePart1, clearingNamePart2, symbol, firmId, timestamp, TS_UNTRADEABLE_STATUS_UPDATE, sizeof(TMsgFirmUntradeableStatusUpdate)),
+		TMessageTime(timestamp, TS_UNTRADEABLE_STATUS_UPDATE, sizeof(TMsgFirmUntradeableStatusUpdate)),
+		m_untradeable(untradeable),
+		m_ipAddress(ipAddress)
+	{
+		*(unsigned int*)m_traderId = traderId;
+		m_traderId[sizeof(unsigned int)] = '\0';
+
+		*(unsigned __int64*)m_clearingAccountName = clearingNamePart1;
+		*(unsigned __int64*)(m_clearingAccountName + sizeof(unsigned __int64)) = clearingNamePart2;
+		*(unsigned __int64*)m_symbol = symbol;
+		*(unsigned int*)m_firmId = firmId;
+		m_firmId[sizeof(unsigned int)] = '\0';
+	}
+	char m_clearingAccountName[MAX_ACCOUNT_SIZE];
+	char m_symbol[MAX_SYMBOL_SIZE];
+	char m_firmId[MAX_FIRM_ID_SIZE];
+//	bool m_untradeable;
+	unsigned char m_untradeable;//Untradeable Status. 0 - tradeable; 1 - untradeable full; 2 - untradeable partial (can trade within borrowed size).
+	char m_traderId[MAX_TRADER_ID_SIZE];
+	unsigned int m_ipAddress;
+};
+
+
+
+/*
+class TMsgFixServer : public TMsgServer
+{
+public:
+	TMsgFixServer(const unsigned int& clientIp,
+		const unsigned short& clientPort,
+		const unsigned short& serverPort,
+		const unsigned short& length):
+	TMsgServer(clientIp, clientPort, serverPort, TM_TAKION_SERVER_FIX_MESSAGE, sizeof(TMsgFixServer) + length)
+	{}
+};
+*/
+/*
+enum TakionMessageFormat : unsigned char
+{
+	MF_TAKION,
+	MF_FIX,
+
+	MF_Count
+};
+*/
+class TD_API CalcIndexComponent
+{
+public:
+	virtual ~CalcIndexComponent(){}
+	virtual const unsigned __int64& GetNumericSymbol() const = 0;
+	virtual const SignedPrice& GetMultiplier() const = 0;
+	virtual bool SetMultiplier(const SignedPrice& multiplier) = 0;
+protected:
+	CalcIndexComponent(){}
+};
+
+class ConnectionBase;
+class ActiveConnection;
+class TakionServer;
+class TakionClientData;
+class TextProcessor;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -12624,7 +18348,7 @@ TakionIterator* WINAPI TD_CreateHistoricalChartSymbolIterator();
 const FrequencyChartCollection* WINAPI TD_GetNextHistoricalChartSymbol(TakionIterator* iterator);
 const HistoricalChart* WINAPI TD_GetNextFrequencyHistoricalChart(TakionIterator* frequencyHistoricalChartIterator);
 
-bool WINAPI TD_AddStreamConnection(const ConnectionBase& connectionBase);
+bool WINAPI TD_AddStreamConnection(const ConnectionBase& connectionBase, const unsigned char format);
 /*
 bool WINAPI TD_AddStreamConnection(const char* name,
 	const char* ip,
@@ -12645,41 +18369,77 @@ bool WINAPI TD_AddStreamConnection(const char* name,
 	const char* password = "");
 */
 
-Security* WINAPI TD_ObtainStock(const char* symbol, bool subscribe);
-Security* WINAPI TD_ObtainStockByNumericSymbol(const unsigned __int64& numSymbol, bool subscribe);
-Security* WINAPI TD_FindStock(const char* symbol);
-Security* WINAPI TD_FindStockByNumericSymbol(const unsigned __int64& numSymbol);
+Security* WINAPI TD_ObtainStock(const char* symbol, bool subscribe);//Call TD_ReleaseStock after the returned Security* is no longer in use
+Security* WINAPI TD_ObtainStockByNumericSymbol(const unsigned __int64& numSymbol, bool subscribe);//Call TD_ReleaseStock after the returned Security* is no longer in use
+Security* WINAPI TD_FindStock(const char* symbol);//Call TD_ReleaseStock after the returned Security* is no longer in use
+Security* WINAPI TD_FindStockByNumericSymbol(const unsigned __int64& numSymbol);//Call TD_ReleaseStock after the returned Security* is no longer in use
 void WINAPI TD_ReleaseStock(const Security* stock, bool unsubscribeImmediately = false);
+Security* WINAPI TD_FindStockNoUseCount(const char* symbol);//DO NOT Call TD_ReleaseStock to release the returned Security*
+Security* WINAPI TD_FindStockByNumericSymbolNoUseCount(const unsigned __int64& symbol);//DO NOT Call TD_ReleaseStock to release the returned Security*
 unsigned int WINAPI TD_GetStockCount();
+unsigned int WINAPI TD_GetLoadedStockCount();
 unsigned int WINAPI TD_GetIdleStockCount();
+unsigned int WINAPI TD_GetIdleSortableEquityCount();
+
+void WINAPI TD_LockNonTradableStockStorageInquiryWait();
+bool WINAPI TD_LockNonTradableStockStorageInquiry();
+void WINAPI TD_UnlockNonTradableStockStorageInquiry();
+
+void WINAPI TD_LockTradableStockStorageInquiryWait();
+bool WINAPI TD_LockTradableStockStorageInquiry();
+void WINAPI TD_UnlockTradableStockStorageInquiry();
+
+TakionIterator* WINAPI TD_CreateNonTradableStockIterator();
+unsigned int WINAPI TD_GetNonTradableStockCount();
+TakionIterator* WINAPI TD_CreateTradableStockIterator();
+unsigned int WINAPI TD_GetTradableStockCount();
+
+void WINAPI TD_SimulateNextDayStarted();
+
+void WINAPI TD_LogSecurityState(const Security* security);
+void WINAPI TD_LogSecurityLevel2SideInThread(const Security* security, TakionIterator* iterator, const bool bid, const Price& price);
+
+unsigned int WINAPI TD_GetWorkerThreadCount();
+void WINAPI TD_GetGtcOrdersFilePath(std::string& filePath);
+void WINAPI TD_GetGtcSpidersFilePath(std::string& filePath);
 
 #ifndef TAKION_NO_OPTIONS
 void WINAPI TD_SetOptionUpdateOnIdle(bool optionUpdateOnIdle);
 unsigned int WINAPI TD_GetUnderlierIdleMilliseconds();
 void WINAPI TD_SetUnderlierIdleMilliseconds(unsigned int milliseconds);
-Security* WINAPI TD_ObtainOption(const char* underlierSymbol, const OptionKey& key, bool subscribe);
+Security* WINAPI TD_ObtainOptionByUnderlierSymbol(const char* underlierSymbol, const OptionKey& key, bool subscribe);
 Security* WINAPI TD_ObtainOptionByUnderlierNumericSymbol(const unsigned __int64& underlierSymbolNum, const OptionKey& key, bool subscribe);
+//Security* WINAPI TD_FindOptionByUnderlierSymbol(const char* underlierSymbol, const OptionKey& key);
+Security* WINAPI TD_FindOptionByUnderlierSymbol(const char* underlierSymbol, const OptionSymbolKey& key);
+//Security* WINAPI TD_FindOptionByUnderlierNumericSymbol(const unsigned __int64& underlierSymbol, const OptionKey& key);
+Security* WINAPI TD_FindOptionByUnderlierNumericSymbol(const unsigned __int64& underlierSymbol, const OptionSymbolKey& key);
+Security* WINAPI TD_FindOptionByRootNumericSymbol(const unsigned __int64& rootSymbol, const unsigned __int64& optionBlock);
+Security* WINAPI TD_FindOptionByRootNumericSymbolWithNoIncrementUnsubscribe(const unsigned __int64& rootSymbol, const unsigned __int64& optionBlock);
+//Security* WINAPI TD_ObtainOptionByRootNumericSymbol(const unsigned __int64& rootSymbol, const unsigned __int64& optionBlock, bool subscribe);
 Security* WINAPI TD_ObtainOptionByRootNumericSymbol(const unsigned __int64& rootSymbolNum, const OptionKey& key, bool subscribe);
-Security* WINAPI TD_FindOption(const char* underlierSymbol, const OptionKey& key);
-Security* WINAPI TD_FindOptionByNumericSymbol(const unsigned __int64& underlierSymbol, const OptionKey& key);
-Security* WINAPI TD_FindOptionByOptionBlock(const unsigned __int64& rootSymbol, const unsigned __int64& optionBlock);
+Security* WINAPI TD_ObtainOptionByRootAndOptionBlock(const unsigned __int64& rootSymbolNum, const unsigned __int64& optionBlock, bool subscribe);//When the underlier symbol is not known
+
 unsigned int WINAPI TD_GetOptionCount();
 unsigned int WINAPI TD_GetIdleOptionCount();
 TakionIterator* WINAPI TD_CreateOptionIterator();
 Security* WINAPI TD_GetNextOption(TakionIterator* iterator);
+/*
 bool WINAPI TD_SubscribeUnderlierByNumericSymbol(const unsigned __int64& symbol);
 bool WINAPI TD_UnsubscribeUnderlierByNumericSymbol(const unsigned __int64& symbol);
 bool WINAPI TD_SubscribeUnderlier(const char* symbol);
 bool WINAPI TD_UnsubscribeUnderlier(const char* symbol);
+*/
 //bool WINAPI TD_SubscribeOptionByNumericSymbol(const unsigned __int64& symbol, const OptionKey& optionKey);
 //bool WINAPI TD_UnsubscribeOptionByNumericSymbol(const unsigned __int64& symbol, const OptionKey& optionKey);
 //bool WINAPI TD_SubscribeOption(const char* symbol, const OptionKey& optionKey);
 //bool WINAPI TD_UnsubscribeOption(const char* symbol, const OptionKey& optionKey);
 
-Underlier* WINAPI TD_ObtainUnderlier(const char* symbol, bool subscribe);
+Underlier* WINAPI TD_ObtainUnderlier(const char* symbol, bool subscribe, bool snapshotsOnly);
 Underlier* WINAPI TD_FindUnderlier(const char* symbol);
 unsigned int WINAPI TD_GetUnderlierCount();
+unsigned int WINAPI TD_GetLoadedUnderlierCount();
 unsigned int WINAPI TD_GetIdleUnderlierCount();
+unsigned int WINAPI TD_GetRemovableUnderlierCount();
 void WINAPI TD_ReleaseUnderlier(const Underlier* underlier, bool unsubscribeImmediately = false);
 TakionIterator* WINAPI TD_CreateUnderlierIterator();
 Underlier* WINAPI TD_GetNextUnderlier(TakionIterator* iterator);
@@ -12698,67 +18458,142 @@ const Destination* WINAPI TD_FindOptionDestinationByNumericName(const unsigned i
 
 void WINAPI TD_AddTierSize(const char* symbol, const unsigned __int64& optionKey, unsigned int tierSize);//use object OptionKey to create the optionKey argument; 0 for stocks
 void WINAPI TD_RemoveTierSize(const char* symbol, const unsigned __int64& optionKey);
-const unsigned int* WINAPI TD_GetNextTierSize(TakionIterator* iterator, const char*& symbol, unsigned __int64& optionKey);
-const unsigned int* WINAPI TD_FindTierSize(const char* symbol, const unsigned __int64& optionKey);
+void WINAPI TD_AddTierSizeToNumericSymbol(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey, unsigned int tierSize);//use object OptionKey to create the optionKey argument; 0 for stocks
+void WINAPI TD_RemoveTierSizeFromNumericSymbol(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);
+const unsigned int* WINAPI TD_GetNextTierSize(TakionIterator* iterator, const char*& symbol, unsigned __int64& optionKey);//Call TD_GetNextTierSize to iterate
+const unsigned int* WINAPI TD_FindTierSize(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);
 
-void WINAPI TD_AddNonTradableStock(const char* symbol, const unsigned __int64& optionKey, unsigned int code);
-void WINAPI TD_RemoveNonTradableStock(const char* symbol, const unsigned __int64& optionKey);
+void WINAPI TD_AddCustomPriceBase(const char* symbol, const unsigned __int64& optionKey, unsigned int compactPrice);//use object OptionKey to create the optionKey argument; 0 for stocks
+void WINAPI TD_RemoveCustomPriceBase(const char* symbol, const unsigned __int64& optionKey);
+void WINAPI TD_AddCustomPriceBaseToNumericSymbol(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey, unsigned int compactPrice);//use object OptionKey to create the optionKey argument; 0 for stocks
+void WINAPI TD_RemoveCustomPriceBaseFromNumericSymbol(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);
+const unsigned int* WINAPI TD_GetNextCustomPriceBase(TakionIterator* iterator, const char*& symbol, unsigned __int64& optionKey);
+const unsigned int* WINAPI TD_FindCustomPriceBase(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);
+
+void WINAPI TD_AddCustomDate(const char* symbol, const unsigned __int64& optionKey, unsigned int date);//use object OptionKey to create the optionKey argument; 0 for stocks
+void WINAPI TD_RemoveCustomDate(const char* symbol, const unsigned __int64& optionKey);
+void WINAPI TD_AddCustomDateToNumericSymbol(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey, unsigned int date);//use object OptionKey to create the optionKey argument; 0 for stocks
+void WINAPI TD_RemoveCustomDateFromNumericSymbol(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);
+const unsigned int* WINAPI TD_GetNextCustomDate(TakionIterator* iterator, const char*& symbol, unsigned __int64& optionKey);
+const unsigned int* WINAPI TD_FindCustomDate(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);
+
+bool WINAPI TD_SetTemporaryTierSize(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey, unsigned int tierSize);//Can be called only from the main thread
+const unsigned int* WINAPI TD_FindTemporaryTierSize(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);//Can be called only from the main thread
+unsigned int WINAPI TD_ObtainTemporaryTierSize(const unsigned __int64& numericSymbol, const unsigned __int64& optionKey);//Returns 0xFFFFFFFF if TD_FindTemporaryTierSize returns NULL//Can be called only from the main thread
+
+//Call from the main thread only
+void WINAPI TD_UserAddNonTradableStock(const char* symbol, const unsigned __int64& optionKey = 0);
+void WINAPI TD_UserRemoveNonTradableStock(const char* symbol, const unsigned __int64& optionKey = 0);
+
+//Use TD_CreateNonTradableStockIterator(); to create the iterator, and delete iterator when no longer needed.
+//If called from a thread different from main thread enclose in lock/unlock: TD_LockNonTradableStockStorageInquiryWait(); TD_UnlockNonTradableStockStorageInquiry();
 const unsigned int* WINAPI TD_GetNextNonTradableStock(TakionIterator* iterator, const char*& symbol, unsigned __int64& optionKey);
-const unsigned int* WINAPI TD_FindNonTradableStock(const char* symbol, const unsigned __int64& optionKey);
 
-void WINAPI TD_AddTradableStock(const char* symbol, const unsigned __int64& optionKey, unsigned int code);
-void WINAPI TD_RemoveTradableStock(const char* symbol, const unsigned __int64& optionKey);
+unsigned int WINAPI TD_FindNonTradableStock(const char* symbol, const unsigned __int64& optionKey);
+
+//Call from the main thread only
+void WINAPI TD_UserAddTradableStock(const char* symbol, const unsigned __int64& optionKey = 0);
+void WINAPI TD_UserRemoveTradableStock(const char* symbol, const unsigned __int64& optionKey = 0);
+
+//Use TD_CreateTradableStockIterator(); to create the iterator, and delete iterator when no longer needed.
+//If called from a thread different from main thread enclose in lock/unlock: TD_LockTradableStockStorageInquiryWait(); TD_UnlockTradableStockStorageInquiry();
 const unsigned int* WINAPI TD_GetNextTradableStock(TakionIterator* iterator, const char*& symbol, unsigned __int64& optionKey);
-const unsigned int* WINAPI TD_FindTradableStock(const char* symbol, const unsigned __int64& optionKey);
+
+unsigned int WINAPI TD_FindTradableStock(const char* symbol, const unsigned __int64& optionKey);
 
 bool WINAPI TD_IsTradableStock(const char* symbol, const unsigned __int64& optionKey);
+
+unsigned int WINAPI TD_GetOptionSubscriptionQueueSize();
+const unsigned __int64& WINAPI TD_GetRootSymbolBeingSubscribed();
+const unsigned __int64& WINAPI TD_GetOptionBlockBeingSubscribed();
+const unsigned __int64& WINAPI TD_GetUnderlierSymbolBeingSubscribed();
 
 #else
 
 void WINAPI TD_AddTierSize(const char* symbol, unsigned int tierSize);
 void WINAPI TD_RemoveTierSize(const char* symbol);
-const unsigned int* WINAPI TD_GetNextTierSize(TakionIterator* iterator, const char*& symbol);
-const unsigned int* WINAPI TD_FindTierSize(const char* symbol);
+void WINAPI TD_AddTierSizeToNumericSymbol(const unsigned __int64& numericSymbol, unsigned int tierSize);
+void WINAPI TD_RemoveTierSizeFromNumericSymbol(const unsigned __int64& numericSymbol);
+const unsigned int* WINAPI TD_GetNextTierSize(TakionIterator* iterator, const char*& symbol);//Call TD_GetNextTierSize to iterate
+const unsigned int* WINAPI TD_FindTierSize(const unsigned __int64& numericSymbol);
 
-void WINAPI TD_AddNonTradableStock(const char* symbol, unsigned int code);
-void WINAPI TD_RemoveNonTradableStock(const char* symbol);
+void WINAPI TD_AddCustomPriceBase(const char* symbol, unsigned int compactPrice);
+void WINAPI TD_RemoveCustomPriceBase(const char* symbol);
+void WINAPI TD_AddCustomPriceBaseToNumericSymbol(const unsigned __int64& numericSymbol, unsigned int tierSize);
+void WINAPI TD_RemoveCustomPriceBaseFromNumericSymbol(const unsigned __int64& numericSymbol);
+const unsigned int* WINAPI TD_GetNextCustomPriceBase(TakionIterator* iterator, const char*& symbol);//Call TD_GetNextTierSize to iterate
+const unsigned int* WINAPI TD_FindCustomPriceBase(const unsigned __int64& numericSymbol);
+
+void WINAPI TD_AddCustomDate(const char* symbol, unsigned int date);
+void WINAPI TD_RemoveCustomDate(const char* symbol);
+void WINAPI TD_AddCustomDateToNumericSymbol(const unsigned __int64& numericSymbol, unsigned int date);
+void WINAPI TD_RemoveCustomDateFromNumericSymbol(const unsigned __int64& numericSymbol);
+const unsigned int* WINAPI TD_GetNextCustomDate(TakionIterator* iterator, const char*& symbol);//Call TD_GetNextTierSize to iterate
+const unsigned int* WINAPI TD_FindCustomDate(const unsigned __int64& numericSymbol);
+
+bool WINAPI TD_SetTemporaryTierSize(const unsigned __int64& numericSymbol, unsigned int tierSize);//Can be called only from the main thread
+const unsigned int* WINAPI TD_FindTemporaryTierSize(const unsigned __int64& numericSymbol);//Can be called only from the main thread
+unsigned int WINAPI TD_ObtainTemporaryTierSize(const unsigned __int64& numericSymbol);//Returns 0xFFFFFFFF if TD_FindTemporaryTierSize returns NULL//Can be called only from the main thread
+
+//Call from the main thread only
+void WINAPI TD_UserAddNonTradableStock(const char* symbol);
+void WINAPI TD_UserRemoveNonTradableStock(const char* symbol);
+
+//Use TD_CreateNonTradableStockIterator(); to create the iterator, and delete iterator when no longer needed.
+//If called from a thread different from main thread enclose in lock/unlock: TD_LockNonTradableStockStorageInquiryWait(); TD_UnlockNonTradableStockStorageInquiry();
 const unsigned int* WINAPI TD_GetNextNonTradableStock(TakionIterator* iterator, const char*& symbol);
-const unsigned int* WINAPI TD_FindNonTradableStock(const char* symbol);
 
-void WINAPI TD_AddTradableStock(const char* symbol, unsigned int code);
-void WINAPI TD_RemoveTradableStock(const char* symbol);
+unsigned int WINAPI TD_FindNonTradableStock(const char* symbol);
+
+//Call from the main thread only
+void WINAPI TD_UserAddTradableStock(const char* symbol);
+void WINAPI TD_UserRemoveTradableStock(const char* symbol);
+
+//Use TD_CreateTradableStockIterator(); to create the iterator, and delete iterator when no longer needed.
+//If called from a thread different from main thread enclose in lock/unlock: TD_LockTradableStockStorageInquiryWait(); TD_UnlockTradableStockStorageInquiry();
 const unsigned int* WINAPI TD_GetNextTradableStock(TakionIterator* iterator, const char*& symbol);
-const unsigned int* WINAPI TD_FindTradableStock(const char* symbol);
+
+unsigned int WINAPI TD_FindTradableStock(const char* symbol);
 
 bool WINAPI TD_IsTradableStock(const char* symbol);
 
 #endif
 
 void WINAPI TD_ClearTierSize();
-TakionIterator* WINAPI TD_CreateTierSizeIterator();
-void WINAPI TD_ClearNonTradableStocks();
-TakionIterator* WINAPI TD_CreateNonTradableStockIterator();
-unsigned int WINAPI TD_GetNonTradableStockCount();
-void WINAPI TD_ClearTradableStocks();
-TakionIterator* WINAPI TD_CreateTradableStockIterator();
-unsigned int WINAPI TD_GetTradableStockCount();
+TakionIterator* WINAPI TD_CreateTierSizeIterator();//Call TD_GetNextTierSize to iterate
 
+void WINAPI TD_ClearCustomPriceBase();
+TakionIterator* WINAPI TD_CreateCustomPriceBaseIterator();//Call TD_GetNextTierSize to iterate
+
+void WINAPI TD_ClearCustomDate();
+TakionIterator* WINAPI TD_CreateCustomDateIterator();//Call TD_GetNextTierSize to iterate
+
+void WINAPI TD_ClearTemporaryTierSize();//Can be called only from the main thread
+TakionIterator* WINAPI TD_CreateTemporaryTierSizeIterator();//Can be called only from the main thread; //Call TD_GetNextTierSize to iterate
 
 Index* WINAPI TD_FindIndex(const char* symbol);
 Index* WINAPI TD_FindIndexByNumericSymbol(const unsigned __int64& numSymbol);
 Index* WINAPI TD_GetIndexByCode(unsigned short code);
 unsigned int WINAPI TD_GetIndexCount();
+unsigned int WINAPI TD_GetLoadedIndexCount();
 
+Security* WINAPI TD_ObtainSortableEquity(const char* symbol, bool subscribe, bool* newEquity = NULL);//Call TD_ReleaseStock after the returned Security* is no longer in use
+Security* WINAPI TD_ObtainSortableEquityByNumericSymbol(const unsigned __int64& numSymbol, bool subscribe, bool* newEquity = NULL);//Call TD_ReleaseStock after the returned Security* is no longer in use
 Security* WINAPI TD_FindSortableEquity(const char* symbol);
 Security* WINAPI TD_FindSortableEquityByNumericSymbol(const unsigned __int64& symbol);
+Security* WINAPI TD_FindSortableEquityWithNoIncrementUnsubscribe(const char* symbol);
+Security* WINAPI TD_FindSortableEquityByNumericSymbolWithNoIncrementUnsubscribe(const unsigned __int64& symbol);
 Security* WINAPI TD_GetSortableEquityByCode(unsigned short code);
 unsigned int WINAPI TD_GetSortableEquityCount();
+unsigned int WINAPI TD_GetSortableLoadedEquityCount();
 
 unsigned int WINAPI TD_GetAccountCount();
-const unsigned short& TD_GetNumberOfAccountsExpected();
-const unsigned short& TD_GetNumberOfAccountsToLoad();
+unsigned int WINAPI TD_GetNumberOfAccountsExpected();
+unsigned int WINAPI TD_GetNumberOfAccountsToLoad();
+bool WINAPI TD_IsAllAccountsLoaded();
 Account* WINAPI TD_FindAccount(const char* id);
-Account* WINAPI TD_CreateAccount(const char* id, unsigned int orderProcessingFlags = 0, bool* newAccount = NULL);//works only in simulation
+Account* WINAPI TD_FindAccountByAccountId(const AccountId& id);
+Account* WINAPI TD_CreateAccount(const char* id, unsigned int orderProcessingFlags = 0, unsigned int accountProcessingFlags = 0, bool* newAccount = NULL);//works only in simulation
 bool WINAPI TD_DestroyAccount(const char* id);//works only in simulation
 void WINAPI TD_DestroyAllAccounts();//works only in simulation
 TakionIterator* WINAPI TD_CreateAccountIterator();
@@ -12766,13 +18601,27 @@ Account* WINAPI TD_GetNextAccount(TakionIterator* iterator);
 void WINAPI TD_LockAccountStorage();
 void WINAPI TD_UnlockAccountStorage();
 
+TakionIterator* WINAPI TD_CreateClearingFirmIterator();
+ClearingFirm* WINAPI TD_GetNextClearingFirm(TakionIterator* iterator);
+ClearingFirm* WINAPI TD_FindClearingFirm(const char* name);
+void WINAPI TD_LockClearingFirmStorage();
+void WINAPI TD_UnlockClearingFirmStorage();
+
 void WINAPI TD_LockTierSizeStorage();
 void WINAPI TD_UnlockTierSizeStorage();
+
+void WINAPI TD_LockCustomPriceBaseStorage();
+void WINAPI TD_UnlockCustomPriceBaseStorage();
+
+void WINAPI TD_LockCustomDateStorage();
+void WINAPI TD_UnlockCustomDateStorage();
 
 void WINAPI TD_SetLogFile(void* logFile);
 void* WINAPI TD_GetLogFile();
 
 unsigned int WINAPI TD_GetConnectionCount();
+//void WINAPI TD_LockActiveConnections();
+//void WINAPI TD_UnlockActiveConnections();
 TakionIterator* WINAPI TD_CreateActiveConnectionIterator();
 const ActiveConnection* WINAPI TD_GetNextActiveConnection(TakionIterator* iterator);
 
@@ -12785,6 +18634,7 @@ enum ConnectionResult : unsigned char
 	CR_MARKETSORTER_BINDING,
 	CR_HISTORICALPRINT_BINDING,
 	CR_OPTION_MARKETDATA_BINDING,
+	CR_MARKETDATA_NOT_LOGGED,
 };
 
 enum ConnectionJob : unsigned short
@@ -12807,18 +18657,17 @@ enum ConnectionJob : unsigned short
 #endif
 };
 
-unsigned int WINAPI TD_ConnectToMarketDataAndExecutor(const char* traderId,
-	const char* password,
-	const char* firmId,
-	const Connection* marketDataConnection,
-	const Connection* executorConnection,
-	const Connection* marketSorterConnection,
-	const Connection* historicalPrintConnection,
-#ifndef TAKION_NO_OPTIONS
-	const Connection* optionMarketDataConnection,
-#endif
-	bool disconnectOnly,
-	bool tryToReconnect);
+//unsigned int WINAPI TD_ConnectToMarketSorter(const Connection* marketSorterConnection, bool tryToReconnect);
+struct IpPortStruct
+{
+	const char* ip;
+	unsigned short port;
+	const char* bindIp;//usually NULL
+	unsigned short bindPort;//usually 0
+};
+
+unsigned int WINAPI TD_ConnectToMarketSorter(const struct IpPortStruct* line, unsigned int lineCount, unsigned int reconnectSeconds, bool tryToReconnect);
+
 void WINAPI TD_DisconnectFromMarketData();
 void WINAPI TD_DisconnectFromExecutor();
 void WINAPI TD_DisconnectFromMarketSorter();
@@ -12835,6 +18684,9 @@ const ActiveConnection* WINAPI TD_GetOptionMarketDataActiveConnection();
 const Connection* WINAPI TD_GetOptionMarketDataConnection();
 void WINAPI TD_DisconnectFromOptionMarketData();
 Observable* WINAPI TD_GetNewOptionObservable();
+Observable* WINAPI TD_GetNewOptionObservable();
+unsigned int WINAPI TD_GetSubscribedOptionCount();
+bool WINAPI TD_IsEntitledToOptionData();
 #endif
 
 const Connection* WINAPI TD_GetMarketDataConnection();
@@ -12846,6 +18698,7 @@ bool WINAPI TD_DoMainThreadIdleTasks(LONG lCount);
 unsigned int WINAPI TD_GetStockIdleMilliseconds();
 void WINAPI TD_SetStockIdleMilliseconds(unsigned int milliseconds);
 void WINAPI TD_SetEquityUpdateOnIdle(bool equityUpdateOnIdle);
+void WINAPI TD_SetEquityImbalanceUpdateOnIdle(bool equityImbalanceUpdateOnIdle);
 
 const char* WINAPI TD_GetOrderTypeName(unsigned int orderType);
 
@@ -12853,7 +18706,7 @@ TakionIterator* WINAPI TD_CreateDestinationIterator();
 const Destination* WINAPI TD_GetNextDestination(TakionIterator* iterator);
 const Destination* WINAPI TD_FindDestinationByName(const char* name);
 const Destination* WINAPI TD_FindDestinationByNumericName(unsigned int name);
-const Destination* WINAPI TD_FindDestinationById(unsigned int id);
+const Destination* WINAPI TD_FindDestinationById(const unsigned __int64& id);
 
 TakionIterator* WINAPI TD_CreateDestinationRoutingPairIterator();
 const DestinationRoutingPair* WINAPI TD_GetNextDestinationRoutingPair(TakionIterator* iterator);
@@ -12868,25 +18721,34 @@ const char* WINAPI TD_GetFirmId();
 Account* WINAPI TD_GetDefaultAccount();
 unsigned __int64 WINAPI TD_GetTraderIdFlags();
 
+char WINAPI TD_GetPrimaryExchange(const Security* security);
+
 const Destination* WINAPI TD_GetEcnDefaultDestination(unsigned char bookId);//enum EcnBookId in TakionUtilsApi.h
 const Destination* WINAPI TD_GetStockSourceDestination(unsigned char source);//enum NyseMarketCenter in TakionUtilsApi.h (minus 'A', i. e. zero based)
 const Destination* WINAPI TD_GetDestinationByPrimaryExchange(char primaryExchange);//enum PrimaryExchange in TakionUtilsApi.h
-unsigned int WINAPI TD_GetDestinationIdByPrimaryExchange(char primaryExchange);//enum PrimaryExchange in TakionUtilsApi.h
+unsigned __int64 WINAPI TD_GetDestinationIdByPrimaryExchange(char primaryExchange);//enum PrimaryExchange in TakionUtilsApi.h
 
 const Destination* WINAPI TD_GetDestinationAmex();
 const Destination* WINAPI TD_GetDestinationNyse();
 const Destination* WINAPI TD_GetDestinationNsdq();
 const Destination* WINAPI TD_GetDestinationQsmt();
+const Destination* WINAPI TD_GetDestinationApex();
+const Destination* WINAPI TD_GetDestinationLynx();
 const Destination* WINAPI TD_GetDestinationArca();
 const Destination* WINAPI TD_GetDestinationBats();
 const Destination* WINAPI TD_GetDestinationBaty();
+const Destination* WINAPI TD_GetDestinationIex();
 const Destination* WINAPI TD_GetDestinationEdga();
 const Destination* WINAPI TD_GetDestinationEdgx();
-const Destination* WINAPI TD_GetDestinationNite();
+const Destination* WINAPI TD_GetDestinationVirt();
+//const Destination* WINAPI TD_GetDestinationNite();
 const Destination* WINAPI TD_GetDestinationNsex();
+const Destination* WINAPI TD_GetDestinationChsx();
 const Destination* WINAPI TD_GetDestinationJpm();
+const Destination* WINAPI TD_GetDestinationQstk();
+const Destination* WINAPI TD_GetDestinationBdrg();
 
-unsigned int WINAPI TD_RequestStockHistoricalChart(const char* symbol, unsigned int dateFrom, unsigned char frequency);
+unsigned int WINAPI TD_RequestStockHistoricalChart(const char* symbol, unsigned int dateFrom, unsigned int dateTo, unsigned char frequency);
 HistoricalChart* WINAPI TD_RequestAndKeepStockHistoricalChart(const char* symbol, unsigned int dateFrom, unsigned char frequency, bool includePrePostMarket);
 unsigned int WINAPI TD_AddToHistoricalChart(const HistoricalChart* historicalChart, unsigned int dateFrom);
 
@@ -12914,7 +18776,27 @@ TakionIterator* WINAPI TD_CreateEquityIterator();
 Security* WINAPI TD_GetNextEquity(TakionIterator* iterator);
 
 TakionIterator* WINAPI TD_CreateIndexIterator();
+TakionIterator* WINAPI TD_CreateCalcIndexIterator();
 Index* WINAPI TD_GetNextIndex(TakionIterator* iterator);
+
+unsigned int WINAPI TD_GetCalcIndexCount();
+Index* WINAPI TD_AddCalcIndex(const unsigned __int64& numSymbol, const char* const description, const SignedPrice& multiplier, const unsigned char& type, const bool includePreMarket, const bool includePostMarket);
+Index* WINAPI TD_RemoveCalcIndex(const unsigned __int64& numSymbol);
+bool WINAPI TD_RemoveAndDestroyCalcIndex(const unsigned __int64& numSymbol);
+Index* WINAPI TD_FindCalcIndex(const unsigned __int64& numSymbol);
+bool WINAPI TD_SetCalcIndexMultiplier(Index* index, const SignedPrice& multiplier);
+bool WINAPI TD_SetCalcIndexType(Index* index, const unsigned char& type);
+bool WINAPI TD_SetCalcIndexIncludePreMarket(Index* index, const bool includePreMarket);
+bool WINAPI TD_SetCalcIndexIncludePostMarket(Index* index, const bool includePostMarket);
+bool WINAPI TD_SetCalcIndexParams(Index* index, const char* const description, const SignedPrice& multiplier, const unsigned char& type, const bool includePreMarket, const bool includePostMarket);
+bool WINAPI TD_AddCalcIndexComponent(Index* index, const unsigned __int64& numSymbol, const SignedPrice& weight);
+bool WINAPI TD_RemoveCalcIndexComponent(Index* index, const unsigned __int64& numSymbol);
+bool WINAPI TD_ClearCalcIndexComponents(Index* index);
+unsigned int WINAPI TD_GetCalcIndexComponentCount(const Index* index);
+bool WINAPI TD_SetCalcIndexComponentWeight(Index* index, const unsigned __int64& numSymbol, const SignedPrice& weight);
+TakionIterator* WINAPI TD_CreateCalcIndexComponentIterator(const Index* index);
+CalcIndexComponent* WINAPI TD_GetNextCalcIndexComponent(TakionIterator* iterator, unsigned __int64* numericSymbol = NULL);
+CalcIndexComponent* WINAPI TD_FindCalcIndexComponent(const Index* index, const unsigned __int64& numericSymbol);
 
 bool WINAPI TD_IsMarketDataConnected();
 bool WINAPI TD_IsExecutorConnected();
@@ -12923,19 +18805,41 @@ bool WINAPI TD_IsMarketSorterLoaded();
 bool WINAPI TD_IsMarketSorterIndexesLoaded();
 bool WINAPI TD_IsHistoricalPrintConnected();
 
+bool WINAPI TD_IsMhRsiDataLoaded();
+unsigned int WINAPI TD_GetMhRsiChartsRequested();
+unsigned int WINAPI TD_GetMhRsiChartsLoaded();
+unsigned int WINAPI TD_GetMhRsiChartsFailed();
+
+bool WINAPI TD_IsDaysRsiDataLoaded();
+unsigned int WINAPI TD_GetDaysRsiChartsRequested();
+unsigned int WINAPI TD_GetDaysRsiChartsLoaded();
+unsigned int WINAPI TD_GetDaysRsiChartsFailed();
+
 const unsigned int& WINAPI TD_GetUserType();
 
 const unsigned int& WINAPI TD_GetOrderSizeAbsoluteCap();
 const unsigned int& WINAPI TD_GetMaxCancelsPerSecond();
 
-char  WINAPI TD_GetMarketStatus();
-bool  WINAPI TD_IsMarketStatusInitialized();
-bool  WINAPI TD_IsMarketOpen();
+const unsigned int& WINAPI TD_GetAdditionalOptionStrikeCap();
+const unsigned int& WINAPI TD_GetAdditionalOptionExpirationCap();
+
+char WINAPI TD_GetMarketStatus();
+bool WINAPI TD_IsMarketStatusInitialized();
+bool WINAPI TD_IsPreMarket();
+bool WINAPI TD_IsMarketOpen();
+bool WINAPI TD_IsMarketClosedForTheDay();
+
+unsigned char WINAPI TD_GetMarketState();//MSTATE_PREMARKET, MSTATE_MARKET, MSTATE_POSTMARKET
+
+char WINAPI TD_GetHtbStockStartCharInSimulation();
+char WINAPI TD_GetHtbStockEndCharInSimulation();
 
 bool WINAPI TD_IsMovesReporting();
 bool WINAPI TD_IsJoinsReporting();
-void WINAPI TD_SetMovesReporting(bool report);
-void WINAPI TD_SetJoinsReporting(bool report);
+bool WINAPI TD_IsPrintsReporting(bool oddLot);
+
+bool  WINAPI TD_IsRedirectLynx();
+
 
 Account* WINAPI TD_GetCurrentAccount();
 void WINAPI TD_SetCurrentAccount(Account* account);
@@ -12947,16 +18851,21 @@ bool WINAPI TD_IsMarketSorterSubscribeToIndices();
 bool WINAPI TD_IsMarketSorterStocksSubscribed();
 bool WINAPI TD_IsMarketSorterIndicesSubscribed();
 
-bool WINAPI TD_IsLoadExecutions();
-void WINAPI TD_SetLoadExecutions(bool load);
 bool WINAPI TD_IsCancelOnDisconnect();
 void WINAPI TD_SetCancelOnDisconnect(bool cancel);
 
+bool WINAPI TD_IsLoadExecutions();
 bool WINAPI TD_LoadExecutions(const Account* account);
 
 bool WINAPI TD_IsLoadOrders();
-void WINAPI TD_SetLoadOrders(bool load);
 bool WINAPI TD_LoadOrders(const Account* account);
+
+bool WINAPI TD_CanLoadAllAccountOrdersAndExecutions();
+bool WINAPI TD_AreAllAccountOrdersLoading();
+bool WINAPI TD_AreAllAccountExecutionsLoading();
+bool WINAPI TD_LoadAllAccountOrdersAndExecutions(bool orders, bool executions);
+
+bool WINAPI TD_IsLoadMarketSorterBeforeAccounts();
 
 void WINAPI TD_SetChartApplicablePrintPercent(const Price& percent);
 const Price& WINAPI TD_GetChartApplicablePrintPercent();
@@ -12964,8 +18873,8 @@ const Price& WINAPI TD_GetChartApplicablePrintPercent();
 void WINAPI TD_SetBlockAggressiveOrderPriceRange(const Price& priceRange, bool percent);
 bool WINAPI TD_GetBlockAggressiveOrderPriceRange(Price& price);
 unsigned int WINAPI TD_GetBlockAggressiveOrderPriceRangeAsUInt();
-bool WINAPI TD_IsOrderTooAggressive(char side, const Price& limitPrice, const SignedPrice& stopPrice, const Price& bidPrice, const Price& askPrice, unsigned char tifType);
-bool WINAPI TD_IsOrderCrossingInsideMarket(char side, const Price& limitPrice, const SignedPrice& stopPrice, const Price& bidPrice, const Price& askPrice, unsigned char tifType);
+bool WINAPI TD_IsOrderTooAggressive(char side, const Price& limitPrice, const Price& stopPrice, const Price& bidPrice, const Price& askPrice, unsigned char tifType);
+bool WINAPI TD_IsOrderCrossingInsideMarket(char side, const Price& limitPrice, const Price& stopPrice, const Price& bidPrice, const Price& askPrice, unsigned char tifType);
 
 void WINAPI TD_SetDefaultCommissionFee(const Money& commissionFee);
 const Money& WINAPI TD_GetDefaultCommissionFee();
@@ -12976,19 +18885,25 @@ void WINAPI TD_SetAccountCustomAccountConstraints(Account* account, const Constr
 bool WINAPI TD_IsArcaPloWhenHidden();
 void WINAPI TD_SetArcaPloWhenHidden(bool arcaPlo);
 
+bool WINAPI TD_IsSubscribeOnExecution();
+void WINAPI TD_SetSubscribeOnExecution(bool subscribe);
+
 bool WINAPI TD_IsNyseConvertToImbalanceOnly();
 void WINAPI TD_SetNyseConvertToImbalanceOnly(bool convertToImbalanceOnly);
 
+bool WINAPI TD_IsTraderIdEnabled();
+
 bool WINAPI TD_IsTradingAllowed();
-void WINAPI TD_SetTradingAllowed(bool allowed);
+
+bool WINAPI TD_IsPostponeGtcOrders();
+void WINAPI TD_SetPostponeGtcOrders(bool postponeGtcOrders);
 
 bool WINAPI TD_IsDefaultOnlyTradingAllowed();
-void WINAPI TD_SetDefaultOnlyTradingAllowed(bool defaultOnly);
 
 RoundLotPolicy WINAPI TD_GetRoundLotPolicy();
 void WINAPI TD_SetRoundLotPolicy(RoundLotPolicy policy);
-bool WINAPI TD_IsCancelWashOrders();
-void WINAPI TD_SetCancelWashOrders(bool cancel);
+unsigned char WINAPI TD_GetWashOrderPolicy();
+void WINAPI TD_SetWashOrderPolicy(unsigned char cancel);
 
 //bool WINAPI TD_IsAllowOddLotOrdersInSimulation();
 //void TD_SetAllowOddLotOrdersInSimulation(bool allow);
@@ -12996,8 +18911,31 @@ void WINAPI TD_SetCancelWashOrders(bool cancel);
 bool WINAPI TD_IsAllowSellBorrowedInSimulation();
 void WINAPI TD_SetAllowSellBorrowedInSimulation(bool allow);
 
-bool WINAPI TD_IsQsmtInSimulation();
-void WINAPI TD_SetQsmtInSimulation(bool allow);
+bool WINAPI TD_IsAccountRetailInSimulation();
+void WINAPI TD_SetAccountRetailInSimulation(bool retail);
+//bool WINAPI TD_IsQsmtInSimulation();
+//void WINAPI TD_SetQsmtInSimulation(bool allow);
+
+bool WINAPI TD_IsSupportConservativeOrderMarkingInSimulation();
+void WINAPI TD_SetSupportConservativeOrderMarkingInSimulation(bool conservative);
+void WINAPI TD_SetFollowLockTradingInSimulation(bool follow);
+
+unsigned int WINAPI TD_GetStuckOrderSizeInSimulation();
+void WINAPI TD_SetStuckOrderSizeInSimulation(unsigned int stuckOrderSizeInSimulation);
+
+unsigned int WINAPI TD_GetMaxExecutionSizeInSimulation();
+void WINAPI TD_SetMaxExecutionSizeInSimulation(unsigned int maxExecutionSizeInSimulation);
+
+unsigned int WINAPI TD_GetLocateVenueInSimulation();
+void WINAPI TD_SetLocateVenueInSimulation(unsigned int flags);
+
+const Destination* WINAPI TD_GetBorrowDestination(unsigned int locateVenue);
+
+unsigned int WINAPI TD_GetOrderProcFlagsInSimulation();
+void WINAPI TD_SetOrderProcFlagsInSimulation(unsigned int flags);
+
+unsigned int WINAPI TD_GetAccountProcFlagsInSimulation();
+void WINAPI TD_SetAccountProcFlagsInSimulation(unsigned int flags);
 
 const unsigned int& WINAPI TD_GetUserTypeLive();
 const unsigned int& WINAPI TD_GetUserTypeInSimulation();
@@ -13028,6 +18966,12 @@ const bool& WINAPI TD_IsUserSupervisor();
 bool WINAPI TD_IsResizeToBpa();
 void WINAPI TD_SetResizeToBpa(bool resizeToBpa);
 
+bool WINAPI TD_IsResizeToPositionCap();
+void WINAPI TD_SetResizeToPositionCap(bool resizeToPositionCap);
+
+bool WINAPI TD_IsCancelOrdersOnStockHalt();
+void WINAPI TD_SetCancelOrdersOnStockHalt(bool cancelOrdersOnStockHalt);
+
 unsigned char WINAPI TD_GetOversellSplitPolicy();
 void WINAPI TD_SetOversellSplitPolicy(unsigned char oversellSplitPolicy);
 
@@ -13037,6 +18981,12 @@ void WINAPI TD_SetResizeShortToBorrowed(bool resize);
 bool WINAPI TD_IsRemoveDelayedOrdersOnClosePrice();
 void WINAPI TD_SetRemoveDelayedOrdersOnClosePrice(bool remove);
 
+bool WINAPI TD_IsCancelStopOrdersOnMarketClose();
+void WINAPI TD_SetCancelStopOrdersOnMarketClose(bool cancel);
+
+bool WINAPI TD_IsDoNotReplaceIllegalOnOpenOnCloseOrders();
+void WINAPI TD_SetDoNotReplaceIllegalOnOpenOnCloseOrders(bool doNotReplace);
+
 bool WINAPI TD_IsCancelOversellInsteadOfResize();
 void WINAPI TD_SetCancelOversellInsteadOfResize(bool cancel);
 
@@ -13045,6 +18995,10 @@ void WINAPI TD_SetCancelOvershortInsteadOfResize(bool cancel);
 
 bool WINAPI TD_IsDestroyCanceledOrders();
 void WINAPI TD_SetDestroyCanceledOrders(bool destroy);
+
+bool WINAPI TD_IsDestroyBlockedOrders();
+void WINAPI TD_SetDestroyBlockedOrders(bool destroy);
+
 bool WINAPI TD_IsThreadDelays();
 void WINAPI TD_SetThreadDelays(bool threadDelays);
 
@@ -13056,78 +19010,166 @@ void WINAPI TD_SetAllPhantomPositionsFlat();
 //ActOnMaxLossMode WINAPI TD_GetActOnMaxLossMode();
 //void WINAPI TD_SetActOnMaxLossMode(ActOnMaxLossMode mode);
 
-bool  WINAPI TD_IsMarketClosedForTheDay();
-
 TakionIterator* WINAPI TD_CreateIndexDescriptionIterator();
 const IndexDescription* WINAPI TD_GetNextIndexDescription(TakionIterator* iterator);
 
-bool WINAPI TD_SetSymbolInCommandTool(const char* symbol, bool post, unsigned int commandToolOrdinal = 0xFFFFFFFF);//commandToolOrdinal = 0xFFFFFFFF means active command tool.
+bool WINAPI TD_SetSymbolInCommandTool(const char* symbol, bool post, unsigned int commandToolOrdinal = 0xFFFFFFFF//commandToolOrdinal = 0xFFFFFFFF means active command tool.
+#ifndef TAKION_NO_OPTIONS
+	, const unsigned __int64& optionBlock = 0
+#endif
+	);
+
 
 unsigned __int64 WINAPI TD_GetMarketDataEntitlements();
+unsigned __int64 WINAPI TD_GetMarketDataDatabaseEntitlements();
+unsigned __int64 WINAPI TD_GetMarketDataCustomEntitlements();
+bool WINAPI TD_SetMarketDataCustomEntitlements(const unsigned __int64& entitlements);
+
+unsigned __int64 WINAPI TD_GetExtMarketDataEntitlements();
+unsigned __int64 WINAPI TD_GetExtMarketDataDatabaseEntitlements();
+unsigned __int64 WINAPI TD_GetExtMarketDataCustomEntitlements();
+bool WINAPI TD_SetExtMarketDataCustomEntitlements(const unsigned __int64& entitlements);
 
 unsigned __int64 WINAPI TD_GetMarketDataVersion();
 const char* WINAPI TD_GetMarketDataVersionStr();
+bool WINAPI TD_IsMdSubscriptionOnly();
+
+unsigned __int64 WINAPI TD_GetMarketSorterVersion();
+const char* WINAPI TD_GetMarketSorterVersionStr();
+bool WINAPI TD_IsMsSubscriptionOnly();
 
 unsigned __int64 WINAPI TD_GetExecutorVersion();
 const char* WINAPI TD_GetExecutorVersionStr();
 
 bool WINAPI TD_IsMarketDataLogged();
+bool WINAPI TD_IsMarketSorterLogged();
 bool WINAPI TD_IsExecutorLogged();
 
 bool WINAPI TD_IsLogDefaultAccountOnly();
 void WINAPI TD_SetLogDefaultAccountOnly(bool only);
 
+//bool WINAPI TD_IsLogonToExecutorAfterMarketSorterLoad();
+//bool WINAPI TD_SetLogonToExecutorAfterMarketSorterLoad(bool afterMsLoad);
+
 bool WINAPI TD_CancelOrdersToExpire();
 bool WINAPI TD_HasOrdersToExpire();
-bool WINAPI TD_SetExiting(bool cancelDefaultAccountOrders, bool cancelOtherAccountOrders);
-bool WINAPI TD_HasActiveNonProblematicOrdersInDefaultAccount();
-bool WINAPI TD_HasActiveNonProblematicOrdersInNonDefaultAccounts();
+bool WINAPI TD_SetExiting(bool cancelDefaultAccountOrders, bool cancelOtherAccountOrders, bool cancelDefaultAccountOrdersExceptGtc, bool cancelOtherAccountOrdersExceptGtc);
+bool WINAPI TD_HasActiveNonProblematicOrdersInDefaultAccount(const bool& exceptGtc, const bool& includeAlgos);
+bool WINAPI TD_HasActiveNonProblematicOrdersInNonDefaultAccounts(const bool& exceptGtc, const bool& includeAlgos);
 bool WINAPI TD_DisconnectConnection(const char* ip, unsigned short port, unsigned int reconnectTries);
 bool WINAPI TD_ReconnectConnection(ConnectionBase& connection);
+bool WINAPI TD_ReconnectConnectionByIpPort(const unsigned __int64& ipport);
 
-void WINAPI TD_GetPanicCommandName(std::string& panicCommandName);
-bool WINAPI TD_SetPanicCommandName(const std::string& panicCommandName);
+//
+void WINAPI TD_GetPanicCommandName(std::string& commandName, unsigned char marketState);
+void WINAPI TD_GetPanicCommandNames(std::string& commandNameMarket, std::string& commandNamePreMarket, std::string& commandNamePostMarket);
+bool WINAPI TD_SetPanicCommandNames(const std::string& commandNameMarket, const std::string& commandNamePreMarket, const std::string& commandNamePostMarket);
 
+void WINAPI TD_GetPanicCommandNameMarket(std::string& commandName);
+void WINAPI TD_GetPanicCommandNamePreMarket(std::string& commandName);
+void WINAPI TD_GetPanicCommandNamePostMarket(std::string& commandName);
+
+bool WINAPI TD_SetPanicCommandNameMarket(const std::string& commandName);
+bool WINAPI TD_SetPanicCommandNamePreMarket(const std::string& commandName);
+bool WINAPI TD_SetPanicCommandNamePostMarket(const std::string& commandName);
+//
+void WINAPI TD_GetPositionLoserNotifyCommandName(std::string& commandName, unsigned char marketState);
+void WINAPI TD_GetPositionLoserNotifyCommandNames(std::string& commandNameMarket, std::string& commandNamePreMarket, std::string& commandNamePostMarket);
+bool WINAPI TD_SetPositionLoserNotifyCommandNames(const std::string& commandNameMarket, const std::string& commandNamePreMarket, const std::string& commandNamePostMarket);
+
+void WINAPI TD_GetPositionLoserNotifyCommandNameMarket(std::string& commandName);
+void WINAPI TD_GetPositionLoserNotifyCommandNamePreMarket(std::string& commandName);
+void WINAPI TD_GetPositionLoserNotifyCommandNamePostMarket(std::string& commandName);
+
+bool WINAPI TD_SetPositionLoserNotifyCommandNameMarket(const std::string& commandName);
+bool WINAPI TD_SetPositionLoserNotifyCommandNamePreMarket(const std::string& commandName);
+bool WINAPI TD_SetPositionLoserNotifyCommandNamePostMarket(const std::string& commandName);
+//
+void WINAPI TD_GetAccountLoserNotifyCommandName(std::string& commandName, unsigned char marketState);
+void WINAPI TD_GetAccountLoserNotifyCommandNames(std::string& commandNameMarket, std::string& commandNamePreMarket, std::string& commandNamePostMarket);
+bool WINAPI TD_SetAccountLoserNotifyCommandNames(const std::string& commandNameMarket, const std::string& commandNamePreMarket, const std::string& commandNamePostMarket);
+
+void WINAPI TD_GetAccountLoserNotifyCommandNameMarket(std::string& commandName);
+void WINAPI TD_GetAccountLoserNotifyCommandNamePreMarket(std::string& commandName);
+void WINAPI TD_GetAccountLoserNotifyCommandNamePostMarket(std::string& commandName);
+
+bool WINAPI TD_SetAccountLoserNotifyCommandNameMarket(const std::string& commandName);
+bool WINAPI TD_SetAccountLoserNotifyCommandNamePreMarket(const std::string& commandName);
+bool WINAPI TD_SetAccountLoserNotifyCommandNamePostMarket(const std::string& commandName);
+//
 bool WINAPI TD_IsEtbListLoaded();
 
 bool WINAPI TD_IsQsmtRedirectTime();
+
+#ifdef LYNX_REROUTING
+bool WINAPI TD_IsLynxOnOpenOnCloseRedirectTime();
+bool WINAPI TD_IsLynxRedirectTime();
+#endif
+
+bool WINAPI TD_IsApexRedirectTime();
 bool WINAPI TD_IsQsmtPassiveRedirectTime();
 bool WINAPI TD_IsBorrowOvernightTime();
 
 bool WINAPI TD_IsDefaultAccountOnly();
 
-void WINAPI TD_RemoveQuote(const unsigned __int64& symbol, bool side, EcnBookId bookId, unsigned int mmid, const Price& priceFrom, const Price& priceTo);
+void WINAPI TD_RemoveQuote(const unsigned __int64& symbol,
+#ifndef TAKION_NO_OPTIONS
+	const unsigned __int64& optionBlock,
+#endif
+	bool side, unsigned char bookId, unsigned int mmid, const Price& priceFrom, const Price& priceTo);
 
 unsigned char WINAPI TD_WhichThreadCurrent();//0 - main, 1 - data, 2 - other
 
 unsigned int WINAPI TD_GetCancelsPerSecond();
 void WINAPI TD_SetCancelsPerSecond(unsigned int cancelsPerSecond);
 
-void WINAPI TD_RequestHistoricalPrints(const char* symbol, unsigned short minute, unsigned __int64 referenceNumber, unsigned char flags, unsigned int& requestId);
+//int WINAPI TD_GetFirmPositionInSimulation();
+//void WINAPI TD_SetFirmPositionInSimulation(int firmPosition);
+
+bool WINAPI TD_RequestHistoricalPrints(const char* symbol, unsigned short minute, unsigned __int64 referenceNumber, unsigned char flags, unsigned int& requestId);
 bool WINAPI TD_StopHistoricalPrints(unsigned int requestId);
 unsigned short WINAPI TD_GetCloseMarketMinute();
 unsigned int WINAPI TD_GetCloseMarketMillisecond();
+unsigned int WINAPI TD_GetLocMocMillisecond();
 
-Connection* WINAPI TD_AddConnection(Connection* connection, bool tryToReconnect);
+//unsigned int WINAPI TD_GetNsdqLocMocMillisecond();
+unsigned int WINAPI TD_GetNsdqMocMillisecond();
+unsigned int WINAPI TD_GetNsdqLocMillisecond();
+
+unsigned int WINAPI TD_GetNsdqLooMooMillisecond();
+
+Connection* WINAPI TD_AddConnection(Connection* connection, const unsigned char format, bool tryToReconnect);
 bool WINAPI TD_RemoveConnection(const Connection* connection);
 bool WINAPI TD_RemoveConnectionByIpPort(const unsigned __int64& ipport);
 
 NewsDll* WINAPI TD_GetNewsDll();
+bool WINAPI TD_IsNewsDllCompatible();
+unsigned int WINAPI TD_GetLoadedExtensionCount();
 
 bool WINAPI TD_WriteToConnection(unsigned char dataType, const char* data, unsigned int length);
 bool WINAPI TD_WriteMessageToConnection(unsigned char dataType, const Message* message);
-bool WINAPI TD_WriteBuffersToConnection(unsigned char dataType, const WSABUF* cursor, unsigned int count);
+unsigned int WINAPI TD_WriteBuffersToConnection(unsigned char dataType, const WSABUF* cursor, unsigned int count);
 
 const char* WINAPI TD_GetDefaultProActiveRoutingName();
 unsigned int WINAPI TD_GetDefaultProActiveRoutingNumericName();
 
-const char* WINAPI TD_GetDmaRoutingName();
-unsigned int WINAPI TD_GetDmaRoutingNumericName();
+const char* WINAPI TD_GetLynxSmartRoutingName();
+unsigned int WINAPI TD_GetLynxSmartRoutingNumericName();
+const char* WINAPI TD_GetArcaPassiveLiquidityRoutingName();
+unsigned int WINAPI TD_GetArcaPassiveLiquidityRoutingNumericName();
+
+//const char* WINAPI TD_GetDmaRoutingName();
+//unsigned int WINAPI TD_GetDmaRoutingNumericName();
 
 const ActiveConnection* WINAPI TD_FindActiveConnection(unsigned __int64 ipport);
 const ActiveConnection* WINAPI TD_FindActiveConnectionByIpPort(unsigned int ip, unsigned short port);
+const ActiveConnection* WINAPI TD_GetConnectionData(unsigned char dataType);
 
 bool WINAPI TD_IsRoutingInstructionAddLiquidityOnly(unsigned int routingId);
+
+unsigned __int64 WINAPI TD_GetDefaultOtcbbVenueId();
+unsigned short WINAPI TD_GetDefaultOtcbbRoutingInstructionId();
+void WINAPI TD_SetDefaultOtcbbVenueAndRoutingInstruction(const unsigned __int64& otcbbVenueId, unsigned short otcbbRoutingInstructionId);
 
 void WINAPI TD_SetEquityTimeFrame(unsigned int millisecond);//0 - use 1 minute time frame
 const unsigned short& WINAPI TD_GetCurrentMinute();
@@ -13212,6 +19254,8 @@ enum ExtensionResponseFilterEnum : unsigned char
 	RSPF_FIRM,
 	RSPF_HTB,
 
+	RSPF_YESTERDAY_VALUES_CORRECTION,
+
 	RSPF_Count
 };
 
@@ -13224,7 +19268,64 @@ void WINAPI TD_AddRemoveExtensionResponseFilter(const HMODULE& hmodule, const un
 MessageThread* WINAPI TD_ObtainMessageSimulationThread();
 bool WINAPI TD_ReleaseMessageSimulationThread(const MessageThread* const& messageSimulationThread);
 
+void WINAPI TD_StartNotifyIpChangeThread();
+void WINAPI TD_ReleaseNotifyIpChangeThread();
+
 char WINAPI TD_GetSideByServerSide(unsigned char serverSide);
+
+TakionServer* WINAPI TD_CreateServer(unsigned int ip,
+	unsigned short port,
+	const unsigned char format,
+	bool nagle,
+	bool logMessages,
+	const unsigned int& estimatedHeartbeatDelayMilliseconds,
+	HCRYPTPROV* hCryptProv,//NULL
+	TakionClientData* clientData,//NULL
+	TextProcessor* textProcessor,//NULL
+	bool* exists = NULL);
+TakionServer* WINAPI TD_FindServer(unsigned short port);
+bool WINAPI TD_DestroyServer(unsigned short port);
+void WINAPI TD_ClearServers();
+TakionIterator* WINAPI TD_CreateServerIterator();
+const TakionServer* WINAPI TD_GetNextServer(TakionIterator* iterator);
+//const TakionClient* WINAPI TD_TakionDataServerGetNextClient(TakionIterator* iterator);
+
+Order* WINAPI TD_FindPendingOrderInAllAccountsByClientId(const unsigned int& clientId);
+
+bool WINAPI TD_UpdateInventory(Account* account, const InventoryNode* inventoryArray, unsigned int inventoryNodeCount, const int size, unsigned char securityTypeHidden, bool allPositions);
+
+bool WINAPI TD_DestroyUntradedPositions(Account* account);//account = NULL means all accounts
+bool WINAPI TD_DestroyUntradedPosition(Account* account, const char* symbol
+#ifndef TAKION_NO_OPTIONS
+	,const unsigned __int64& optionBlock
+#endif
+	);
+void WINAPI TD_SetPhantomPositionsFlat(Account* account);//account = NULL means all accounts
+
+void WINAPI TD_LoadMhRsiData(bool load);
+const unsigned int& WINAPI TD_GetLoadMhRsiDataCount();
+const Price* WINAPI TD_FindRsiMhPriceArray(const unsigned __int64& numericSymbol, unsigned short& size, bool& loaded);
+
+void WINAPI TD_LoadDaysRsiData(bool load);
+const unsigned int& WINAPI TD_GetLoadDaysRsiDataCount();
+const Price* WINAPI TD_FindRsiDaysPriceArray(const unsigned __int64& numericSymbol, unsigned short& size, bool& loaded);
+
+RoundPriceMode WINAPI TD_GetRoundPriceMode();
+void TD_SetRoundPriceMode(unsigned char roundPriceMode);//Possible values in RoundPriceMode enum in file TakionUtilsApi.h
+
+bool WINAPI TD_IsServerTimeInitialized();
+
+const unsigned int* WINAPI TD_GetEcnFilterLineCount();
+
+void WINAPI TD_RestoreSimulatedPositions();
+
+void WINAPI TD_SetForceCalculatePositionLeverage(bool force);
+unsigned int WINAPI TD_GetCalculatePositionLeverageCount();
+bool WINAPI TD_IsForceCalculatePositionLeverage();
+bool WINAPI TD_IsCalculatePositionLeverage();
+
+unsigned int WINAPI TD_GetTimerExpirationFrequency();
+void WINAPI TD_SetTimerExpirationFrequency(unsigned int frequency);
 
 #ifdef __cplusplus
 }

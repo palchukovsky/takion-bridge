@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <Link>
-      <AdditionalDependencies>Utils.lib;TakionUtils.lib;TakionMemory.lib;TakionLog.lib;TakionGui.lib;TakionData.lib;Observer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Observer.lib;TakionData.lib;UtilsGui.lib;TakionGui.lib;TakionLog.lib;TakionMemory.lib;TakionUtils.lib;Utils.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>TakionExtension.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>

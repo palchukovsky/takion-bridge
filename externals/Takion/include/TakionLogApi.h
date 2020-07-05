@@ -10,22 +10,24 @@
 #define TL_API __declspec(dllimport)
 #endif
 
+#include <UtilsApi.h>
+
 #ifndef _DEBUG
 #define NED_MALLOC
 #endif
 
-const char* const TakionLogHeaderVersion = "1.0.1.174";
+const char* const TakionLogHeaderVersion = "1.0.4.151";
 
 class TL_API TakionTimer
 {
 public:
 	virtual ~TakionTimer(){}
-	unsigned int GetId() const{return m_id;}
-	void SetId(unsigned int id){m_id = id;}
+	const unsigned int& GetId() const{return m_id;}
+	void SetId(const unsigned int& id){m_id = id;}
 //	unsigned int GetState() const{return m_state;}
 //	void SetState(unsigned int state){m_state = state;}
-	bool isOwn() const{return m_own;}
-	void SetOwn(bool own){m_own = own;}
+	const bool& isOwn() const{return m_own;}
+	void SetOwn(const bool& own){m_own = own;}
 	virtual void Triggered(unsigned int count) = 0;
 	virtual void Activate() = 0;
 	virtual void AdjustOnTimeChange(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int prevDate){}
@@ -33,9 +35,10 @@ public:
 	virtual unsigned int GetTriggerCode(unsigned int reactivateCode) const{return reactivateCode;}
 	virtual bool isValid() const{return true;}
 	virtual unsigned int GetState() const{return 0;}
+	virtual void NextDayStarted(){}
 protected:
 //	TakionTimer(bool own = true):m_id(0xFFFFFFFF),m_state(0),m_own(own){}
-	TakionTimer(bool own = true):m_id(0xFFFFFFFF),m_own(own){}
+	TakionTimer(const bool& own = true):m_id(0xFFFFFFFF),m_own(own){}
 	unsigned int m_id;
 //	unsigned int m_state;
 	bool m_own;
@@ -44,33 +47,41 @@ protected:
 class TL_API TakionTimerOnce : public TakionTimer
 {
 public:
-	unsigned int GetMilliseconds() const{return m_milliseconds;}
-	virtual void Activate();
-	virtual unsigned int Reactivate();
-	virtual bool isValid() const{return m_milliseconds > 0;}
+	const unsigned int& GetMilliseconds() const{return m_milliseconds;}
+	virtual void Activate() override;
+	virtual unsigned int Reactivate() override;
+	virtual bool isValid() const override{return m_milliseconds > 0;}
 protected:
-	TakionTimerOnce(unsigned int milliseconds, bool own = true):
+	TakionTimerOnce(const unsigned int& milliseconds, const bool& own = true):
 		TakionTimer(own),
 		m_milliseconds(milliseconds ? milliseconds : 1)
 	{}
 	unsigned int m_milliseconds;
 };
 
-class TL_API TakionTimerDayState : public TakionTimer
+class TL_API TakionTimerDayCycle : public TakionTimer
+{
+protected:
+	TakionTimerDayCycle(const bool& own = true):TakionTimer(own){}
+	void UpdateTimer();
+};
+
+class TL_API TakionTimerDayState : public TakionTimerDayCycle
 {
 public:
-	virtual unsigned int GetState() const{return m_state;}
-	unsigned int GetStateCount() const{return m_stateCount;}
-	virtual void Activate();
-	virtual unsigned int Reactivate();
-	virtual unsigned int GetTriggerCode(unsigned int reactivateCode) const{return m_state + 1;}
+	virtual unsigned int GetState() const override{return m_state;}
+	const unsigned int& GetStateCount() const{return m_stateCount;}
+	virtual void Activate() override;
+	virtual unsigned int Reactivate() override;
+	virtual unsigned int GetTriggerCode(unsigned int reactivateCode) const override{return m_state + 1;}
 	typedef std::map<unsigned int, unsigned int> StateMap;
 	const StateMap& GetStateMap() const{return m_stateMap;}
-	virtual void AdjustOnTimeChange(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int prevDate);
-	virtual bool isValid() const{return m_stateCount > 1;}
+	virtual void AdjustOnTimeChange(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int prevDate) override;
+	virtual bool isValid() const override{return m_stateCount > 1;}
+//	virtual bool isValid() const override{return m_stateCount > 0;}
 protected:
-	TakionTimerDayState(const unsigned int* dayMillisecondArray, unsigned int stateCount, bool own = true):
-		TakionTimer(own),
+	TakionTimerDayState(const unsigned int* dayMillisecondArray, unsigned int stateCount, const bool& own = true):
+		TakionTimerDayCycle(own),
 		m_stateMapEnd(m_stateMap.end()),
 		m_stateCount(0),
 		m_state(0)
@@ -95,6 +106,32 @@ protected:
 	unsigned int m_state;
 };
 
+class TL_API TakionTimerOnceADay : public TakionTimerDayCycle
+{
+public:
+	virtual unsigned int GetState() const override{return m_triggered ? 1 : 0;}
+	virtual void Activate() override;
+	virtual unsigned int Reactivate() override;
+	virtual unsigned int GetTriggerCode(unsigned int reactivateCode) const override{return m_triggered ? 2 : 1;}
+	virtual void AdjustOnTimeChange(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int prevDate) override;
+	virtual bool isValid() const override{return m_millisecondToTrigger < 86400000;}
+	const bool& isTriggered() const{return m_triggered;}
+	void SetMillisecondToTrigger(unsigned int millisecondToTrigger);
+//	virtual void NextDayStarted() override{Activate();}
+protected:
+	TakionTimerOnceADay(const unsigned int& millisecondToTrigger, const bool& own = true):
+		TakionTimerDayCycle(own),
+		m_millisecondToTrigger(millisecondToTrigger),
+		m_timerSetAt(0xFFFFFFFF),
+		m_triggered(false)
+	{
+	}
+	unsigned int UpdateState();
+	unsigned int m_millisecondToTrigger;
+	unsigned int m_timerSetAt;
+	bool m_triggered;
+};
+
 class TL_API TakionTimerRepeat : public TakionTimer
 {
 public:
@@ -104,10 +141,10 @@ public:
 	unsigned int GetOffset() const{return m_offset;}
 //	unsigned int GetAdjustFrequency() const{return m_adjustFrequency;}
 //	void SetAdjustFrequency(unsigned int frequency){m_adjustFrequency = frequency;}
-	virtual void Activate();
-	virtual unsigned int Reactivate();
+	virtual void Activate() override;
+	virtual unsigned int Reactivate() override;
 //	virtual void AdjustOnTimeChange(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int prevDate){DoActivate();}
-	virtual bool isValid() const{return m_cycle > 0;}
+	virtual bool isValid() const override{return m_cycle > 0;}
 //	void SetValues(unsigned int cycle, unsigned int offset, unsigned int adjustFrequency = 0)
 	void SetValues(unsigned int cycle, unsigned int offset)
 	{
@@ -166,11 +203,13 @@ const char* WINAPI TL_GetFileDescription();
 void WINAPI TL_GetDllBuildDescription(std::string& buildStr);
 
 const TIME_ZONE_INFORMATION& WINAPI TL_GetNewYorkTimeZone();
+unsigned int WINAPI TL_GetNewYorkTimeZoneDiff();
 unsigned int WINAPI TL_GetDayMillisecondFromSystemTime(const SYSTEMTIME& t);
 unsigned int WINAPI TL_GetCurrentMillisecond();
+unsigned int WINAPI TL_GetCurrentUtcMillisecond();
 unsigned int WINAPI TL_GetCurrentServerMillisecond();
-void WINAPI TL_SetServerMillisecond(unsigned int serverMillisecond);
 unsigned int WINAPI TL_GetCurrentTimeTokens(unsigned int& hour, unsigned int& minute, unsigned int& second);
+unsigned int WINAPI TL_GetCurrentTimeDigitTokens(unsigned char& hour1, unsigned char& hour2, unsigned char& minute1, unsigned char& minute2, unsigned char& second1, unsigned char& second2);
 unsigned int WINAPI TL_GetCurrentServerTimeTokens(unsigned int& hour, unsigned int& minute, unsigned int& second);
 const bool& WINAPI TL_IsServerTimeInitialized();
 //returns localMillisecond
@@ -214,17 +253,48 @@ int WINAPI TL_BusinessDateDiffByFormattedDates(unsigned int date1, unsigned int 
 unsigned int WINAPI TL_CalculateBusinessDayCountSinceYearStart(unsigned int year, unsigned int month, unsigned int day);
 void WINAPI TL_CalculateDateFromYearBusinessDayCount(unsigned int businessDays, unsigned int year, unsigned int& month, unsigned int& day);
 
+void WINAPI TL_GetDateDaysAheadFromToday(unsigned int& year, unsigned int& month, unsigned int& day, unsigned int days);
+void WINAPI TL_GetDateDaysBackFromToday(unsigned int& year, unsigned int& month, unsigned int& day, unsigned int days);
+
 unsigned int WINAPI TL_GetHolidayCountBetweenDatesOfOneYear(unsigned int year, unsigned int month1, unsigned int day1, unsigned int month2, unsigned int day2);
 unsigned int WINAPI TL_GetHolidayCountBetweenDates(unsigned int year1, unsigned int month1, unsigned int day1, unsigned int year2, unsigned int month2, unsigned int day2);
 
+unsigned int WINAPI TL_GetTodaysUtcDate();
+unsigned int WINAPI TL_GetTodaysUtcDayOfWeek();
+unsigned int WINAPI TL_GetUtcYear();
+unsigned int WINAPI TL_GetUtcMonth();
+unsigned int WINAPI TL_GetUtcDay();
+unsigned int WINAPI TL_GetUtcTimeFromNyTimeAndReturnUtcDate(unsigned int& nyMillisecond);
+
 unsigned int WINAPI TL_GetTodaysDate();
+unsigned int WINAPI TL_GetTodaysDateInFullShiftFormat();//((unsigned int)year << 16) | ((unsigned int)(month) << 8) | (unsigned int)day;
+unsigned int WINAPI TL_GetTodaysDateInShiftFormat();//((unsigned int)year << 9) | ((unsigned int)(month) << 5) | (unsigned int)day;
+unsigned int WINAPI TL_GetTodaysDateInMultiplyFormat();//(unsigned int)year * 10000 + (unsigned int)month * 100 + day;
 unsigned int WINAPI TL_GetTodaysDayOfWeek();
 unsigned int WINAPI TL_GetYear();
 unsigned int WINAPI TL_GetMonth();
 unsigned int WINAPI TL_GetDay();
+
+unsigned int WINAPI TL_GetMaxDate();
+
+unsigned int WINAPI TL_GetYearBusinessPrev();
+unsigned int WINAPI TL_GetMonthBusinessPrev();
+unsigned int WINAPI TL_GetDayBusinessPrev();
+unsigned int WINAPI TL_GetPreviousBusinessDateInShiftFormat();
+void WINAPI TL_GetDateTokensBusinessPrev(unsigned int& year, unsigned int& month, unsigned int& day);
+bool WINAPI TL_IsDateBusinessPrev(const unsigned int year, const unsigned int month, const unsigned int day);
+unsigned int WINAPI TL_GetPreviousMarketCloseTimeInShiftFormat();
+
 bool WINAPI TL_IsTodayShortDay();
 unsigned short WINAPI TL_GetCloseMarketMinute();
 unsigned int WINAPI TL_GetCloseMarketMillisecond();
+
+bool WINAPI TL_IsTodayWeekend();
+bool WINAPI TL_IsTodayHoliday();
+
+unsigned short WINAPI TL_GetOpenMarketMinute();
+unsigned int WINAPI TL_GetOpenMarketMillisecond();
+
 unsigned __int64 WINAPI TL_GetPerformanceFrequency();
 unsigned int WINAPI TL_GetTickResolution();
 
@@ -233,9 +303,10 @@ unsigned int WINAPI TL_GetTimeIncrement();
 bool WINAPI TL_IsTimeAdjustmentDisabled();
 
 const char* WINAPI TL_GetDayOfWeekName(unsigned int dayOfWeek);
+const char* WINAPI TL_GetDayOfWeekShortName(unsigned int dayOfWeek);
 
 //http://www.nasdaqtrader.com/Trader.aspx?id=Calendar
-enum Holiday
+enum Holiday : unsigned char
 {
 	TLH_NEW_YEAR,
 	TLH_MLK_DAY,
@@ -250,7 +321,7 @@ enum Holiday
 	TLH_HOLIDAY_COUNT
 };
 
-enum ShortDay
+enum ShortDay : unsigned char
 {
 	TLS_BEFORE_INDEPENDENCE,
 	TLS_AFTER_THANKSGIVING,
@@ -258,6 +329,9 @@ enum ShortDay
 
 	TLS_SHORT_DAY_COUNT
 };
+
+Holiday WINAPI TL_GetTodaysHoliday();
+ShortDay WINAPI TL_GetTodaysShortDay();
 
 const char* WINAPI TL_GetHolidayName(Holiday holiday);
 const char* WINAPI TL_GetShortDayName(ShortDay shortDay);
@@ -292,11 +366,18 @@ bool WINAPI TL_IsTodayNewBusinessWeek();
 bool WINAPI TL_IsTodayNewBusinessMonth();
 bool WINAPI TL_IsTodayNewBusinessYear();
 
-void* WINAPI TL_CreateLogFile(const char* name, bool outputDate = true, const char* extension = "log", unsigned int date = 0, const char* path = NULL);
+void* WINAPI TL_CreateLogFile(const char* name, bool outputTime = true, bool outputDate = true, const char* extension = "log", unsigned int date = 0, const char* path = NULL, bool open = true, bool wipe = false, bool wipeOnNewDay = false);
 void WINAPI TL_DestroyLogFile(void* logFile);
+void WINAPI TL_OpenLogFile(void* logFile, bool wipe = false);
+bool WINAPI TL_WipeLogFile(void* logFile);
+bool WINAPI TL_RemoveLogFile(void* logFile);
+void WINAPI TL_CloseLogFile(void* logFile);
 void WINAPI TL_Log(void* logFile, const char* message, const char* prefix = NULL, unsigned int level = 0);
 const char* WINAPI TL_GetLogFilePath(const void* logFile);
 bool WINAPI TL_IsLogFileValid(const void* logFile);
+unsigned int WINAPI TL_GetOpenFileError(const void* logFile);
+const char* WINAPI TL_GetOpenFileErrorMessage(const void* logFile);
+const char* WINAPI TL_GetDateStr(const void* logFile);
 void WINAPI TL_DestroyLogFiles();
 
 bool WINAPI TL_ClearLogFilesBeforeDaysAgo(const char* name, unsigned int daysAgo, const char* extension = "log", const char* path = NULL);
@@ -314,6 +395,7 @@ bool WINAPI TL_IsPrevLogFileExist(const char* filePathAndName);
 unsigned int WINAPI TL_GetStartMillisecond();
 unsigned int WINAPI TL_GetStartDate();
 void WINAPI TL_GetStartDateTokens(unsigned int& year, unsigned int& month, unsigned int& day);
+void WINAPI TL_FormatStartDateAndTime(std::string& str, bool appendMillisecond, bool monthName, bool fullYear, char dateTimeSeparator = ' ', char dateSeparator = '-', char timeSeparator = ':', char millisecondSeparator = '-', char del = '\0');
 void WINAPI TL_GetCurrentNewYorkTime(SYSTEMTIME& nyTime);
 
 void WINAPI TL_AdjustTimeForward(unsigned int millisecond);
@@ -322,6 +404,9 @@ void WINAPI TL_AdjustTimeBackward(unsigned int millisecond);
 typedef void (WINAPI *NextDayStartedCallback)();
 void WINAPI TL_RegisterNextDayStartedCallback(NextDayStartedCallback func);
 void WINAPI TL_UnregisterNextDayStartedCallback(NextDayStartedCallback func);
+
+void WINAPI TL_RegisterUtcNextDayStartedCallback(NextDayStartedCallback func);
+void WINAPI TL_UnregisterUtcNextDayStartedCallback(NextDayStartedCallback func);
 
 typedef void (WINAPI *TimeChangedCallback)(unsigned int prevMillisecond, unsigned int currentMillisecond, unsigned int todaysDate);
 void WINAPI TL_RegisterTimeChangedCallback(TimeChangedCallback func);
@@ -340,6 +425,8 @@ bool WINAPI TL_IsInLogThread(std::string& filePath);
 
 void WINAPI TL_DateNumToStr(unsigned int date, std::string& dateStr);
 unsigned int WINAPI TL_DateStrToNum(const char* dateStr);
+
+bool WINAPI TL_IsTodaysDate(const char* cursor);
 
 #ifdef __cplusplus
 }

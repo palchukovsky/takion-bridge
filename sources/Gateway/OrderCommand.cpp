@@ -122,6 +122,10 @@ int OrderCommand::GetPositionSize() const {
 	return ::Price(GetStock().GetL1Ask());
 }
 
+::Price OrderCommand::GetLastPrice() const {
+	return ::Price(GetStock().GetLastPrice());
+}
+
 boost::shared_ptr<const Commands::Response> OrderCommand::Execute() {
 	if (!IsOk()) {
 		return m_response;
@@ -169,28 +173,33 @@ unsigned char MarketOrderCommand::SendOrder() {
 	::Price signedStopPrice(PriceToPrice(GetStopPrice()));
 	::Price level1Bid = GetLevel1Bid();
 	::Price level1Ask = GetLevel1Ask();
+  ::Price lastPrice = GetLastPrice();
 	SignedPrice pegOffset;
+	unsigned int orderClientId = 0;
 
 	return GetAccount().SendOrder(
-		NULL,
-		NULL,
-		true,
+		&orderClientId,
+	  NULL,
+		false,
 		0,
 		&GetStock(),
-		0,
+	  PE_NOT_POSTPONED,
+    0,
 		AMEX_ROUTE,
-		GetSide(m_order.side),
-		GetOrderType(),
+	  0,
+    GetSide(m_order.side),
+    GetOrderType(),
 		0,
 		NULL,
-		TU_GetPriceZero(),
-		TU_GetPriceZero(),
-		signedStopPrice,
+		Price::priceZero,
+		Price::priceZero,
+    signedStopPrice,
 		GetStopType(),
-		OST_NONE,
-		level1Bid,
+	  OSB_BID,	
+	  level1Bid,
 		level1Ask,
-		m_order.qty,
+		lastPrice,
+	  m_order.qty,
 		m_order.qty,
 		0,
 		0,
@@ -198,23 +207,25 @@ unsigned char MarketOrderCommand::SendOrder() {
 		0,
 		0,
 		false,
-		0,
+		PEG_NONE,
 		pegOffset,
-		'0',
-		0,
-		true,
-		'1',
-		true,
-		false,
-		TU_GetPriceZero(),
-		false,
+		TIF_DAY,
+    0,
+	  WOP_CANCEL,
+	  OOP_RESIZE,
+	  false,
+	  true,
+	  Price::oneCent,
+    false,
 		false,
 		false,
 		false,
 		false,
 		RLP_ROUND_DOWN,
 		NULL,
-		0);
+		0,
+	  0,
+	  0);
 
 }
 
@@ -246,28 +257,33 @@ unsigned char LimitOrderCommand::SendOrder() {
 	::Price limitPrice(PriceToPrice(m_order.price));
 	::Price level1Bid = GetLevel1Bid();
 	::Price level1Ask = GetLevel1Ask();
+  ::Price lastPrice = GetLastPrice();
 	SignedPrice pegOffset;
+  unsigned int orderClientId = 0;
 
 	return GetAccount().SendOrder(
-		NULL,
-		NULL,
-		true,
+		&orderClientId,
+	  NULL,
+		false,
 		0,
 		&GetStock(),
-		0,
+	  PE_NOT_POSTPONED,
+    0,
 		AMEX_ROUTE,
-		GetSide(m_order.side),
-		ORDER_TYPE_LIMIT,
+	  0,
+    GetSide(m_order.side),
+    ORDER_TYPE_LIMIT,
 		0,
 		NULL,
 		limitPrice,
-		TU_GetPriceZero(),
-		TU_GetPriceZero(),
+		Price::priceZero,
+    Price::priceZero,
 		OST_NONE,
-		OST_NONE,
-		level1Bid,
+	  OSB_BID,	
+	  level1Bid,
 		level1Ask,
-		m_order.qty,
+		lastPrice,
+	  m_order.qty,
 		m_order.qty,
 		0,
 		0,
@@ -275,23 +291,25 @@ unsigned char LimitOrderCommand::SendOrder() {
 		0,
 		0,
 		false,
-		0,
+		PEG_NONE,
 		pegOffset,
-		'0',
-		0,
-		true,
-		'1',
-		true,
-		false,
-		TU_GetPriceZero(),
-		false,
+		TIF_DAY,
+    0,
+	  WOP_CANCEL,
+	  OOP_RESIZE,
+	  false,
+	  true,
+	  Price::oneCent,
+    false,
 		false,
 		false,
 		false,
 		false,
 		RLP_ROUND_DOWN,
 		NULL,
-		0);
+		0,
+	  0,
+	  0);
 
 }
 

@@ -69,6 +69,7 @@ namespace TakionBridge { namespace Gateway {
 		
 		::Price GetLevel1Bid() const;
 		::Price GetLevel1Ask() const;
+	  ::Price GetLastPrice() const;
 
 		static char GetSide(TakionBridge::Interface::OrderSide);
 

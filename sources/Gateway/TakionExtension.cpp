@@ -207,11 +207,12 @@ extern "C" {
 		//...//
 	}
 
-	void WINAPI SymbolEnteredInMmBox(
-				const char * /*symbol*/,
-				bool /*valid*/,
-				bool /*fromKeyboard*/,
-				unsigned int /*ordinal*/) {
+  void WINAPI SymbolEnteredInMmBox(
+        const char* /*symbol*/,
+		    unsigned char /*securityType*/,
+		    bool /*valid*/,
+		    bool /*fromKeyboard*/,
+		    unsigned int /*ordinal*/) {
 		//...//
 	}
 
