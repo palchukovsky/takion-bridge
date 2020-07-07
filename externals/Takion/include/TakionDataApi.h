@@ -10,7 +10,7 @@
 #define TD_API __declspec(dllimport)
 #endif
 
-const char* const TakionDataHeaderVersion = "1.0.5.7";
+const char* const TakionDataHeaderVersion = "1.0.4.221";
 
 //#define TAKION_EXCEPTION
 
@@ -762,19 +762,6 @@ enum MessageIds : unsigned short
 
 	TM_BOOKTOP_INFO,//used (as primary, not additional, info) for notification of InThread Observers if there are no Book Depth Entitlements, instead of TM_QUOTE_INFO
 
-	TM_STOCK_ECHO,
-	TM_SORTABLE_STOCK_ECHO,
-
-	TM_CONFIRM_BORROW,
-	TM_SIMULATE_EXECUTION,
-
-	TM_EXPIRATION_TIMER,
-
-	TM_NASDAQ_MARKET_STATUS_CHANGED,
-
-#ifndef TAKION_NO_OPTIONS
-	TM_OPTION_ECHO,
-#endif
 #ifdef CLEARING_FIRM_IN_WORKER_THREAD
 	TM_CLEARING_FIRM_INCREMENT_BETA_BP_USED,
 	TM_CLEARING_FIRM_INCREMENT_BETA_INVESTMENT,
@@ -824,7 +811,7 @@ public:
 		const unsigned __int64& optionBlock = 0,
 #endif
 		const bool& side = false,
-		const unsigned char& bookId = BOOK_LEVEL2,
+		const EcnBookId& bookId = BOOK_LEVEL2,
 		const unsigned int& mmid = 0,
 		const unsigned int& dollarsFrom = 0,
 		const unsigned int& dollarFractionFrom = 0,
@@ -853,7 +840,7 @@ public:
 	unsigned int m_dollarsTo;
 	unsigned int m_dollarFractionTo;
 	bool m_side;
-	unsigned char m_bookId;
+	EcnBookId m_bookId;
 };
 
 class TMessageTime : public Message
@@ -935,13 +922,11 @@ public:
 		const bool& oldRetailLiquidity = false,
 		const bool& newRetailLiquidity = false):
 		Message(TM_QUOTE_INFO, sizeof(TMsgQuoteInfo)),
-//		m_oldPriceDollars(oldPriceDollars),
-//		m_oldPriceFraction(oldPriceFraction),
-		m_oldPrice(oldPriceDollars, oldPriceFraction),
+		m_oldPriceDollars(oldPriceDollars),
+		m_oldPriceFraction(oldPriceFraction),
 		m_oldSize(oldSize),
-//		m_newPriceDollars(newPriceDollars),
-//		m_newPriceFraction(newPriceFraction),
-		m_newPrice(newPriceDollars, newPriceFraction),
+		m_newPriceDollars(newPriceDollars),
+		m_newPriceFraction(newPriceFraction),
 		m_newSize(newSize),
 		m_mmid(mmid),
 		m_oldMillisecond(oldMillisecond),
@@ -951,23 +936,29 @@ public:
 		m_newQuoteCondition(newQuoteCondition),
 		m_oldRetailLiquidity(oldRetailLiquidity),
 		m_newRetailLiquidity(newRetailLiquidity)
-	{}
-	TMsgQuoteInfo(const Price& oldPrice,
+	{
+	}
+/*
+	TMsgQuoteInfo(const unsigned char& bookId,
+		const unsigned int& oldPriceDollars,
+		const unsigned int& oldPriceFraction,
 		const unsigned int& oldSize,
-		const Price& newPrice,
+//		const unsigned int& newPriceDollars,
+//		const unsigned int& newPriceFraction,
 		const unsigned int& newSize,
 		const unsigned int& mmid,
 		const unsigned int& oldMillisecond,
 		const unsigned int& newMillisecond,
-		const unsigned char& bookId,
 		const unsigned char& oldQuoteCondition = 0,
 		const unsigned char& newQuoteCondition = 0,
 		const bool& oldRetailLiquidity = false,
 		const bool& newRetailLiquidity = false):
 		Message(TM_QUOTE_INFO, sizeof(TMsgQuoteInfo)),
-		m_oldPrice(oldPrice),
+		m_oldPriceDollars(oldPriceDollars),
+		m_oldPriceFraction(oldPriceFraction),
 		m_oldSize(oldSize),
-		m_newPrice(newPrice),
+		m_newPriceDollars(oldPriceDollars),
+		m_newPriceFraction(oldPriceFraction),
 		m_newSize(newSize),
 		m_mmid(mmid),
 		m_oldMillisecond(oldMillisecond),
@@ -977,31 +968,14 @@ public:
 		m_newQuoteCondition(newQuoteCondition),
 		m_oldRetailLiquidity(oldRetailLiquidity),
 		m_newRetailLiquidity(newRetailLiquidity)
-	{}
-/*
-	TMsgQuoteInfo(const MsgQuote& quote):
-		m_oldPrice(quote.m_priceDollars, quote.m_priceFraction),
-		m_oldSize(quote.m_size),
-		m_newPrice(quote.m_priceDollars, quote.m_priceFraction),
-		m_newSize(quote.m_size),
-		m_mmid(quote.m_mmid),
-		m_oldMillisecond(quote.m_millisecond),
-		m_newMillisecond(quote.m_millisecond),
-		m_bookId(quote.m_bookID),
-		m_oldQuoteCondition(quote.m_quoteCondition),
-		m_newQuoteCondition(quote.m_quoteCondition),
-		m_oldRetailLiquidity((quote.m_flags & MsgQuote::RetailInterest) != 0),
-		m_newRetailLiquidity((quote.m_flags & MsgQuote::RetailInterest) != 0)
-	{}
+	{
+	}
 */
-
-//	unsigned int m_oldPriceDollars;
-//	unsigned int m_oldPriceFraction;
-	Price m_oldPrice;
+	unsigned int m_oldPriceDollars;
+	unsigned int m_oldPriceFraction;
 	unsigned int m_oldSize;
-//	unsigned int m_newPriceDollars;
-//	unsigned int m_newPriceFraction;
-	Price m_newPrice;
+	unsigned int m_newPriceDollars;
+	unsigned int m_newPriceFraction;
 	unsigned int m_newSize;
 	unsigned int m_mmid;
 	unsigned int m_oldMillisecond;
@@ -1016,26 +990,32 @@ public:
 class TMsgBookTopInfo : public Message//This Message is used (as primary, not additional, info) for notification of InThread Observers if there are no Book Depth Entitlements, instead of TMsgQuoteInfo as additional info
 {
 public:
-	TMsgBookTopInfo(const Price& oldPrice,
+	TMsgBookTopInfo(const unsigned int& oldPriceDollars,
+		const unsigned int& oldPriceFraction,
 		const unsigned int& oldSize,
-		const Price& newPrice,
+		const unsigned int& newPriceDollars,
+		const unsigned int& newPriceFraction,
 		const unsigned int& newSize,
 		const unsigned int& mmid,
 		const unsigned char& bookId,
 		const bool& bid):
 		Message(TM_BOOKTOP_INFO, sizeof(TMsgQuoteInfo)),
-		m_oldPrice(oldPrice),
+		m_oldPriceDollars(oldPriceDollars),
+		m_oldPriceFraction(oldPriceFraction),
 		m_oldSize(oldSize),
-		m_newPrice(newPrice),
+		m_newPriceDollars(newPriceDollars),
+		m_newPriceFraction(newPriceFraction),
 		m_newSize(newSize),
 		m_mmid(mmid),
 		m_bookId(bookId),
 		m_bid(bid)
 	{
 	}
-	Price m_oldPrice;
+	unsigned int m_oldPriceDollars;
+	unsigned int m_oldPriceFraction;
 	unsigned int m_oldSize;
-	Price m_newPrice;
+	unsigned int m_newPriceDollars;
+	unsigned int m_newPriceFraction;
 	unsigned int m_newSize;
 	unsigned int m_mmid;
 	unsigned char m_bookId;
@@ -3139,18 +3119,11 @@ public:
 	unsigned int m_prevDate;
 };
 
-class TMsgMarketOpen : public Message//Admin Observable
+class TMsgMarketOpen : public Message
 {
 public:
 	TMsgMarketOpen(const bool& open = false):Message(TM_MARKET_STATUS, sizeof(TMsgMarketOpen)), m_open(open){}
 	bool m_open;
-};
-
-class TMsgNasdaqMarketStatusChanged : public Message//Admin Observable
-{
-public:
-	TMsgNasdaqMarketStatusChanged(const unsigned char& status = '\0'):Message(TM_NASDAQ_MARKET_STATUS_CHANGED, sizeof(TMsgNasdaqMarketStatusChanged)), m_status(status){}
-	unsigned char m_status;//O - MessagesOpen; S - SystemOpen; Q - MarketOpen; M - MarketClosed; E - SystemClosed; C - MessagesClosed
 };
 
 class TMessageSymbol : public Message
@@ -3280,73 +3253,6 @@ protected:
 	{
 	}
 };
-
-class TMessageSecurityEcho : public TMessageSymbol
-{
-public:
-	unsigned int m_echoId;
-protected:
-	TMessageSecurityEcho(const char* const& symbol, const unsigned int& echoId, const unsigned short& type, const unsigned short& length):
-		TMessageSymbol(symbol, type, length),
-		m_echoId(echoId)
-	{}
-	TMessageSecurityEcho(const unsigned __int64& symbol, const unsigned int& echoId, const unsigned short& type, const unsigned short& length):
-		TMessageSymbol(symbol, type, length),
-		m_echoId(echoId)
-	{}
-};
-
-//The following 3 messages can be sent to the Security/Option thread, using function Security::WriteEchoMessageToSecurityThread, and the InThread Observers will be notified.
-//Use function GetMinCustomEchoId() to get the min echoId that Takion will accept from an Extension.
-//These can be used for initializing some custom data structures from the Worker Thread, so that there is no disparity with the incoming updates.
-//AddInThreadObserver should be called before WriteEchoMessageToSecurityThread for guaranteed notification.
-class TMessageStockEcho : public TMessageSecurityEcho
-{
-public:
-	TMessageStockEcho(const char* const& symbol, const unsigned int& echoId):
-		TMessageSecurityEcho(symbol, echoId, TM_STOCK_ECHO, sizeof(TMessageStockEcho))
-	{}
-	TMessageStockEcho(const unsigned __int64& symbol, const unsigned int& echoId):
-		TMessageSecurityEcho(symbol, echoId, TM_STOCK_ECHO, sizeof(TMessageStockEcho))
-	{}
-};
-
-class TMessageSortableStockEcho : public TMessageSecurityEcho
-{
-public:
-	TMessageSortableStockEcho(const char* const& symbol, const unsigned int& echoId):
-		TMessageSecurityEcho(symbol, echoId, TM_SORTABLE_STOCK_ECHO, sizeof(TMessageSortableStockEcho))
-	{}
-	TMessageSortableStockEcho(const unsigned __int64& symbol, const unsigned int& echoId):
-		TMessageSecurityEcho(symbol, echoId, TM_SORTABLE_STOCK_ECHO, sizeof(TMessageSortableStockEcho))
-	{}
-};
-
-class TMessageExpirationTimer : public Message //From TD_GetExpirationObservable
-{
-public:
-	TMessageExpirationTimer(const unsigned int& currentMillisecond = 0) :
-		Message(TM_EXPIRATION_TIMER, sizeof(TMessageExpirationTimer)),
-		m_currentMillisecond(currentMillisecond)
-	{}
-	unsigned int m_currentMillisecond;
-};
-
-#ifndef TAKION_NO_OPTIONS
-class TMessageOptionEcho : public TMessageOptionBlock
-{
-public:
-	TMessageOptionEcho(const char* const& symbol, const unsigned __int64& optionBlock, const unsigned int& echoId):
-		TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ECHO, sizeof(TMessageOptionBlock)),
-		m_echoId(echoId)
-	{}
-	TMessageOptionEcho(const unsigned __int64& symbol, const unsigned __int64& optionBlock, const unsigned int& echoId):
-		TMessageOptionBlock(symbol, optionBlock, TM_OPTION_ECHO, sizeof(TMessageOptionBlock)),
-		m_echoId(echoId)
-	{}
-	unsigned int m_echoId;
-};
-#endif
 
 enum QuoteMoveCode : unsigned char
 {
@@ -4810,10 +4716,9 @@ public:
 
 enum SubscriptionTypes : unsigned char
 {
-    UpdatesOnly	= 0,
-    SubscribeSymbol	= 1,
-	SnapshotSymbol	= 2,
-	UpdatesOnlyAll    = 0xfe,
+    UpdatesOnly        = 0,
+    SubscribeSymbol    = 1,
+    UpdatesOnlyAll    = 0xfe,
     RefreshAll        = 0xff,
 };
 /*
@@ -9671,9 +9576,7 @@ public:
 		const bool& conservativeOrderMarking = false,
 		const bool& localSideMarking = false,
 		const bool& poolLocates = false,
-		const unsigned int& locateVenue = 0,
-		const unsigned int& estBegPctClosePositions = 0,
-		const unsigned int& estBegPctCancelOpeningOrders = 0):
+		const unsigned int& locateVenue = 0):
 
 		TMessageTime(time, TS_ACCOUNT_RISK_PROFILE, sizeof(TMsgAccountRiskProfile)),
 		InitialMemberContribution(initialMemberContribution),
@@ -9756,9 +9659,7 @@ public:
 		ConservativeOrderMarking(conservativeOrderMarking),
 		LocalSideMarking(localSideMarking),
 		PoolLocates(poolLocates),
-		LocateVenue(locateVenue),
-		EstBegPctClosePositions(estBegPctClosePositions),
-		EstBegPctCancelOpeningOrders(estBegPctCancelOpeningOrders)
+		LocateVenue(locateVenue)
 	{
 		U_CopyAndPad(AccountName, sizeof(AccountName), accountName, '\0', true);
 
@@ -9864,8 +9765,6 @@ public:
 	bool				LocalSideMarking;
 	bool				PoolLocates;
 	unsigned int		LocateVenue;
-	unsigned int		EstBegPctClosePositions;
-	unsigned int		EstBegPctCancelOpeningOrders;
 };
 //End Transaction Server messages
 
@@ -13744,7 +13643,6 @@ public:
 		const unsigned int& relevance,
 		const unsigned int& extDisplayWireId,
 		const unsigned short& subWireId,
-		const unsigned short& baseWireId,
 		const unsigned char& headlineType,
 		const bool& update,
 //		const std::string& resourceId,
@@ -13768,7 +13666,6 @@ public:
 		m_relevance(relevance),
 		m_extDisplayWireId(extDisplayWireId),
 		m_subWireId(subWireId),
-		m_baseWireId(baseWireId),
 		m_headlineType(headlineType),
 		m_update(update),
 		m_resourceId(resourceId),
@@ -13797,7 +13694,6 @@ public:
 	const unsigned int& GetRelevance() const{return m_relevance;}
 	const unsigned int& GetExtDisplayWireId() const{return m_extDisplayWireId;}
 	const unsigned short& GetSubWireId() const{return m_subWireId;}
-	const unsigned short& GetBaseWireId() const{return m_baseWireId;}
 	const unsigned char& GetHeadlineType() const{return m_headlineType;}
 	const bool& isUpdate() const{return m_update;}
 	const NewsResourceAsNumberArray& GetResourceId() const{return m_resourceId;}
@@ -13818,7 +13714,6 @@ public:
 	void SetRelevance(const unsigned int& relevance){m_relevance = relevance;}
 	void SetExtDisplayWireId(const unsigned int& extDisplayWireId){m_extDisplayWireId = extDisplayWireId;}
 	void SetSubWireId(const unsigned short& subWireId){m_subWireId = subWireId;}
-	void SetBaseWireId(const unsigned short& baseWireId){m_baseWireId = baseWireId;}
 	void SetHeadlineType(const unsigned char& headlineType){m_headlineType = headlineType;}
 	void SetUpdate(const bool& update){m_update = update;}
 //	void SetResourceId(const std::string& resourceId){m_resourceId = resourceId;}
@@ -13881,7 +13776,6 @@ protected:
 	unsigned int m_relevance;
 	unsigned int m_extDisplayWireId;
 	unsigned short m_subWireId;
-	unsigned short m_baseWireId;
 	unsigned char m_headlineType;
 	bool m_update;
 	NewsResourceAsNumberArray m_resourceId;
@@ -14149,7 +14043,6 @@ void WINAPI TD_WriteMessageToMainThread(const Message* message);
 Observable& WINAPI TD_GetCustomInternalObservable();
 Observable& WINAPI TD_GetCustomExternalObservable();
 Observable& WINAPI TD_GetAdminObservable();
-Observable& WINAPI TD_GetExpirationObservable();
 Observable& WINAPI TD_GetExternalCommandObservable();
 Observable& WINAPI TD_GetNewClearingFirmObservable();
 Observable& WINAPI TD_GetNewAccountObservable();
@@ -15173,7 +15066,6 @@ protected:
 		bool aggressive,
 		unsigned int roundLot,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
 		bool resizeShortToBorrowed,
@@ -15207,7 +15099,6 @@ protected:
 	mutable unsigned int m_invalidateOrdinalOrderAlgorithm;
 	unsigned int m_updateOrdinalOrderAlgorithm;
 	unsigned int m_clientIdBeingReplaced;
-	bool m_algoCancelSentToMainThread;
 };
 
 class TD_API AlgorithmPostponed : public AlgorithmSendOrder
@@ -15263,7 +15154,6 @@ public:
 		bool aggressive,
 		unsigned int roundLot,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
@@ -15347,8 +15237,7 @@ public:
 		const unsigned char& displaySizeMode,//0 - size fraction, 1 - round lot, 2 - no change
 		const unsigned int& displaySize,
 		const unsigned int& displaySizeFraction,
-		const unsigned int& remainingSize,
-		const bool& swapLimitStop = false) override;
+		const unsigned int& remainingSize = 0) override;
 protected:
 	AlgorithmGtc(const Position* position,
 		bool postponed,
@@ -15405,7 +15294,6 @@ protected:
 		bool aggressive,
 		unsigned int roundLot,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
@@ -15441,8 +15329,6 @@ protected:
 
 	void ProcessPreBorrowOrder();
 	void ProcessGtcOrder();
-	void ProcessGtcSplitOrder();
-	void ProcessGtcFirmSplitOrder();
 
 	void FireOrder()
 	{
@@ -15528,7 +15414,6 @@ public:
 		bool aggressive,
 		unsigned int roundLot,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT
 		bool resizeShortToBorrowed,
@@ -16242,8 +16127,7 @@ public:
 		const unsigned char& displaySizeMode,//0 - size fraction, 1 - round lot, 2 - no change
 		const unsigned int& displaySize,
 		const unsigned int& displaySizeFraction,
-		const unsigned int& remainingSize,
-		const bool& swapLimitStop = false) override;
+		const unsigned int& remainingSize = 0) override;
 protected:
 	virtual void Swipe() override;
 	bool m_spiderWaitingForQuotes;
@@ -18434,7 +18318,7 @@ bool WINAPI TD_UnsubscribeUnderlier(const char* symbol);
 //bool WINAPI TD_SubscribeOption(const char* symbol, const OptionKey& optionKey);
 //bool WINAPI TD_UnsubscribeOption(const char* symbol, const OptionKey& optionKey);
 
-Underlier* WINAPI TD_ObtainUnderlier(const char* symbol, bool subscribe, bool snapshotsOnly);
+Underlier* WINAPI TD_ObtainUnderlier(const char* symbol, bool subscribe);
 Underlier* WINAPI TD_FindUnderlier(const char* symbol);
 unsigned int WINAPI TD_GetUnderlierCount();
 unsigned int WINAPI TD_GetLoadedUnderlierCount();
@@ -19116,7 +19000,7 @@ void WINAPI TD_RemoveQuote(const unsigned __int64& symbol,
 #ifndef TAKION_NO_OPTIONS
 	const unsigned __int64& optionBlock,
 #endif
-	bool side, unsigned char bookId, unsigned int mmid, const Price& priceFrom, const Price& priceTo);
+	bool side, EcnBookId bookId, unsigned int mmid, const Price& priceFrom, const Price& priceTo);
 
 unsigned char WINAPI TD_WhichThreadCurrent();//0 - main, 1 - data, 2 - other
 
@@ -19323,9 +19207,6 @@ void WINAPI TD_SetForceCalculatePositionLeverage(bool force);
 unsigned int WINAPI TD_GetCalculatePositionLeverageCount();
 bool WINAPI TD_IsForceCalculatePositionLeverage();
 bool WINAPI TD_IsCalculatePositionLeverage();
-
-unsigned int WINAPI TD_GetTimerExpirationFrequency();
-void WINAPI TD_SetTimerExpirationFrequency(unsigned int frequency);
 
 #ifdef __cplusplus
 }

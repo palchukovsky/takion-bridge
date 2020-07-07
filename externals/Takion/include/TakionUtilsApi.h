@@ -44,7 +44,7 @@
 
 //#define EXCH_OPEN_PRICE
 
-const char* const TakionUtilsHeaderVersion = "1.0.5.8";
+const char* const TakionUtilsHeaderVersion = "1.0.4.222";
 
 enum CustomMessageIds : unsigned short
 {
@@ -97,131 +97,19 @@ protected:
 	std::string m_description;
 };
 
-class TU_API DelayedPriceQuantity : public PriceQuantity
-{
-public:
-	virtual unsigned int GetMmid() const{return 0;}
-	virtual unsigned short GetShortMmid() const{return 0;}
-	const unsigned int& GetMillisecond() const{return m_millisecond;}
-	const short& GetDelay() const{return m_delay;}
-	bool isLessMillisecond(const DelayedPriceQuantity& other) const{return m_millisecond < other.m_millisecond;}
-	const bool& isHistorical() const{return m_historical;}
-	void SetHistorical(){m_historical = true;}
-	void SetValues(const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const unsigned int& millisecond, const short& delay, const bool& historical)
-	{
-		PriceQuantity::SetValues(dollars, dollarFraction, quantity);
-		m_millisecond = millisecond;
-		m_delay = delay;
-		m_historical = historical;
-	}
-protected:
-	DelayedPriceQuantity(const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const unsigned int& millisecond, const short& delay):
-		PriceQuantity(dollars, dollarFraction, quantity),
-		m_millisecond(millisecond),
-		m_delay(delay),
-		m_historical(false)
-	{}
-	DelayedPriceQuantity(const Price& price, const unsigned int& quantity, const unsigned int& millisecond, const short& delay):
-		PriceQuantity(price, quantity),
-		m_millisecond(millisecond),
-		m_delay(delay),
-		m_historical(false)
-	{}
-	DelayedPriceQuantity():m_millisecond(0),m_delay(0),m_historical(false){}
-	unsigned int m_millisecond;
-	short m_delay;
-	bool m_historical;
-};
-
-class TU_API Trade : public DelayedPriceQuantity
-{
-public:
-	unsigned char GetSource() const{return m_source;}
-	unsigned char GetLevel1() const{return m_level1;}
-//	virtual unsigned int GetMmid() const{return 0;}
-	virtual char GetLabel() const{return '\0';}
-	virtual bool isPrint() const{return false;}
-	virtual unsigned char GetSide() const{return 0;}//0 - unknown, 1 - buy, 2 - sell
-	virtual bool isHidden() const{return false;}
-	virtual char GetSaleCondition1() const{return '\0';}
-	virtual char GetSaleCondition2() const{return '\0';}
-	virtual char GetSaleCondition3() const{return '\0';}
-	virtual char GetSaleCondition4() const{return '\0';}
-	virtual char GetSaleCondition(unsigned int i) const{return '\0';}
-	virtual bool isOddLot() const{return false;}
-	bool operator<(const Trade& other) const
-	{
-		return m_millisecond > other.m_millisecond || 
-			m_millisecond == other.m_millisecond && (isPrint() == other.isPrint() ? m_source < other.m_source : !isPrint());
-	}
-	bool isTradeLess(const Trade& other) const
-	{
-		if(operator<(other))return true;
-		if(other < *this)return false;
-
-		if(m_historical != other.m_historical)return !m_historical;
-
-		if(m_delay < other.m_delay)return false;
-		if(other.m_delay < m_delay)return true;
-
-		if(isHidden() != other.isHidden())return isHidden(); 
-
-//		if(m_source < other.m_source)return true;//done in operator<
-//		if(other.m_source < m_source)return false;
-
-		if(GetMmid() < other.GetMmid())return true;
-		if(other.GetMmid() < GetMmid())return false;
-
-		if(GetSide() < other.GetSide())return true;
-		if(other.GetSide() < GetSide())return false;
-
-		if(m_quantity < other.m_quantity)return true;
-		if(other.m_quantity < m_quantity)return false;
-
-		if(isLessPrice(other))return true;
-		if(other.isLessPrice(*this))return false;
-
-		if(m_level1 < other.m_level1)return true;
-		if(other.m_level1 < m_level1)return false;
-
-		if(isPrint())
-		{
-			if(GetSaleCondition1() < other.GetSaleCondition1())return true;
-			if(other.GetSaleCondition1() < GetSaleCondition1())return false;
-			if(GetSaleCondition2() < other.GetSaleCondition2())return true;
-			if(other.GetSaleCondition2() < GetSaleCondition2())return false;
-			if(GetSaleCondition3() < other.GetSaleCondition3())return true;
-			if(other.GetSaleCondition3() < GetSaleCondition3())return false;
-			if(GetSaleCondition4() < other.GetSaleCondition4())return true;
-			if(other.GetSaleCondition4() < GetSaleCondition4())return false;
-		}
-		return false;
-	}
-	void SetValues(unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned char source, unsigned char level1, unsigned int millisecond, short delay, bool historical)
-	{
-		DelayedPriceQuantity::SetValues(dollars, dollarFraction, quantity, millisecond, delay, historical);
-		m_source = source;
-		m_level1 = level1;
-	}
-protected:
-	Trade(unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned char source, unsigned char level1, unsigned int millisecond, short delay):// = 0xFFFF):
-		DelayedPriceQuantity(dollars, dollarFraction, quantity, millisecond, delay),
-		m_source(source),
-		m_level1(level1)
-		{}
-	Trade(const Price& price, unsigned int quantity, unsigned char source, unsigned char level1, unsigned int millisecond, short delay):// = 0xFFFF):
-		DelayedPriceQuantity(price, quantity, millisecond, delay),
-		m_source(source),
-		m_level1(level1)
-		{}
-	Trade():m_source(0),m_level1(0){}
-	unsigned char m_source;
-	unsigned char m_level1;
-};
+class Security;
+class Account;
+class Position;
+class Order;
 
 #define Chars2ToUInt(Char1, Char2) Char1|(Char2 << 8)
 #define Chars3ToUInt(Char1, Char2, Char3) Char1|(Char2 << 8)|(Char3 << 16)
 #define Chars4ToUInt(Char1, Char2, Char3, Char4) Char1|(Char2 << 8)|(Char3 << 16)|(Char4 << 24)
+
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 const unsigned int inetNum =	Chars4ToUInt('I', 'N', 'E', 'T');//0x54454E49;//*(unsigned int*)"INET";
 const unsigned int edgeNum =	Chars4ToUInt('E', 'D', 'G', 'E');//0x45474445;//*(unsigned int*)"EDGE";
@@ -277,120 +165,6 @@ const unsigned int opraNum =	Chars4ToUInt('O', 'P', 'R', 'A');//0x4152504F;//*(u
 const unsigned short eoNum =	Chars2ToUInt('E', 'U');//0x5545;//*(unsigned short*)"EU";//equity option
 const unsigned short ioNum =	Chars2ToUInt('I', 'U');//0x5549;//*(unsigned short*)"IU";//equity option
 #endif
-
-enum EcnBookId : unsigned char
-{
-	BOOK_MM_NSDQ,
-	ECNBOOK_NSDQ = 1,
-	ECNBOOK_ARCA,
-	ECNBOOK_BATS,
-	ECNBOOK_EDGA,
-	ECNBOOK_EDGX,
-	BOOK_LEVEL2,
-	ECNBOOK_NYS,
-	ECNBOOK_BATY,
-	ECNBOOK_AMEX,
-//	ECNBOOK_NSX,
-
-//	ECNBOOK_FLOW = 11,
-	ECNBOOK_IEX = 11,
-
-	BOOK_MM_ARCA = 12,
-	BOOK_MM_BATS,
-	BOOK_MM_BATY,
-	BOOK_MM_EDGX,
-//	BOOK_MM_NSX,
-
-	ECNBOOK_COUNT,
-
-	AllBooks = 0xff
-};
-
-typedef unsigned __int64 quoteid;
-
-class TU_API Quote : public DelayedPriceQuantity
-{
-public:
-	Quote(const bool& bid, const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const unsigned char& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay):// = 0xFFFF):
-		DelayedPriceQuantity(dollars, dollarFraction, quantity, millisecond, delay),
-		m_mmid(mmid),
-		m_bid(bid),
-		m_bookId(bookId)
-		{}
-	Quote(const bool& bid, const Price& price, const unsigned int& quantity, const unsigned char& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay):// = 0xFFFF):
-		DelayedPriceQuantity(price, quantity, millisecond, delay),
-		m_mmid(mmid),
-		m_bid(bid),
-		m_bookId(bookId)
-		{}
-	Quote(const bool& bid = false):m_mmid(0),m_bid(bid),m_bookId(AllBooks){}
-
-	bool EqualPriceSideAndDestination(const Quote& other) const
-	{
-		return Price::operator==(other) && m_mmid == other.m_mmid && m_bookId == other.m_bookId && m_bid == other.m_bid;
-	}
-	void SetPriceSideAndDestination(const Quote& other)
-	{
-		Price::operator=(other);
-		m_mmid = other.m_mmid;
-		m_bookId = other.m_bookId;
-		m_bid = other.m_bid;
-	}
-
-	virtual ~Quote(){}
-	const bool& isBid() const{return m_bid;}
-	virtual quoteid GetId() const{return 0;}
-//	virtual unsigned int GetMmid() const{return 0;}
-	virtual unsigned int GetMmid() const{return m_mmid;}
-	virtual unsigned char GetBookId() const{return m_bookId;}
-	virtual unsigned char GetSource() const;
-	virtual unsigned int GetOrderCount() const{return 1;}
-	virtual unsigned char GetCondition() const{return '\0';}
-	virtual bool GetRetailLiquidity() const{return false;}
-	bool operator<(const Quote& other) const{return m_bid ? other.Price::operator<(*this) : Price::operator<(other);}
-//	bool operator==(const Quote& other) const{return Price::operator==(other);}
-	virtual bool isDirect() const{return true;}
-	virtual bool isLessCrossBook(const Quote& other) const{return operator<(other) || operator==(other) && (m_mmid < other.m_mmid || m_mmid == other.m_mmid && (m_bookId < other.m_bookId || m_bookId == other.m_bookId && isDirect()));}
-	virtual bool isTemp() const{return false;}
-	virtual bool isAttributed() const{return false;}
-//	virtual bool isOrder() const{return false;}
-	virtual unsigned char GetOrder() const{return '\0';}
-#ifdef LRPS
-	bool isLrp() const{return m_mmid == lrpNum;}
-#endif
-	bool isLuld() const{return m_mmid == luldNum;}
-	virtual bool isHidden() const{return false;}
-	virtual bool isStop() const{return false;}
-	virtual bool isPostponed() const{return false;}
-	virtual bool isGtc() const{return false;}
-//	virtual bool isLessCrossBook(const Quote& other) const{return Quote::operator<(other) || Quote::operator==(other) && (m_mmid < other.GetMmid() || m_mmid == other.GetMmid() && m_id < other.GetId());}
-	virtual bool isEmpty() const{return m_quantity == 0 && isZero();}
-	void SetEmpty(){SetZero(); m_quantity = 0;}
-	bool isRegular() const
-	{
-		return GetOrder() != 1
-#ifdef LRPS
-			&& !isLrp()
-#endif
-			&& !isLuld()
-			&& !isEmpty();}
-protected:
-	unsigned int m_mmid;
-	bool m_bid;
-	unsigned char m_bookId;
-};
-
-
-class Security;
-class Account;
-class Position;
-class Order;
-
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 
 enum MarketCategory : char
 {
@@ -780,12 +554,9 @@ const char* WINAPI TU_GetEcnLongName(unsigned char ecnId);
 unsigned int WINAPI TU_GetEcnNumericLongName(unsigned char ecnId);
 const char* WINAPI TU_GetEcnShortName(unsigned char ecnId);
 const char* WINAPI TU_GetEcnShortNameLowercase(unsigned char ecnId);
-unsigned short WINAPI TU_GetEcnNumericShortName(unsigned char ecnId);
+unsigned int WINAPI TU_GetEcnNumericShortName(unsigned char ecnId);
 const char* WINAPI TU_GetEcnDestination(unsigned char ecnId);
 unsigned int WINAPI TU_GetEcnNumericDestination(unsigned char ecnId);
-
-unsigned char WINAPI TU_GetEcnAttributedBookId(unsigned char ecnId);
-unsigned char WINAPI TU_GetEcnNativeBookId(unsigned char attributedId);
 
 unsigned int WINAPI TU_GetMarketCenterNumericLongName(unsigned char mc);
 unsigned int WINAPI TU_GetMarketCenterNumericShortName(unsigned char mc);
@@ -849,41 +620,6 @@ void  WINAPI TU_LockInquiryWaitDQuoteMnemonics();
 void  WINAPI TU_UnlockInquiryDQuoteMnemonics();
 TakionIterator* WINAPI TU_CreateDQuoteMnemonicIterator();
 const unsigned int* WINAPI TU_GetNextDQuoteMnemonic(TakionIterator* iterator);
-
-TakionIterator* WINAPI TU_CreateMultiBookIterator(bool bid, bool aggregated, bool sortBySize, unsigned int bookFilter = ((1 << ECNBOOK_COUNT) - 1) & ~(1 << BOOK_LEVEL2), const Security* stock = NULL);
-//const Quote* WINAPI TU_GetMultiBookNextQuote(TakionIterator* multiBookIterator);
-void WINAPI TU_MultiBookIteratorSetSecurity(TakionIterator* multiBookIterator, const Security* stock);
-void WINAPI TU_MultiBookIteratorSetAggregated(TakionIterator* multiBookIterator, bool aggregated);
-bool WINAPI TU_MultiBookIteratorSetBookFilter(TakionIterator* multiBookIterator, unsigned int bookFilter);
-bool WINAPI TU_MultiBookIteratorSetSortBySize(TakionIterator* multiBookIterator, bool sortBySize);
-void WINAPI TU_MultiBookIteratorUpdateEntitlements(TakionIterator* multiBookIterator);
-//void WINAPI TU_MultiBookIteratorSetExtensionEntitlements(TakionIterator* multiBookIterator, unsigned int extEntitlements);
-const Quote* WINAPI TU_MultiBookIteratorGetNextQuoteAndBook(TakionIterator* multiBookIterator, unsigned char& bookId);
-
-bool WINAPI TU_MultiBookIteratorHasSizeForPrice(TakionIterator* multiBookIterator, const Price& price, const unsigned int& size, const bool& includePrice);
-unsigned int WINAPI TU_MultiBookIteratorGetSizeForSpecificPrice(TakionIterator* multiBookIterator, const Price& price);
-
-TakionIterator* WINAPI TU_CreateMmAggregatedIterator(bool bid, bool sortBySize, bool hideSlowQuotes, const unsigned int* lineCount, unsigned int exchangeMask, unsigned int attributionMask, const unsigned char* bookSortRank, const Security* stock = NULL, bool oddSize = false);
-//const Quote* WINAPI TU_GetMmAggregatedNextQuote(TakionIterator* mmAggregatedIterator);
-void WINAPI TU_MmAggregatedIteratorSetSecurity(TakionIterator* mmAggregatedIterator, const Security* stock);
-bool WINAPI TU_MmAggregatedIteratorSecurityRefreshed(TakionIterator* mmAggregatedIterator, const Security* stock);
-bool WINAPI TU_MmAggregatedIteratorSetBookFilter(TakionIterator* mmAggregatedIterator, const unsigned int* lineCount, unsigned int exchangeMask);
-bool WINAPI TU_MmAggregatedIteratorSetAttributionMask(TakionIterator* multiBookIterator, unsigned int attributionMask);
-bool WINAPI TU_MmAggregatedIteratorSetSortBySize(TakionIterator* mmAggregatedIterator, bool sortBySize);
-bool WINAPI TU_MmAggregatedIteratorSetHideSlowQuotes(TakionIterator* multiBookIterator, bool hide);
-bool WINAPI TU_MmAggregatedIteratorSetBookSortRank(TakionIterator* mmAggregatedIterator, const unsigned char* bookSortRank);
-void WINAPI TU_MmAggregatedIteratorSetOddSize(TakionIterator* mmAggregatedIterator, bool oddSize);
-void WINAPI TU_MmAggregatedIteratorUpdateEntitlements(TakionIterator* mmAggregatedIterator);
-//void WINAPI TU_MmAggregatedIteratorSetExtensionEntitlements(TakionIterator* mmAggregatedIterator, unsigned int extEntitlements);
-
-TakionIterator* WINAPI TU_CreateMultiPrintIterator(unsigned int printFilter = AllMarketCenterFilter, bool printShowOddLot = true, unsigned int bookFilter = ((1 << ECNBOOK_COUNT) - 1) & ~(1 << BOOK_LEVEL2), bool ecnExecShowOddLot = true, const Security* stock = NULL);
-const Trade* WINAPI TU_GetMultiPrintNextTrade(TakionIterator* multiPrintIterator);
-void WINAPI TU_MultiPrintIteratorSetSecurity(TakionIterator* multiPrintIterator, const Security* stock);
-bool WINAPI TU_MultiPrintIteratorSetBookFilter(TakionIterator* multiPrintIterator, unsigned int bookFilter, bool ecnExecShowOddLot);
-bool WINAPI TU_MultiPrintIteratorSetPrintFilter(TakionIterator* multiPrintIterator, unsigned int printFilter, bool printShowOddLot);
-void WINAPI TU_MultiPrintIteratorUpdateAllEntitlements(TakionIterator* multiPrintIterator);
-bool WINAPI TU_MultiPrintIteratorUpdateBookEntitlements(TakionIterator* multiPrintIterator);
-bool WINAPI TU_MultiPrintIteratorUpdatePrintEntitlements(TakionIterator* multiPrintIterator);
 
 //News Api
 typedef Observable* (WINAPI* ApiGetObservable)();
@@ -1258,15 +994,15 @@ public:
 
 	Constraint<Money>& GetMaxLossConstraint(){return m_maxLoss;}
 	const Constraint<Money>& GetMaxLossConstraint() const{return m_maxLoss;}
-	const Money& GetCtrnMaxLoss() const{return m_maxLoss.GetCurrentValue();}
+	const Money& GetMaxLoss() const{return m_maxLoss.GetCurrentValue();}
 
 	Constraint<Money>& GetNightMaxLossConstraint(){return m_nightMaxLoss;}
 	const Constraint<Money>& GetNightMaxLossConstraint() const{return m_nightMaxLoss;}
-	const Money& GetCtrnNightMaxLoss() const{return m_nightMaxLoss.GetCurrentValue();}
+	const Money& GetNightMaxLoss() const{return m_nightMaxLoss.GetCurrentValue();}
 
 	Constraint<Money>& GetMorningMaxLossConstraint(){return m_morningMaxLoss;}
 	const Constraint<Money>& GetMorningMaxLossConstraint() const{return m_morningMaxLoss;}
-	const Money& GetCtrnMorningMaxLoss() const{return m_morningMaxLoss.GetCurrentValue();}
+	const Money& GetMorningMaxLoss() const{return m_morningMaxLoss.GetCurrentValue();}
 
 	Constraint<Money>& GetMaxLossSlackConstraint(){return m_maxLossSlack;}
 	const Constraint<Money>& GetMaxLossSlackConstraint() const{return m_maxLossSlack;}
@@ -1274,33 +1010,19 @@ public:
 
 	Constraint<Money>& GetMaxLossCloseConstraint(){return m_maxLossClose;}
 	const Constraint<Money>& GetMaxLossCloseConstraint() const{return m_maxLossClose;}
-	const Money& GetCtrnMaxLossClose() const{return m_maxLossClose.GetCurrentValue();}
+	const Money& GetMaxLossClose() const{return m_maxLossClose.GetCurrentValue();}
 
 	Constraint<Money>& GetNightMaxLossCloseConstraint(){return m_nightMaxLossClose;}
 	const Constraint<Money>& GetNightMaxLossCloseConstraint() const{return m_nightMaxLossClose;}
-	const Money& GetCtrnNightMaxLossClose() const{return m_nightMaxLossClose.GetCurrentValue();}
+	const Money& GetNightMaxLossClose() const{return m_nightMaxLossClose.GetCurrentValue();}
 
 	Constraint<Money>& GetMorningMaxLossCloseConstraint(){return m_morningMaxLossClose;}
 	const Constraint<Money>& GetMorningMaxLossCloseConstraint() const{return m_morningMaxLossClose;}
-	const Money& GetCtrnMorningMaxLossClose() const{return m_morningMaxLossClose.GetCurrentValue();}
-///////
-	const Money& GetDayMaxLoss90Percent() const{return m_dayMaxLoss90Percent;}
-	const Money& GetDayMaxLoss80Percent() const{return m_dayMaxLoss80Percent;}
+	const Money& GetMorningMaxLossClose() const{return m_morningMaxLossClose.GetCurrentValue();}
 
-	const Money& GetNightMaxLoss90Percent() const{return m_nightMaxLoss90Percent;}
-	const Money& GetNightMaxLoss80Percent() const{return m_nightMaxLoss80Percent;}
+	const Money& GetMaxLoss90Percent() const{return m_maxLoss90Percent;}
+	const Money& GetMaxLoss80Percent() const{return m_maxLoss80Percent;}
 
-	const Money& GetMorningMaxLoss90Percent() const{return m_morningMaxLoss90Percent;}
-	const Money& GetMorningMaxLoss80Percent() const{return m_morningMaxLoss80Percent;}
-
-	const Money GetCalculatedDayMaxLoss() const{return m_calculatedDayMaxLoss;}
-	const Money GetCalculatedNightMaxLoss() const{return m_calculatedNightMaxLoss;}
-	const Money GetCalculatedMorningMaxLoss() const{return m_calculatedMorningMaxLoss;}
-
-	const Money GetCalculatedDayMaxLossClose() const{return m_calculatedDayMaxLossClose;}
-	const Money GetCalculatedNightMaxLossClose() const{return m_calculatedNightMaxLossClose;}
-	const Money GetCalculatedMorningMaxLossClose() const{return m_calculatedMorningMaxLossClose;}
-////////
 	Constraint<Money>& GetMaxLossPerPositionConstraint(){return m_maxLossPerPosition;}
 	const Constraint<Money>& GetMaxLossPerPositionConstraint() const{return m_maxLossPerPosition;}
 	const Money& GetMaxLossPerPosition() const{return m_maxLossPerPosition.GetCurrentValue();}
@@ -1340,10 +1062,6 @@ public:
 	Constraint<Money>& GetMaxOrderValueConstraint(){return m_maxOrderValue;}
 	const Constraint<Money>& GetMaxOrderValueConstraint() const{return m_maxOrderValue;}
 	const Money& GetMaxOrderValue() const{return m_maxOrderValue.GetCurrentValue();}
-
-	Constraint<Money>& GetEstimatedBeginningEquityConstraint(){return m_estimatedBeginningEquity;}
-	const Constraint<Money>& GetEstimatedBeginningEquityConstraint() const{return m_estimatedBeginningEquity;}
-	const Money& GetEstimatedBeginningEquity() const{return m_estimatedBeginningEquity.GetCurrentValue();}
 
 	Constraint<Money>& GetCommissionPer1000SharesConstraint(){return m_commissionPer1000Shares;}
 	const Constraint<Money>& GetCommissionPer1000SharesConstraint() const{return m_commissionPer1000Shares;}
@@ -1392,15 +1110,6 @@ public:
 	Constraint<unsigned int>& GetMaxOrderSizeConstraint(){return m_maxOrderSize;}
 	const Constraint<unsigned int>& GetMaxOrderSizeConstraint() const{return m_maxOrderSize;}
 	const unsigned int& GetMaxOrderSize() const{return m_maxOrderSize.GetCurrentValue();}
-
-	Constraint<unsigned int>& GetEstBegPercentMaxLossConstraint(){return m_estBegPercentMaxLoss;}
-	const Constraint<unsigned int>& GetEstBegPercentMaxLossConstraint() const{return m_estBegPercentMaxLoss;}
-	const unsigned int& GetEstBegPercentMaxLoss() const{return m_estBegPercentMaxLoss.GetCurrentValue();}
-
-	Constraint<unsigned int>& GetEstBegPercentMaxLossCloseConstraint(){return m_estBegPercentMaxLossClose;}
-	const Constraint<unsigned int>& GetEstBegPercentMaxLossCloseConstraint() const{return m_estBegPercentMaxLossClose;}
-	const unsigned int& GetEstBegPercentMaxLossClose() const{return m_estBegPercentMaxLossClose.GetCurrentValue();}
-
 /*
 	Constraint<int>& GetAutoCloseStartDelayConstraint(){return m_autoCloseStartDelaySecond;}
 	const Constraint<int>& GetAutoCloseStartDelayConstraint() const{return m_autoCloseStartDelaySecond;}
@@ -1528,77 +1237,30 @@ public:
 	const Constraint<unsigned int>& GetOrderSizeNbboMultiplierConstraint() const{return m_orderSizeNbboMultiplier;}
 	const unsigned int& GetOrderSizeNbboMultiplier() const{return m_orderSizeNbboMultiplier.GetCurrentValue();}
 
-	const Money& GetCtrnCurrentMaxLoss() const{return GetCtrnMaxLoss();}
-	const Money& GetCtrnCurrentMaxLossClose() const{return GetCtrnMaxLossClose();}
+	const Money& GetCurrentMaxLoss() const{return GetMaxLoss();}
+	const Money& GetCurrentMaxLossClose() const{return GetMaxLossClose();}
 	const Money& GetCurrentMaxPositionLoss() const{return GetMaxLossPerPosition();}
 	const Money& GetCurrentMaxPositionLossClose() const{return GetMaxLossPerPositionClose();}
 
-	void UpdateCalculatedValues()//MaxLoss90Percent()
+	void UpdateMaxLoss90Percent()
 	{
-		m_calculatedDayMaxLoss = m_maxLoss.GetCurrentValue();
-		m_calculatedNightMaxLoss = m_nightMaxLoss.GetCurrentValue();
-		m_calculatedMorningMaxLoss = m_morningMaxLoss.GetCurrentValue();
-		m_calculatedDayMaxLossClose = m_maxLossClose.GetCurrentValue();
-		m_calculatedNightMaxLossClose = m_nightMaxLossClose.GetCurrentValue();
-		m_calculatedMorningMaxLossClose = m_morningMaxLossClose.GetCurrentValue();
-
-		Money estimatedBeginningEquity = m_estimatedBeginningEquity.GetCurrentValue();
-		if(estimatedBeginningEquity.isPositive())
+		m_maxLoss80Percent = m_maxLoss90Percent = m_maxLoss.GetCurrentValue();
+		if(!m_maxLoss90Percent.isZero())
 		{
-			unsigned int percent = m_estBegPercentMaxLoss.GetCurrentValue();
-			if(percent)
-			{
-				estimatedBeginningEquity *= percent;
-				estimatedBeginningEquity /= 100;
-				if(!estimatedBeginningEquity.isPositive())estimatedBeginningEquity.SetValue(0, 1);
-				if(m_calculatedDayMaxLoss.isZero() || estimatedBeginningEquity < m_calculatedDayMaxLoss)m_calculatedDayMaxLoss = estimatedBeginningEquity;
-				if(m_calculatedNightMaxLoss.isZero() || estimatedBeginningEquity < m_calculatedNightMaxLoss)m_calculatedNightMaxLoss = estimatedBeginningEquity;
-				if(m_calculatedMorningMaxLoss.isZero() || estimatedBeginningEquity < m_calculatedMorningMaxLoss)m_calculatedMorningMaxLoss = estimatedBeginningEquity;
-			}
-			percent = m_estBegPercentMaxLossClose.GetCurrentValue();
-			if(percent)
-			{
-				estimatedBeginningEquity = m_estimatedBeginningEquity.GetCurrentValue();
-				estimatedBeginningEquity *= percent;
-				estimatedBeginningEquity /= 100;
-				if(!estimatedBeginningEquity.isPositive())estimatedBeginningEquity.SetValue(0, 1);
-				if(m_calculatedDayMaxLossClose.isZero() || estimatedBeginningEquity < m_calculatedDayMaxLossClose)m_calculatedDayMaxLossClose = estimatedBeginningEquity;
-				if(m_calculatedNightMaxLossClose.isZero() || estimatedBeginningEquity < m_calculatedNightMaxLossClose)m_calculatedNightMaxLossClose = estimatedBeginningEquity;
-				if(m_calculatedMorningMaxLossClose.isZero() || estimatedBeginningEquity < m_calculatedMorningMaxLossClose)m_calculatedMorningMaxLossClose = estimatedBeginningEquity;
-			}
-		}
-		m_dayMaxLoss80Percent = m_dayMaxLoss90Percent = m_calculatedDayMaxLoss;
-		if(!m_dayMaxLoss90Percent.isZero())
-		{
-			m_dayMaxLoss90Percent *= 90;
-			m_dayMaxLoss90Percent /= 100;
+			m_maxLoss90Percent *= 90;
+			m_maxLoss90Percent /= 100;
 
-			m_dayMaxLoss80Percent *= 80;
-			m_dayMaxLoss80Percent /= 100;
-		}
-		m_nightMaxLoss80Percent = m_nightMaxLoss90Percent = m_calculatedNightMaxLoss;
-		if(!m_nightMaxLoss90Percent.isZero())
-		{
-			m_nightMaxLoss90Percent *= 90;
-			m_nightMaxLoss90Percent /= 100;
-
-			m_nightMaxLoss80Percent *= 80;
-			m_nightMaxLoss80Percent /= 100;
-		}
-		m_morningMaxLoss80Percent = m_morningMaxLoss90Percent = m_calculatedMorningMaxLoss;
-		if(!m_morningMaxLoss90Percent.isZero())
-		{
-			m_morningMaxLoss90Percent *= 90;
-			m_morningMaxLoss90Percent /= 100;
-
-			m_morningMaxLoss80Percent *= 80;
-			m_morningMaxLoss80Percent /= 100;
+			m_maxLoss80Percent *= 80;
+			m_maxLoss80Percent /= 100;
 		}
 	}
 protected:
 	AccountId m_accountId;
 	char m_id[16];
 	bool m_simulation;
+
+	Money m_maxLoss80Percent;
+	Money m_maxLoss90Percent;
 
 	Constraint<Money> m_marginExcess;
 	Constraint<Money> m_hardMarginExcess;
@@ -1641,7 +1303,6 @@ protected:
 	Constraint<Money> m_maxOpenLossPerPosition;
 	Constraint<Money> m_maxTradedMoney;
 	Constraint<Money> m_maxOrderValue;
-	Constraint<Money> m_estimatedBeginningEquity;
 	Constraint<Price> m_minShortPrice;
 
 	Constraint<Price> m_minSharePrice;
@@ -1658,9 +1319,6 @@ protected:
 	Constraint<unsigned int> m_maxPosPendingOrders;
 	Constraint<unsigned int> m_maxOpenPositions;
 	Constraint<unsigned int> m_maxOrderSize;
-
-	Constraint<unsigned int> m_estBegPercentMaxLoss;
-	Constraint<unsigned int> m_estBegPercentMaxLossClose;
 
 //	Constraint<int> m_autoCloseStartDelaySecond;
 //	Constraint<int> m_autoCloseEndDelaySecond;
@@ -1701,37 +1359,105 @@ protected:
 	Constraint<unsigned int> m_orderSizeNbboVenues;
 	Constraint<unsigned int> m_orderSizeNbboMultiplier;
 
-	Money m_dayMaxLoss80Percent;
-	Money m_dayMaxLoss90Percent;
-
-	Money m_nightMaxLoss80Percent;
-	Money m_nightMaxLoss90Percent;
-
-	Money m_morningMaxLoss80Percent;
-	Money m_morningMaxLoss90Percent;
-
-	Money m_calculatedDayMaxLoss;
-	Money m_calculatedNightMaxLoss;
-	Money m_calculatedMorningMaxLoss;
-
-	Money m_calculatedDayMaxLossClose;
-	Money m_calculatedNightMaxLossClose;
-	Money m_calculatedMorningMaxLossClose;
+/*
+//	DWORD				IntradayMaxPosShares;
+	double				IntradayMaxPosValue;
+	double				IntradayMaxLongValue;
+	double				IntradayMaxShortValue;
+//	DWORD				OvernightMaxPosShares;
+	double				OvernightMaxPosValue;
+	double				OvernightMaxLongValue;
+	double				OvernightMaxShortValue;
+//	DWORD				MaxOpenPositions;
+	double				MaxLoss;
+	double				MaxLossPerPosition;
+	double				MaxOpenLossPerPosition;
+	double				MaxTradedMoney;
+	double				MinShortPrice;
+//	unsigned int		MaxOrderSize;
+//	unsigned int		MaxPendingOrdersPerPosition;
+//	unsigned int		MaxSharesTotal;
+//	unsigned int		MaxSharesTraded;
+*/
 };
 
 
-//class Quote;
+class TU_API DelayedPriceQuantity : public PriceQuantity
+{
+public:
+	virtual unsigned int GetMmid() const{return 0;}
+	virtual unsigned short GetShortMmid() const{return 0;}
+	const unsigned int& GetMillisecond() const{return m_millisecond;}
+	const short& GetDelay() const{return m_delay;}
+	bool isLessMillisecond(const DelayedPriceQuantity& other) const{return m_millisecond < other.m_millisecond;}
+	const bool& isHistorical() const{return m_historical;}
+	void SetHistorical(){m_historical = true;}
+	void SetValues(const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const unsigned int& millisecond, const short& delay, const bool& historical)
+	{
+		PriceQuantity::SetValues(dollars, dollarFraction, quantity);
+		m_millisecond = millisecond;
+		m_delay = delay;
+		m_historical = historical;
+	}
+protected:
+	DelayedPriceQuantity(const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const unsigned int& millisecond, const short& delay):
+		PriceQuantity(dollars, dollarFraction, quantity),
+		m_millisecond(millisecond),
+		m_delay(delay),
+		m_historical(false)
+	{}
+	DelayedPriceQuantity(const Price& price, const unsigned int& quantity, const unsigned int& millisecond, const short& delay):
+		PriceQuantity(price, quantity),
+		m_millisecond(millisecond),
+		m_delay(delay),
+		m_historical(false)
+	{}
+	DelayedPriceQuantity():m_millisecond(0),m_delay(0),m_historical(false){}
+	unsigned int m_millisecond;
+	short m_delay;
+	bool m_historical;
+};
+
+enum EcnBookId : unsigned char
+{
+	BOOK_MM_NSDQ,
+	ECNBOOK_NSDQ = 1,
+	ECNBOOK_ARCA,
+	ECNBOOK_BATS,
+	ECNBOOK_EDGA,
+	ECNBOOK_EDGX,
+	BOOK_LEVEL2,
+	ECNBOOK_NYS,
+	ECNBOOK_BATY,
+	ECNBOOK_AMEX,
+//	ECNBOOK_NSX,
+
+//	ECNBOOK_FLOW = 11,
+	ECNBOOK_IEX = 11,
+
+	BOOK_MM_ARCA = 12,
+	BOOK_MM_BATS,
+	BOOK_MM_BATY,
+	BOOK_MM_EDGX,
+//	BOOK_MM_NSX,
+
+	ECNBOOK_COUNT,
+
+	AllBooks = 0xff
+};
+
+class Quote;
 //Used for remembering quotes that we already traded with
 class TU_API TradedQuote : public PriceQuantity
 {
 public:
-	TradedQuote(unsigned char bookId, unsigned int mmid, unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned int millisecond):
+	TradedQuote(EcnBookId bookId, unsigned int mmid, unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned int millisecond):
 		PriceQuantity(dollars, dollarFraction, quantity),
 		m_mmid(mmid),
 		m_millisecond(millisecond),
 		m_bookId(bookId)
 	{}
-	TradedQuote(unsigned char bookId, unsigned int mmid, const Price& price, unsigned int quantity, unsigned int millisecond, short delay):
+	TradedQuote(EcnBookId bookId, unsigned int mmid, const Price& price, unsigned int quantity, unsigned int millisecond, short delay):
 		PriceQuantity(price, quantity),
 		m_mmid(mmid),
 		m_millisecond(millisecond),
@@ -1740,7 +1466,7 @@ public:
 	TradedQuote():m_mmid(0),m_millisecond(0),m_bookId(AllBooks){}
 	unsigned int GetMmid() const{return m_mmid;}
 	unsigned int GetMillisecond() const{return m_millisecond;}
-	unsigned char GetBookId() const{return m_bookId;}
+	EcnBookId GetBookId() const{return m_bookId;}
 	bool isLessMillisecond(const TradedQuote& other) const{return m_millisecond < other.m_millisecond;}
 	bool operator<(const TradedQuote& other) const{return Price::operator<(other) || Price::operator==(other) && (m_mmid < other.m_mmid || m_mmid == other.m_mmid && m_bookId < other.m_bookId);}
 
@@ -1750,7 +1476,7 @@ public:
 protected:
 	unsigned int m_mmid;
 	unsigned int m_millisecond;
-	unsigned char m_bookId;
+	EcnBookId m_bookId;
 };
 
 template<> AFX_INLINE UINT AFXAPI HashKey<TradedQuote>(TradedQuote key)
@@ -1798,6 +1524,92 @@ enum TradeLevel1 : unsigned char
 	TL1_BETWEEN_BIDASK,
 	TL1_EQUAL_ASK,
 	TL1_GREATER_ASK,
+};
+
+class TU_API Trade : public DelayedPriceQuantity
+{
+public:
+	unsigned char GetSource() const{return m_source;}
+	unsigned char GetLevel1() const{return m_level1;}
+//	virtual unsigned int GetMmid() const{return 0;}
+	virtual char GetLabel() const{return '\0';}
+	virtual bool isPrint() const{return false;}
+	virtual unsigned char GetSide() const{return 0;}//0 - unknown, 1 - buy, 2 - sell
+	virtual bool isHidden() const{return false;}
+	virtual char GetSaleCondition1() const{return '\0';}
+	virtual char GetSaleCondition2() const{return '\0';}
+	virtual char GetSaleCondition3() const{return '\0';}
+	virtual char GetSaleCondition4() const{return '\0';}
+	virtual char GetSaleCondition(unsigned int i) const{return '\0';}
+	virtual bool isOddLot() const{return false;}
+	bool operator<(const Trade& other) const
+	{
+		return m_millisecond > other.m_millisecond || 
+			m_millisecond == other.m_millisecond && (isPrint() == other.isPrint() ? m_source < other.m_source : !isPrint());
+	}
+	bool isTradeLess(const Trade& other) const
+	{
+		if(operator<(other))return true;
+		if(other < *this)return false;
+
+		if(m_historical != other.m_historical)return !m_historical;
+
+		if(m_delay < other.m_delay)return false;
+		if(other.m_delay < m_delay)return true;
+
+		if(isHidden() != other.isHidden())return isHidden(); 
+
+//		if(m_source < other.m_source)return true;//done in operator<
+//		if(other.m_source < m_source)return false;
+
+		if(GetMmid() < other.GetMmid())return true;
+		if(other.GetMmid() < GetMmid())return false;
+
+		if(GetSide() < other.GetSide())return true;
+		if(other.GetSide() < GetSide())return false;
+
+		if(m_quantity < other.m_quantity)return true;
+		if(other.m_quantity < m_quantity)return false;
+
+		if(isLessPrice(other))return true;
+		if(other.isLessPrice(*this))return false;
+
+		if(m_level1 < other.m_level1)return true;
+		if(other.m_level1 < m_level1)return false;
+
+		if(isPrint())
+		{
+			if(GetSaleCondition1() < other.GetSaleCondition1())return true;
+			if(other.GetSaleCondition1() < GetSaleCondition1())return false;
+			if(GetSaleCondition2() < other.GetSaleCondition2())return true;
+			if(other.GetSaleCondition2() < GetSaleCondition2())return false;
+			if(GetSaleCondition3() < other.GetSaleCondition3())return true;
+			if(other.GetSaleCondition3() < GetSaleCondition3())return false;
+			if(GetSaleCondition4() < other.GetSaleCondition4())return true;
+			if(other.GetSaleCondition4() < GetSaleCondition4())return false;
+		}
+		return false;
+	}
+	void SetValues(unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned char source, unsigned char level1, unsigned int millisecond, short delay, bool historical)
+	{
+		DelayedPriceQuantity::SetValues(dollars, dollarFraction, quantity, millisecond, delay, historical);
+		m_source = source;
+		m_level1 = level1;
+	}
+protected:
+	Trade(unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned char source, unsigned char level1, unsigned int millisecond, short delay):// = 0xFFFF):
+		DelayedPriceQuantity(dollars, dollarFraction, quantity, millisecond, delay),
+		m_source(source),
+		m_level1(level1)
+		{}
+	Trade(const Price& price, unsigned int quantity, unsigned char source, unsigned char level1, unsigned int millisecond, short delay):// = 0xFFFF):
+		DelayedPriceQuantity(price, quantity, millisecond, delay),
+		m_source(source),
+		m_level1(level1)
+		{}
+	Trade():m_source(0),m_level1(0){}
+	unsigned char m_source;
+	unsigned char m_level1;
 };
 
 class TU_API Print : public Trade
@@ -2178,16 +1990,90 @@ private:
 	char* m_dollarPtr;
 };
 
+typedef unsigned __int64 quoteid;
+
+class TU_API Quote : public DelayedPriceQuantity
+{
+public:
+	Quote(const bool& bid, const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const EcnBookId& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay):// = 0xFFFF):
+		DelayedPriceQuantity(dollars, dollarFraction, quantity, millisecond, delay),
+		m_mmid(mmid),
+		m_bid(bid),
+		m_bookId(bookId)
+		{}
+	Quote(const bool& bid, const Price& price, const unsigned int& quantity, const EcnBookId& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay):// = 0xFFFF):
+		DelayedPriceQuantity(price, quantity, millisecond, delay),
+		m_mmid(mmid),
+		m_bid(bid),
+		m_bookId(bookId)
+		{}
+	Quote(const bool& bid = false):m_mmid(0),m_bid(bid),m_bookId(AllBooks){}
+
+	bool EqualPriceSideAndDestination(const Quote& other) const
+	{
+		return Price::operator==(other) && m_mmid == other.m_mmid && m_bookId == other.m_bookId && m_bid == other.m_bid;
+	}
+	void SetPriceSideAndDestination(const Quote& other)
+	{
+		Price::operator=(other);
+		m_mmid = other.m_mmid;
+		m_bookId = other.m_bookId;
+		m_bid = other.m_bid;
+	}
+
+	virtual ~Quote(){}
+	const bool& isBid() const{return m_bid;}
+	virtual quoteid GetId() const{return 0;}
+//	virtual unsigned int GetMmid() const{return 0;}
+	virtual unsigned int GetMmid() const{return m_mmid;}
+	virtual EcnBookId GetBookId() const{return m_bookId;}
+	virtual unsigned char GetSource() const;
+	virtual unsigned int GetOrderCount() const{return 1;}
+	virtual unsigned char GetCondition() const{return '\0';}
+	virtual bool GetRetailLiquidity() const{return false;}
+	bool operator<(const Quote& other) const{return m_bid ? other.Price::operator<(*this) : Price::operator<(other);}
+//	bool operator==(const Quote& other) const{return Price::operator==(other);}
+	virtual bool isDirect() const{return true;}
+	virtual bool isLessCrossBook(const Quote& other) const{return operator<(other) || operator==(other) && (m_mmid < other.m_mmid || m_mmid == other.m_mmid && (m_bookId < other.m_bookId || m_bookId == other.m_bookId && isDirect()));}
+	virtual bool isTemp() const{return false;}
+	virtual bool isAttributed() const{return false;}
+//	virtual bool isOrder() const{return false;}
+	virtual unsigned char GetOrder() const{return '\0';}
+#ifdef LRPS
+	bool isLrp() const{return m_mmid == lrpNum;}
+#endif
+	bool isLuld() const{return m_mmid == luldNum;}
+	virtual bool isHidden() const{return false;}
+	virtual bool isStop() const{return false;}
+	virtual bool isPostponed() const{return false;}
+	virtual bool isGtc() const{return false;}
+//	virtual bool isLessCrossBook(const Quote& other) const{return Quote::operator<(other) || Quote::operator==(other) && (m_mmid < other.GetMmid() || m_mmid == other.GetMmid() && m_id < other.GetId());}
+	virtual bool isEmpty() const{return m_quantity == 0 && isZero();}
+	void SetEmpty(){SetZero(); m_quantity = 0;}
+	bool isRegular() const
+	{
+		return GetOrder() != 1
+#ifdef LRPS
+			&& !isLrp()
+#endif
+			&& !isLuld()
+			&& !isEmpty();}
+protected:
+	unsigned int m_mmid;
+	bool m_bid;
+	EcnBookId m_bookId;
+};
+
 class TU_API TempQuote : public Quote
 {
 public:
-	TempQuote(const bool& bid, const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const unsigned char& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay, const bool& attributed, const bool& retailLiquidity):// = 0xFFFF):
+	TempQuote(const bool& bid, const unsigned int& dollars, const unsigned int& dollarFraction, const unsigned int& quantity, const EcnBookId& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay, const bool& attributed, const bool& retailLiquidity):// = 0xFFFF):
 		Quote(bid, dollars, dollarFraction, quantity, bookId, mmid, millisecond, delay),
 		m_condition('\0'),
 		m_attributed(attributed),
 		m_retailLiquidity(retailLiquidity)
 		{}
-	TempQuote(const bool& bid, const Price& price, const unsigned int& quantity, const unsigned char& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay, const bool& attributed, const bool& retailLiquidity):// = 0xFFFF):
+	TempQuote(const bool& bid, const Price& price, const unsigned int& quantity, const EcnBookId& bookId, const unsigned int& mmid, const unsigned int& millisecond, const short& delay, const bool& attributed, const bool& retailLiquidity):// = 0xFFFF):
 		Quote(bid, price, quantity, bookId, mmid, millisecond, delay),
 		m_condition('\0'),
 		m_attributed(attributed),
@@ -2217,7 +2103,7 @@ public:
 		return *this;
 	}
 
-	void SetBookId(const unsigned char& bookId){m_bookId = bookId;}
+	void SetBookId(const unsigned char& bookId){m_bookId = (EcnBookId)bookId;}
 	void SetCondition(const unsigned char& condition){m_condition = condition;}
 	void SetMmid(const unsigned int& mmid){m_mmid = mmid;}
 	void SetAttributed(const bool& attributed){m_attributed = attributed;}
@@ -2250,7 +2136,7 @@ public:
 	virtual unsigned int GetName() const{return 0;}
 	virtual unsigned short GetShortName() const{return 0;}
 	virtual char GetLabel() const{return 0;}
-	virtual unsigned char GetBookId() const = 0;//{return AllBooks;}
+	virtual EcnBookId GetBookId() const = 0;//{return AllBooks;}
 	virtual unsigned char GetAttributedBookId() const{return 0xFF;}
 	virtual unsigned char GetNativeBookId() const{return 0xFF;}
 	virtual bool RemoveQuote(bool bid, unsigned int mmid, const Price& priceFromExclusive, const Price& priceToInclusive){return false;}
@@ -2773,8 +2659,6 @@ public:
 	const int& GetT1558ImbalanceShares() const{return m_t1558ImbalanceShares;}
 	const int& GetT1559ImbalanceShares() const{return m_t1559ImbalanceShares;}
 
-	const Price& GetPreMarketCurrentReferencePrice() const{return m_preMarketCurrentReferencePrice;}
-
 	const Price& GetT1555CurrentReferencePrice() const{return m_t1555CurrentReferencePrice;}
 	const Price& GetT1555FarPrice() const{return m_t1555FarPrice;}
 	const Price& GetT1555NearPrice() const{return m_t1555NearPrice;}
@@ -2883,7 +2767,6 @@ public:
 		{
 			if(!stockOpen)
 			{
-				m_preMarketCurrentReferencePrice = currentReferencePrice;
 				m_openingPairedShares = pairedShares;
 				m_openingImbalanceShares = shares;
 				m_openingCurrentReferencePrice = currentReferencePrice;
@@ -3197,8 +3080,6 @@ protected:
 	Price m_initialCurrentReferencePrice;
 	Price m_regulatoryCurrentReferencePrice;
 
-	Price m_preMarketCurrentReferencePrice;
-
 	Price m_t1555CurrentReferencePrice;
 	Price m_t1555FarPrice;
 	Price m_t1555NearPrice;
@@ -3259,7 +3140,6 @@ class TU_API Imbalance : public ImbalanceBase
 {
 public:
 	virtual ~Imbalance(){}
-/*
 	virtual void SetImbalance(const ImbalanceBase& other)
 	{
 		m_farPrice = other.GetFarPrice();
@@ -3285,8 +3165,6 @@ public:
 
 //		m_imbalanceRatio = other.GetImbalanceRatio();
 		m_imbalanceChange = other.GetImbalanceChange();
-
-		m_preMarketCurrentReferencePrice = other.GetPreMarketCurrentReferencePrice()
 
 		m_t1555CurrentReferencePrice = other.GetT1555CurrentReferencePrice();
 		m_t1555FarPrice = other.GetT1555FarPrice();
@@ -3329,7 +3207,6 @@ public:
 		m_priceVariationIndicator = other.GetPriceVariationIndicator();
 		m_freezeStatus = other.isFrozen();
 	}
-*/
 protected:
 	Imbalance(){}
 };
@@ -6026,7 +5903,6 @@ protected:
 
 class TU_API Security : public HTB, public Observable
 {
-friend class Level2Calculator;
 #ifndef TAKION_NO_OPTIONS
 friend class OptionInfo;
 friend class OptionCallPut;
@@ -6050,9 +5926,6 @@ public:
 	static const int intZero;
 	static const char space;
 	static const unsigned char neutralTradeLevel1;//TL1_BETWEEN_BIDASK
-
-	virtual unsigned int GetMinCustomEchoId() const{return 0xFFFFFFFF;}
-	virtual bool WriteEchoMessageToSecurityThread(unsigned int echoId) const{return false;}
 
 	virtual bool CreateIsoSnapshot(std::string& isoSnapshot, bool buy, const Price& limitPrice, bool lock, bool stopIfOrderIsNotInside, bool& isInside, Price& topPrice) const{return false;}
 
@@ -6484,8 +6357,6 @@ public:
 	const Price& GetClosePrice() const{return m_closePrice;}
 //	const unsigned int& GetPrimaryOpenPriceCompact() const{return m_primaryOpenPriceCompact;}
 
-	virtual bool isStockAndMarketOpen() const{return false;}
-
 	const unsigned int& GetL2Quote(const bool& bid) const{return bid ? GetL2Bid() : GetL2Ask();}
 	const unsigned int& GetL2QuoteSize(const bool& bid) const{return bid ? GetL2BidSize() : GetL2AskSize();}
 	const unsigned int& GetEcnQuote(const bool& bid) const{return bid ? GetEcnBid() : GetEcnAsk();}
@@ -6690,7 +6561,6 @@ public:
 	const int& GetRegulatoryImbalanceSharesNyseIfClosing() const{const Imbalance* imb = GetNyseImbalance(); return imb ? imb->GetRegulatoryImbalanceSharesIfClosing() : intZero;}
 	const char& GetPriceVariationIndicatorNyse() const{const Imbalance* imb = GetNyseImbalance(); return imb ? imb->GetPriceVariationIndicator() : space;}
 	const bool& isFrozenNyse() const{const Imbalance* imb = GetNyseImbalance(); return imb ? imb->isFrozen() : boolFalse;}
-	const Price& GetCurrentReferencePricePreMarketNyse() const{const Imbalance* imb = GetNyseImbalance(); return imb ? imb->GetPreMarketCurrentReferencePrice() : Price::priceZero;}
 
 	const Price& GetRegulatoryFarPriceNyse() const{const Imbalance* imb = GetNyseImbalance(); return imb ? imb->GetRegulatoryFarPrice() : Price::priceZero;}
 	const Price& GetRegulatoryNearPriceNyse() const{const Imbalance* imb = GetNyseImbalance(); return imb ? imb->GetRegulatoryNearPrice() : Price::priceZero;}
@@ -6739,7 +6609,6 @@ public:
 	const unsigned int& GetOpeningPairedSharesExch() const{const Imbalance* imb = GetExchImbalance(); return imb ? imb->GetOpeningPairedShares() : uintZero;}
 	const int& GetOpeningImbalanceSharesExch() const{const Imbalance* imb = GetExchImbalance(); return imb ? imb->GetOpeningImbalanceShares() : intZero;}
 	const Price& GetOpeningCurrentReferencePriceExch() const{const Imbalance* imb = GetExchImbalance(); return imb ? imb->GetOpeningCurrentReferencePrice() : Price::priceZero;}
-	const Price& GetCurrentReferencePricePreMarketExch() const{const Imbalance* imb = GetExchImbalance(); return imb ? imb->GetPreMarketCurrentReferencePrice() : Price::priceZero;}
 
 	const int& GetT830ImbalanceSharesExch() const{const Imbalance* imb = GetExchImbalance(); return imb ? imb->GetT830ImbalanceShares() : intZero;}//Imbalance at 8:30
 	const int& GetT845ImbalanceSharesExch() const{const Imbalance* imb = GetExchImbalance(); return imb ? imb->GetT845ImbalanceShares() : intZero;}//Imbalance at 8:45
@@ -7081,7 +6950,6 @@ public:
 */
 
 	const unsigned char& GetSymbolMappingMode() const{return m_symbolMappingMode;}//1 - no symbol mapping; 2 - symbol mapping; 0 - not initialized
-
 protected:
 	Security(const char* symbol, unsigned short code, bool subscribable
 #ifndef TAKION_NO_OPTIONS
@@ -7097,9 +6965,6 @@ protected:
 	{
 		DecrementUnsubscribable();
 	}
-//Level2Calculators are only added to securities that have Level2 info.
-	virtual bool AddLevel2Calculator(Level2Calculator* level2Calculator) const{return false;}
-	virtual bool RemoveLevel2Calculator(Level2Calculator* level2Calculator) const{return false;}
 
 	mutable unsigned short m_securityCode;
 //	char m_name[MAX_SECURITY_NAME + 1];
@@ -7215,892 +7080,6 @@ protected:
 private:
 	Security(const Security& other);
 	Security& operator=(const Security& other);
-};
-
-class TU_API Level2Calculator
-{
-public:
-	virtual ~Level2Calculator()
-	{
-//		SetSecurity(NULL);
-//destroy your object in the main thread.
-//Call function BeforeDestroy(); in your derived class Destructor. If not called from there, the destruction of the object will start with your destructor, while the virtual functions can still be called from another thread
-	}
-//Call only from the main thread (not from  Security worker thread)
-	void SetSecurity(const Security* const& security)
-	{
-//		while(InterlockedExchange(&m_securityLock, 1));//Lock to not interfere with SetFilters
-
-		if(security != m_security)
-		{
-//			bool inThread = security->isInThread();
-			if(m_security)
-			{
-/*
-				if(inThread)
-				{
-					inThread = m_security->LockInquiryLevel2();
-					m_security->RemoveLevel2Calculator(this);
-					if(inThread)m_security->UnlockInquiryLevel2();
-				}
-				else
-				{
-*/
-					m_security->LockInquiryWaitLevel2();
-					m_security->RemoveLevel2Calculator(this);
-					m_security->UnlockInquiryLevel2();
-
-					ClearQuotes();
-//				}
-			}
-			if(security)
-			{
-//				if(inThread)inThread = !m_security->LockInquiryLevel2();
-//				else
-				security->LockInquiryWaitLevel2();
-				m_security = security;
-//				UpdateOpenStatus();//called in SecurityRefreshed;
-				AddToSecurity(security);
-				if(security->isLoaded())
-				{
-					SecurityRefreshed(3);
-				}
-//				if(!inThread)
-				security->UnlockInquiryLevel2();
-			}
-			else
-			{
-				m_security = security;
-			}
-		}
-//		InterlockedExchange(&m_securityLock, 0);
-	}
-//Call only from the main thread (not from  Security worker thread)
-	bool SetFilters(const unsigned int* const& filterBooksOpen,
-		const unsigned int* const& filterBooksClosed,
-		const unsigned int& filterExchangeMaskOpen,
-		const unsigned int& filterExchangeMaskClosed)
-	{
-		bool ret = false;
-
-//		while(InterlockedExchange(&m_securityLock, 1));//Lock to not interfere with SetSecurity
-
-//		bool inThread = m_security && m_security->isInThread();
-//		if(inThread)inThread = !m_security->LockInquiryLevel2();
-//		else
-		
-		if(m_security)m_security->LockInquiryWaitLevel2();
-
-		bool changedOpen = filterExchangeMaskOpen != m_filterExchangeMaskOpen;
-		if(changedOpen)
-		{
-			m_filterExchangeMaskOpen = filterExchangeMaskOpen;
-		}
-		bool changedClosed = filterExchangeMaskClosed != m_filterExchangeMaskClosed;
-		if(changedClosed)
-		{
-			m_filterExchangeMaskClosed = filterExchangeMaskClosed;
-		}
-		if(CopyFilterBooks(m_filterBooksOpen, filterBooksOpen))
-		{
-			changedOpen = true;
-		}
-		if(CopyFilterBooks(m_filterBooksClosed, filterBooksClosed))
-		{
-			changedClosed = true;
-		}
-		if(changedOpen || changedClosed)
-		{
-			m_filtersForOpenCloseSame = AreFiltersForOpenCloseSame();
-			const bool changedNow = m_securityOpen ? changedOpen : changedClosed;
-			if(changedNow)
-			{
-				UpdateCurrentFilter();
-				if(m_security && m_security->isLoaded())
-				{
-					SecurityRefreshed(3);
-				}
-			}
-			ret = true;
-		}
-//		if(!inThread)
-		if(m_security)m_security->UnlockInquiryLevel2();
-
-//		InterlockedExchange(&m_securityLock, 0);
-		return ret;
-	}
-
-//Call only from the main thread (not from  Security worker thread)
-	bool SetAttribution(const unsigned int& attributionMaskOpen, // = 0 - no merging of attributed quotes with native quotes
-		const unsigned int& attributionMaskClosed)
-	{
-		bool ret = false;
-
-//		while(InterlockedExchange(&m_securityLock, 1));//Lock to not interfere with SetSecurity
-
-//		bool inThread = m_security && m_security->isInThread();
-//		if(inThread)inThread = !m_security->LockInquiryLevel2();
-//		else
-		
-		if(m_security)m_security->LockInquiryWaitLevel2();
-
-		bool changedOpen = attributionMaskOpen != m_attributionMaskOpen;
-		if(changedOpen)
-		{
-			m_attributionMaskOpen = attributionMaskOpen;
-		}
-		bool changedClosed = attributionMaskClosed != m_attributionMaskClosed;
-		if(changedClosed)
-		{
-			m_attributionMaskClosed = attributionMaskClosed;
-		}
-		if(changedOpen || changedClosed)
-		{
-			m_attributionForOpenCloseSame = isAttributionForOpenCloseSame();
-			const bool changedNow = m_securityOpen ? changedOpen : changedClosed;
-			if(changedNow)
-			{
-				UpdateCurrentAttribution();
-				if(m_security && m_security->isLoaded())
-				{
-					SecurityRefreshed(3);
-				}
-			}
-			ret = true;
-		}
-//		if(!inThread)
-		if(m_security)m_security->UnlockInquiryLevel2();
-
-//		InterlockedExchange(&m_securityLock, 0);
-		return ret;
-	}
-
-	static bool CopyFilterBooks(unsigned int* to, const unsigned int* const& from = NULL)
-	{
-		bool changed = false;
-		unsigned int* myCursor = to;
-		unsigned int i = 0;
-		if(from)
-		{
-			unsigned int lineCount;
-			const unsigned int* cursor = from;
-			for(; i < ECNBOOK_COUNT; ++i, ++myCursor, ++cursor)
-			{
-				lineCount = *cursor ? 0xFFFFFFFF : 0;
-				if(lineCount != *myCursor)
-				{
-					*myCursor = lineCount;
-					changed = true;
-				}
-			}
-		}
-		else
-		{
-			if(0xFFFFFFFF != *myCursor)
-			{
-				*myCursor = 0xFFFFFFFF;
-				changed = true;
-			}
-		}
-		return changed;
-	}
-
-//The following functions are called by Takion InThread (Security worker thread) inside m_security->Lock/UnlockModification
-	virtual void SecurityRefreshed(unsigned char sides)//1 bid, 2 - ask, 3 - both
-	{
-		sides &= 3;
-		if(m_security)
-		{
-			UpdateOpenStatus();
-			SetRoundLot(m_security->GetRoundLot());
-			BeforeSecurityRefreshed();
-			if(sides & 1)
-			{
-				TakionIterator* bidIterator = CreateQuoteIterator(true);
-				bidIterator->Reset();
-				DoRefreshBids(bidIterator);
-				delete bidIterator;
-			}
-			if(sides & 2)
-			{
-				TakionIterator* askIterator = CreateQuoteIterator(false);
-				askIterator->Reset();
-				DoRefreshAsks(askIterator);
-				delete askIterator;
-			}
-		}
-	}
-
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	NewQuote(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& price,
-		const Price& oldPrice,
-		const unsigned int& size,
-		const unsigned int& oldSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay,
-		const unsigned char& quoteCondition = '\0',
-		const unsigned char& oldQuoteCondition = '\0',
-		const bool& retailLiquidity = false,
-		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoNewQuote(bid, bookId, false, nativeMmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-				else
-				DoNewQuote(bid, bookId, attributed, mmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoNewQuote(bid, bookId, attributed, mmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-	inline
-#ifdef _DEBUG
-		bool
-#else
-		void
-#endif
-	ModifyQuote(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& price,
-		const Price& oldPrice,
-		const unsigned int& size,
-		const unsigned int& oldSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay,
-		const unsigned char& quoteCondition = '\0',
-		const unsigned char& oldQuoteCondition = '\0',
-		const bool& retailLiquidity = false,
-		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoModifyQuote(bid, bookId, false, nativeMmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-				else
-				DoModifyQuote(bid, bookId, attributed, mmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoModifyQuote(bid, bookId, attributed, mmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	ModifyExchangeQuote(const bool& bid,
-		const unsigned char& source,
-		const unsigned int& mmid,
-		const Price& price,
-		const Price& oldPrice,
-		const unsigned int& size,
-		const unsigned int& oldSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay,
-		const unsigned char& quoteCondition = '\0',
-		const unsigned char& oldQuoteCondition = '\0',
-		const bool& retailLiquidity = false,
-		const bool& oldRetailLiquidity = false)
-	{
-		if(isExchangeQuoteFilteredIn(source))
-		{
-			DoModifyExchangeQuote(bid, source, mmid, price, oldPrice, size, oldSize, time, oldTime, delay, quoteCondition, oldQuoteCondition, retailLiquidity, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-	inline 
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	EraseExchangeQuote(const bool& bid,
-		const unsigned char& source,
-		const unsigned int& mmid,
-		const Price& oldPrice,
-		const unsigned int& oldSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay,
-		const unsigned char& oldQuoteCondition = '\0',
-		const bool& oldRetailLiquidity = false)
-	{
-		if(isExchangeQuoteFilteredIn(source))
-		{
-			DoEraseExchangeQuote(bid, source, mmid, oldPrice, oldSize, time, oldTime, delay, oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	EraseQuote(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& oldPrice,
-		const unsigned int& oldSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay,
-		const unsigned char& oldQuoteCondition = '\0',
-		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoEraseQuote(bid, bookId, false, nativeMmid, oldPrice, oldSize, time, oldTime, delay, oldQuoteCondition, oldRetailLiquidity);
-				else
-				DoEraseQuote(bid, bookId, attributed, mmid, oldPrice, oldSize, time, oldTime, delay, oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoEraseQuote(bid, bookId, attributed, mmid, oldPrice, oldSize, time, oldTime, delay, oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	ExecuteQuote(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& price,
-		const unsigned int& execSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay)
-//		const unsigned char& oldQuoteCondition = '\0',
-//		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoExecuteQuote(bid, bookId, false, nativeMmid, price, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-				else
-				DoExecuteQuote(bid, bookId, attributed, mmid, price, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-				
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoExecuteQuote(bid, bookId, attributed, mmid, price, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	ExecuteQuoteWithPrice(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& price,
-		const Price& execPrice,
-		const unsigned int& execSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay)
-//		const unsigned char& oldQuoteCondition = '\0',
-//		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoExecuteQuoteWithPrice(bid, bookId, false, nativeMmid, price, execPrice, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-				else
-				DoExecuteQuoteWithPrice(bid, bookId, attributed, mmid, price, execPrice, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoExecuteQuoteWithPrice(bid, bookId, attributed, mmid, price, execPrice, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	ExecuteQuoteWithPriceRemainingSize(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& price,
-		const Price& execPrice,
-		const unsigned int& remainingSize,
-		const unsigned int& oldSize,
-		const unsigned int& execSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay)
-//		const unsigned char& oldQuoteCondition = '\0',
-//		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoExecuteQuoteWithPriceRemainingSize(bid, bookId, false, nativeMmid, price, execPrice, remainingSize, oldSize, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-				else
-				DoExecuteQuoteWithPriceRemainingSize(bid, bookId, attributed, mmid, price, execPrice, remainingSize, oldSize, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoExecuteQuoteWithPriceRemainingSize(bid, bookId, attributed, mmid, price, execPrice, remainingSize, oldSize, execSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-
-	inline
-#ifdef _DEBUG
-	bool
-#else
-	void
-#endif
-	CancelQuote(const bool& bid,
-		const unsigned char& bookId,
-		const bool& attributed,
-		const unsigned char& attributedBookId,
-		const unsigned int& mmid,
-		const unsigned int& nativeMmid,
-		const Price& price,
-		const unsigned int& cancelledSize,
-		const unsigned int& time,
-		const unsigned int& oldTime,
-		const short& delay)
-//		const unsigned char& oldQuoteCondition = '\0',
-//		const bool& oldRetailLiquidity = false)
-	{
-		if(attributed)
-		{
-			if(isBookFilteredIn(attributedBookId))//TU_GetEcnAttributedBookId(bookId)))
-			{
-				if(m_attributionMask & (1 << bookId))
-				DoCancelQuote(bid, bookId, false, nativeMmid, price, cancelledSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-				else
-				DoCancelQuote(bid, bookId, attributed, mmid, price, cancelledSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-				return true;
-#endif
-			}
-		}
-		else if(isBookFilteredIn(bookId))
-		{
-			DoCancelQuote(bid, bookId, attributed, mmid, price, cancelledSize, time, oldTime, delay);// , oldQuoteCondition, oldRetailLiquidity);
-#ifdef _DEBUG
-			return true;
-#endif
-		}
-#ifdef _DEBUG
-		return false;
-#endif
-	}
-
-	void OpenStatusChanged()//called by Takion from worker thread
-	{
-		if(m_security)
-		{
-			UpdateOpenStatus();
-			if((!m_filtersForOpenCloseSame || !m_attributionForOpenCloseSame) && m_security->isLoaded())
-			{
-				SecurityRefreshed(3);
-			}
-		}
-	}
-	const unsigned int& GetRoundLot() const{return m_roundLot;}
-//
-//Call this function from main thread only
-	void LockAndRefresh()
-	{
-		if(m_security)
-		{
-			m_security->LockInquiryWaitLevel2();
-			SecurityRefreshed(3);
-			m_security->UnlockInquiryLevel2();
-		}
-	}
-protected:
-//Construct your derived object only from the main thread or Security worker thread
-	Level2Calculator(//const Security* security,
-		const unsigned int* const& filterBooksOpen = NULL,
-		const unsigned int* const& filterBooksClosed = NULL,
-		const unsigned int& filterExchangeMaskOpen = 0xFFFFFFFF,
-		const unsigned int& filterExchangeMaskClosed = 0xFFFFFFFF,
-		const unsigned int& attributionMaskOpen = 0,//0 means all attributed quotes are separate from the books' native quotes. If you want attributed quotes mearged with native quotes, provide bit 1 in the mask for _MM boos ids (look at enum EcnBookId)
-		const unsigned int& attributionMaskClosed = 0):
-		m_security(NULL),
-//		m_securityLock(0),
-		m_filterExchangeMaskOpen(filterExchangeMaskOpen),
-		m_filterExchangeMaskClosed(filterExchangeMaskClosed),
-		m_filterExchangeMask(filterExchangeMaskClosed),
-		m_attributionMaskOpen(attributionMaskOpen),
-		m_attributionMaskClosed(attributionMaskClosed),
-		m_attributionMask(attributionMaskClosed),
-		m_roundLot(100),
-		m_filtersForOpenCloseSame(false),
-		m_attributionForOpenCloseSame(false),
-		m_securityOpen(false)
-	{
-		CopyFilterBooks(m_filterBooksOpen, filterBooksOpen);
-		CopyFilterBooks(m_filterBooksClosed, filterBooksClosed);
-		CopyFilterBooks(m_filterBooks, filterBooksClosed);
-		m_filtersForOpenCloseSame = AreFiltersForOpenCloseSame();
-		m_attributionForOpenCloseSame = isAttributionForOpenCloseSame();
-//Call SetSecurity after the object is constructed (because SetSecurity calls a virtual function)
-//		SetSecurity(security);
-	}
-
-	void BeforeDestroy()
-	{
-		if(m_security)
-		{
-			const Security* security = m_security;
-			security->LockInquiryWaitLevel2();
-			SetSecurity(NULL);
-			security->UnlockInquiryLevel2();
-		}
-	}
-	virtual void RoundLotChanged(unsigned int roundLot){}
-	void SetRoundLot(const unsigned int& roundLot)
-	{
-		if(roundLot != m_roundLot)
-		{
-			m_roundLot = roundLot;
-			RoundLotChanged(roundLot);
-		}
-	}
-
-	bool isBookFilteredIn(const unsigned char& bookId) const{return bookId < ECNBOOK_COUNT && m_filterBooks[bookId] != 0;}
-	bool isExchangeQuoteFilteredIn(const unsigned char& source) const{return (m_filterExchangeMask & (1 << source)) != 0;}
-
-	bool isAttributionForOpenCloseSame() const
-	{
-		return m_attributionMaskOpen == m_attributionMaskClosed;
-	}
-	bool AreFiltersForOpenCloseSame() const
-	{
-		if(m_filterExchangeMaskOpen != m_filterExchangeMaskClosed)
-		{
-			return false;
-		}
-		else
-		{
-			const unsigned int* openCursor = m_filterBooksOpen;
-			const unsigned int* closedCursor = m_filterBooksClosed;
-			for(unsigned int i = 0; i < ECNBOOK_COUNT; ++i, ++openCursor, ++closedCursor)
-			{
-				if(*openCursor != *closedCursor)
-				{
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-//You can override the whole SecurityRefreshed function.
-	virtual void BeforeSecurityRefreshed(){}
-	virtual void ClearQuotes(){}
-	virtual void DoRefreshBids(TakionIterator* bidIterator){}
-	virtual void DoRefreshAsks(TakionIterator* askIterator){}
-
-	virtual TakionIterator* CreateQuoteIterator(bool bid)
-	{
-		return TU_CreateMmAggregatedIterator(bid, false, false, m_filterBooks, m_filterExchangeMask, m_attributionMask, NULL, m_security, true);
-	}
-
-	virtual void DoNewQuote(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& price,
-		const Price& oldPrice,
-		unsigned int size,
-		unsigned int oldSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay,
-		unsigned char quoteCondition = '\0',
-		unsigned char oldQuoteCondition = '\0',
-		bool retailLiquidity = false,
-		bool oldRetailLiquidity = false) = 0;
-	virtual void DoModifyQuote(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& price,
-		const Price& oldPrice,
-		unsigned int size,
-		unsigned int oldSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay,
-		unsigned char quoteCondition = '\0',
-		unsigned char oldQuoteCondition = '\0',
-		bool retailLiquidity = false,
-		bool oldRetailLiquidity = false) = 0;
-	virtual void DoModifyExchangeQuote(bool bid,
-		unsigned char source,
-		unsigned int mmid,
-		const Price& price,
-		const Price& oldPrice,
-		unsigned int size,
-		unsigned int oldSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay,
-		unsigned char quoteCondition = '\0',
-		unsigned char oldQuoteCondition = '\0',
-		bool retailLiquidity = false,
-		bool oldRetailLiquidity = false) = 0;
-	virtual void DoEraseExchangeQuote(bool bid,
-		unsigned char source,
-		unsigned int mmid,
-		const Price& oldPrice,
-		unsigned int oldSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay,
-		unsigned char oldQuoteCondition = '\0',
-		bool oldRetailLiquidity = false) = 0;
-	virtual void DoEraseQuote(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& oldPrice,
-		unsigned int oldSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay,
-		unsigned char oldQuoteCondition = '\0',
-		bool oldRetailLiquidity = false) = 0;
-	virtual void DoExecuteQuote(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& price,
-		unsigned int execSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay) = 0;
-//		unsigned char oldQuoteCondition = '\0',
-//		bool oldRetailLiquidity = false)
-	virtual void DoExecuteQuoteWithPrice(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& price,
-		const Price& execPrice,
-		unsigned int execSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay) = 0;
-//		unsigned char oldQuoteCondition = '\0',
-//		bool oldRetailLiquidity = false)
-	virtual void DoExecuteQuoteWithPriceRemainingSize(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& price,
-		const Price& execPrice,
-		unsigned int remainingSize,
-		unsigned int oldSize,
-		unsigned int execize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay) = 0;
-	virtual void DoCancelQuote(bool bid,
-		unsigned char bookId,
-		bool attributed,
-		unsigned int mmid,
-		const Price& price,
-		unsigned int cancelledSize,
-		unsigned int time,
-		unsigned int oldTime,
-		short delay) = 0;
-//		unsigned char oldQuoteCondition = '\0',
-//		bool oldRetailLiquidity = false)
-
-	virtual void AddToSecurity(const Security* security)
-	{
-		security->AddLevel2Calculator(this);
-	}
-	void UpdateOpenStatus()
-	{
-		const bool open = m_security->isStockAndMarketOpen();// m_security->isOpen() && m_security->GetTodaysClosePrice().isZero() && MarketIsOpen;
-		if(open != m_securityOpen)
-		{
-			m_securityOpen = open;
-			if(!m_filtersForOpenCloseSame)
-			{
-				UpdateCurrentFilter();
-			}
-			if(!m_attributionForOpenCloseSame)
-			{
-				UpdateCurrentAttribution();
-			}
-		}
-	}
-	void UpdateCurrentFilter()
-	{
-		if(m_securityOpen)
-		{
-			m_filterExchangeMask = m_filterExchangeMaskOpen;
-			CopyFilterBooks(m_filterBooks, m_filterBooksOpen);
-		}
-		else
-		{
-			m_filterExchangeMask = m_filterExchangeMaskClosed;
-			CopyFilterBooks(m_filterBooks, m_filterBooksClosed);
-		}
-	}
-	void UpdateCurrentAttribution()
-	{
-		if(m_securityOpen)m_attributionMask = m_attributionMaskOpen;
-		else m_attributionMask = m_attributionMaskClosed;
-	}
-	const Security* m_security;
-//	mutable volatile LONG m_securityLock;
-	unsigned int m_filterExchangeMaskOpen;
-	unsigned int m_filterExchangeMaskClosed;
-	unsigned int m_filterExchangeMask;
-	unsigned int m_filterBooksOpen[ECNBOOK_COUNT];
-	unsigned int m_filterBooksClosed[ECNBOOK_COUNT];
-	unsigned int m_filterBooks[ECNBOOK_COUNT];
-
-	unsigned int m_attributionMaskOpen;
-	unsigned int m_attributionMaskClosed;
-	unsigned int m_attributionMask;
-
-	unsigned int m_roundLot;
-	bool m_filtersForOpenCloseSame;
-	bool m_attributionForOpenCloseSame;
-	bool m_securityOpen;
-private:
-//do not implement
-	Level2Calculator(const Level2Calculator& other);
-	Level2Calculator& operator=(const Level2Calculator& other);
 };
 
 #ifndef TAKION_NO_OPTIONS
@@ -8240,7 +7219,6 @@ public:
 	const bool& isValid() const{return m_valid;}
 	const bool& isLoadFailed() const{return m_loadFailed;}
 
-	virtual bool isSubscriptionSent() const{return false;}
 	virtual bool isLoadable() const{return true;}
 	virtual bool CanUnsubscribe() const;
 	LONG isUnsubscribable() const{return m_unsubscribable;}
@@ -8264,7 +7242,7 @@ public:
 	const unsigned int& GetSuffixNumFlags() const{return m_suffixNumFlags;}
 
 //	virtual void Destroy(){}
-	virtual void Resubscribe(unsigned char snapshotsOnly) const{}//0 - not SnapshotsOnly, 1 - SnapshotsOnly, 2 - cuurent, do not change
+	virtual void Resubscribe() const{}
 	virtual bool Subscribe(bool snapshotsOnly) const{return false;}
 	virtual bool Unsubscribe() const{return false;}
 	const bool& isSnapshotsOnly() const{return m_snapshotsOnly;}
@@ -8274,8 +7252,8 @@ public:
 	const unsigned short& GetOptionType() const{return m_optionType;}
 	Underlier& operator=(const Underlier& other);
 protected:
-	Underlier(const char* const& symbol, const unsigned short& optionType = 0, const bool& snapshotsOnly = false);
-	Underlier(const unsigned __int64& symbol, const unsigned short& optionType = 0, const bool& snapshotsOnly = false);
+	Underlier(const char* const& symbol, const unsigned short& optionType = 0);
+	Underlier(const unsigned __int64& symbol, const unsigned short& optionType = 0);
 	Underlier(const Underlier& other);
 
 	void Clear()//Do lock when using this function
@@ -9538,11 +8516,7 @@ public:
 		const unsigned char& displaySizeMode,//0 - size fraction, 1 - round lot, 2 - no change
 		const unsigned int& displaySize,
 		const unsigned int& displaySizeFraction,
-		const unsigned int& remainingSize,
-		const bool& swapLimitStop = false)
-	{
-		return OE_OK;
-	}
+		const unsigned int& remainingSize = 0){return OE_OK;}// = 0;
 
 	const unsigned char& GetPegType() const{return m_pegType;}
 	const SignedPrice& GetPegOffset() const{return m_pegOffset;}
@@ -9571,7 +8545,6 @@ public:
 	const char& GetOrigin() const{return m_origin;}
 	const bool& isDropcopy() const{return m_dropcopy;}
 	const bool& isBorrow() const{return m_borrow;}
-	const unsigned char& GetBorrowConfirmMask() const{return m_borrowConfirmMask;}
 	const bool& isCloseOnly() const{return m_closeOnly;}
 	const bool& isResizeToClose() const{return m_resizeToClose;}
 //	const bool& isProAts() const{return m_proAts;}
@@ -9717,7 +8690,6 @@ protected:
 		char origin,
 		bool dropcopy,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		bool closeOnly,
 		bool resizeToClose,
 		bool nightOrder,
@@ -9976,7 +8948,6 @@ protected:
 	char m_origin;
 	bool m_dropcopy;
 	bool m_borrow;
-	unsigned char m_borrowConfirmMask;
 	bool m_closeOnly;
 	bool m_resizeToClose;
 //	bool m_proAts;
@@ -10075,7 +9046,7 @@ public:
 	{
 		CalculateDisplayPrice(fractionDollar, fractionDivider);
 	}
-	DisplayGreenie(bool bid, unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, unsigned char bookId, unsigned int mmid, unsigned int millisecond, short delay, bool historical, unsigned int fractionDollar, unsigned int fractionDivider):
+	DisplayGreenie(bool bid, unsigned int dollars, unsigned int dollarFraction, unsigned int quantity, EcnBookId bookId, unsigned int mmid, unsigned int millisecond, short delay, bool historical, unsigned int fractionDollar, unsigned int fractionDivider):
 		Quote(bid, dollars, dollarFraction, quantity, bookId, mmid, millisecond, delay),
 		m_paintDelay(0),
 		m_quoteCondition('\0'),
@@ -10085,7 +9056,7 @@ public:
 		m_historical = historical;
 	}
 
-	DisplayGreenie(bool bid, const Price& price, unsigned int quantity, unsigned char bookId, unsigned int mmid, unsigned int millisecond, short delay, bool historical, unsigned int fractionDollar, unsigned int fractionDivider):
+	DisplayGreenie(bool bid, const Price& price, unsigned int quantity, EcnBookId bookId, unsigned int mmid, unsigned int millisecond, short delay, bool historical, unsigned int fractionDollar, unsigned int fractionDivider):
 		Quote(bid, price, quantity, bookId, mmid, millisecond, delay),
 		m_paintDelay(0),
 		m_quoteCondition('\0'),
@@ -10442,80 +9413,6 @@ public:
 		m_attributed = quote.isAttributed();
 //		CalculateDisplayPrice(fractionDollar, fractionDivider);
 	}
-	inline void SetConsolidatedQuote(const Price& price,
-		const unsigned int& quantity,
-		const unsigned int& millisecond,
-		const short& delay,
-		const bool& historical,
-		const unsigned int& fractionDollar,
-		const unsigned int& fractionDivider,
-		const bool& bid)
-	{
-		Price::operator=(price);
-		m_quantity = quantity;
-		m_millisecond = millisecond;
-		m_bid = bid;
-		m_mmid = 0;
-		m_bookId = BOOK_LEVEL2;
-		m_delay = delay;
-		m_historical = historical;
-		m_quoteCondition = '\0';
-		m_retailLiquidity = false;
-		m_direct = true;
-		m_quoteId = 0;
-		m_order = 0;
-		m_stop = false;
-		m_hidden = false;
-		m_postponed = false;
-		m_gtc = false;
-		m_attributed = false;
-		CalculateDisplayPrice(fractionDollar, fractionDivider);
-	}
-/*
-	inline void SetQuote(const Quote& quote, const unsigned int& fractionDollar, const unsigned int& fractionDivider)
-	{
-		Quote::operator=(quote);
-		CalculateDisplayPrice(fractionDollar, fractionDivider);
-		m_quoteCondition = quote.GetCondition();
-		m_retailLiquidity = quote.GetRetailLiquidity();
-	}
-*/
-	inline void SetConsolidatedQuoteAndMmid(const Price& price,
-		const unsigned int& mmid,
-		const unsigned char& bookId,
-		const char& quoteCondition,
-		const bool& retailLiquidity,
-		const bool& attributed,
-		const unsigned int& quantity,
-		const unsigned int& millisecond,
-		const short& delay,
-		const bool& historical,
-		const unsigned int& fractionDollar,
-		const unsigned int& fractionDivider,
-		const bool& bid)
-	{
-		Price::operator=(price);
-		m_quantity = quantity;
-		m_millisecond = millisecond;
-		m_bid = bid;
-		m_mmid = mmid;
-		m_bookId = bookId;
-		m_delay = delay;
-		m_historical = historical;
-		m_quoteCondition = quoteCondition;
-		m_retailLiquidity = retailLiquidity;
-		m_direct = true;
-		m_quoteId = 0;
-		m_order = 0;
-		m_stop = false;
-		m_hidden = false;
-		m_postponed = false;
-		m_gtc = false;
-		m_attributed = attributed;
-
-		CalculateDisplayPrice(fractionDollar, fractionDivider);
-	}
-
 	inline void SetQuote(const Order& order, const unsigned int& fractionDollar, const unsigned int& fractionDivider)
 	{
 		Price::operator=(order.GetQuotePrice());
@@ -15737,17 +14634,6 @@ enum PostponedEnum : unsigned char
 	PE_NOT_POSTPONED,
 	PE_CHECK_TIME,
 	PE_POSTPONED,
-
-	PE_Count
-};
-
-enum BorrowCommandConfirmMask : unsigned char
-{
-	BCCM_EXPENSIVE,		//Display Confirmation Box if Locate Price is greater than Limit Price
-	BCCM_CHEAP,			//Display Confirmation Box if Locate Price is less than or equal to Limit Price
-	BCCM_MARKET_ORDER,	//Display Confirmation Box for the Market Orders
-
-	BCCM_Count
 };
 
 class OrderAlgorithm;
@@ -15941,9 +14827,6 @@ public:
 
 		const unsigned char& tifType,
 		const unsigned int& tifMillisecond,
-
-//		const unsigned char& borrowConfirmMask,
-
 		const unsigned char& washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		const unsigned char& oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
 		const bool& resizeShortToBorrowed,
@@ -16431,8 +15314,6 @@ public:
 	Money GetMaxMeUsed() const{return m_maxMeUsed;}
 	Money GetMaxBpBetaUsed() const{return m_maxBpBetaUsed;}
 
-	virtual Money GetIntradayEquityMultiplier() const{return Money::moneyZero;}
-
 	virtual Money GetNightBuyingPowerUsed() const{return Money::moneyZero;}
 
 	virtual Money GetBuyingPowerUsed() const{return Money::moneyZero;}
@@ -16686,8 +15567,8 @@ public:
 	virtual bool CanAutoTrade() const{return false;}
 	virtual bool CanAutoCancelOrder(const Order* order) const{return CanAutoCancel();}//01/01/2020
 
-	virtual Money GetCtrnCurrentMaxLoss() const{return Money::moneyZero;}
-	virtual Money GetCtrnCurrentMaxLossClose() const{return Money::moneyZero;}
+	virtual Money GetCurrentMaxLoss() const{return Money::moneyZero;}
+	virtual Money GetCurrentMaxLossClose() const{return Money::moneyZero;}
 	virtual Money GetCurrentMaxPositionLoss() const{return Money::moneyZero;}
 	virtual Money GetCurrentMaxPositionLossClose() const{return Money::moneyZero;}
 
@@ -16711,42 +15592,16 @@ public:
 	virtual Money GetMorningMaxShortInvestment() const{return Money::moneyZero;}
 	virtual Money GetNightMaxInvestment() const{return Money::moneyZero;}
 	virtual Money GetMorningMaxInvestment() const{return Money::moneyZero;}
-
+	virtual Money GetMaxLoss() const{return Money::moneyZero;}
+	virtual Money GetNightMaxLoss() const{return Money::moneyZero;}
+	virtual Money GetMorningMaxLoss() const{return Money::moneyZero;}
 	virtual Money GetMaxLossSlack() const{return Money::moneyZero;}
+	virtual Money GetMaxLossClose() const{return Money::moneyZero;}
+	virtual Money GetNightMaxLossClose() const{return Money::moneyZero;}
+	virtual Money GetMorningMaxLossClose() const{return Money::moneyZero;}
 
-	virtual Money GetCtrnMaxLoss() const{return Money::moneyZero;}
-	virtual Money GetCtrnNightMaxLoss() const{return Money::moneyZero;}
-	virtual Money GetCtrnMorningMaxLoss() const{return Money::moneyZero;}
-
-	virtual Money GetCtrnMaxLossClose() const{return Money::moneyZero;}
-	virtual Money GetCtrnNightMaxLossClose() const{return Money::moneyZero;}
-	virtual Money GetCtrnMorningMaxLossClose() const{return Money::moneyZero;}
-//
-	virtual Money GetCalculatedDayMaxLoss() const{return Money::moneyZero;}
-	virtual Money GetCalculatedNightMaxLoss() const{return Money::moneyZero;}
-	virtual Money GetCalculatedMorningMaxLoss() const{return Money::moneyZero;}
-
-	virtual Money GetCalculatedDayMaxLossClose() const{return Money::moneyZero;}
-	virtual Money GetCalculatedNightMaxLossClose() const{return Money::moneyZero;}
-	virtual Money GetCalculatedMorningMaxLossClose() const{return Money::moneyZero;}
-
-	virtual Money GetCurrentCalculatedMaxLoss() const{return Money::moneyZero;}
-	virtual Money GetCurrentCalculatedMaxLossClose() const{return Money::moneyZero;}
-
-//
-//	virtual Money GetMaxLoss90Percent() const{return Money::moneyZero;}
-//	virtual Money GetMaxLoss80Percent() const{return Money::moneyZero;}
-	virtual Money GetDayMaxLoss90Percent() const{return Money::moneyZero;}
-	virtual Money GetDayMaxLoss80Percent() const{return Money::moneyZero;}
-
-	virtual Money GetNightMaxLoss90Percent() const{return Money::moneyZero;}
-	virtual Money GetNightMaxLoss80Percent() const{return Money::moneyZero;}
-
-	virtual Money GetMorningMaxLoss90Percent() const{return Money::moneyZero;}
-	virtual Money GetMorningMaxLoss80Percent() const{return Money::moneyZero;}
-
-	virtual Money GetCurrentMaxLoss90Percent() const{return Money::moneyZero;}
-	virtual Money GetCurrentMaxLoss80Percent() const{return Money::moneyZero;}
+	virtual Money GetMaxLoss90Percent() const{return Money::moneyZero;}
+	virtual Money GetMaxLoss80Percent() const{return Money::moneyZero;}
 
 	virtual Money GetMaxLossPerPosition() const{return Money::moneyZero;}
 	virtual Money GetNightMaxLossPerPosition() const{return Money::moneyZero;}
@@ -16769,10 +15624,6 @@ public:
 	virtual unsigned int GetMaxPosPendingOrder() const{return 0;}
 	virtual unsigned int GetMaxOpenPositions() const{return 0;}
 	virtual unsigned int GetMaxOrderSize() const{return 0;}
-
-	virtual unsigned int GetEstBegPercentMaxLoss() const{return 0;}
-	virtual unsigned int GetEstBegPercentMaxLossClose() const{return 0;}
-
 #ifndef TAKION_NO_OPTIONS
 	virtual Money GetOptionBuyingPower() const{return Money::moneyZero;}
 	virtual unsigned int GetMaxOptionSharesTraded() const{return 0;}
@@ -18403,7 +17254,6 @@ protected:
 		bool aggressive,
 		unsigned int roundLot,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
 		bool resizeShortToBorrowed,
@@ -18568,7 +17418,6 @@ protected:
 		bool aggressive,
 		unsigned int roundLot,
 		bool borrow,
-		unsigned char borrowConfirmMask,
 		unsigned char washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 		unsigned char oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
 		bool resizeShortToBorrowed,
@@ -18636,7 +17485,6 @@ protected:
 			aggressive,
 			roundLot,
 			borrow,
-			borrowConfirmMask,
 			washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 			oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
 			resizeShortToBorrowed,
@@ -18814,7 +17662,6 @@ protected:
 			aggressive,
 			roundLot,
 			false,//borrow
-			0,//borrowConfirmMask
 			washOrderPolicy,//WOP_KEEP, WOP_CANCEL, WOP_CANCEL_AND_WAIT
 			oversellSplitPolicy,//OOP_RESIZE, OOP_SPLIT, OOP_REJECT, OOP_SHORT
 			resizeShortToBorrowed,
@@ -19646,7 +18493,6 @@ TakionIterator* WINAPI TU_CreateOptionMarketCenterIterator();
 const MarketCenter* WINAPI TU_GetNextOptionMarketCenter(TakionIterator* iterator);
 unsigned int WINAPI TU_GetOptionMarketCenterCount();
 unsigned int WINAPI TU_GetAllMarketCenterFilter();
-unsigned int WINAPI TU_GetAllExchangeFilter();
 const MarketCenter* WINAPI TU_GetMarketCenter(unsigned char id);
 const MarketCenter* WINAPI TU_GetMarketCenterByIndex(unsigned char index);
 
@@ -19689,6 +18535,40 @@ const MarketCenter* const* WINAPI TU_GetProtectedMarketCenterIds();
 const Ecn* const* WINAPI TU_GetProtectedEcnBookIds();
 const Ecn* const* WINAPI TU_GetAttributedEcnBookIds();
 const Ecn* const* WINAPI TU_GetEcnBookIds();
+
+TakionIterator* WINAPI TU_CreateMultiBookIterator(bool bid, bool aggregated, bool sortBySize, unsigned int bookFilter = ((1 << ECNBOOK_COUNT) - 1) & ~(1 << BOOK_LEVEL2), const Security* stock = NULL);
+//const Quote* WINAPI TU_GetMultiBookNextQuote(TakionIterator* multiBookIterator);
+void WINAPI TU_MultiBookIteratorSetSecurity(TakionIterator* multiBookIterator, const Security* stock);
+void WINAPI TU_MultiBookIteratorSetAggregated(TakionIterator* multiBookIterator, bool aggregated);
+bool WINAPI TU_MultiBookIteratorSetBookFilter(TakionIterator* multiBookIterator, unsigned int bookFilter);
+bool WINAPI TU_MultiBookIteratorSetSortBySize(TakionIterator* multiBookIterator, bool sortBySize);
+void WINAPI TU_MultiBookIteratorUpdateEntitlements(TakionIterator* multiBookIterator);
+//void WINAPI TU_MultiBookIteratorSetExtensionEntitlements(TakionIterator* multiBookIterator, unsigned int extEntitlements);
+const Quote* WINAPI TU_MultiBookIteratorGetNextQuoteAndBook(TakionIterator* multiBookIterator, unsigned char& bookId);
+
+bool WINAPI TU_MultiBookIteratorHasSizeForPrice(TakionIterator* multiBookIterator, const Price& price, const unsigned int& size, const bool& includePrice);
+unsigned int WINAPI TU_MultiBookIteratorGetSizeForSpecificPrice(TakionIterator* multiBookIterator, const Price& price);
+
+TakionIterator* WINAPI TU_CreateMmAggregatedIterator(bool bid, bool sortBySize, bool hideSlowQuotes, const unsigned int* lineCount, unsigned int exchangeMask, unsigned int attributionMask, const unsigned char* bookSortRank, const Security* stock = NULL, bool oddSize = false);
+//const Quote* WINAPI TU_GetMmAggregatedNextQuote(TakionIterator* mmAggregatedIterator);
+void WINAPI TU_MmAggregatedIteratorSetSecurity(TakionIterator* mmAggregatedIterator, const Security* stock);
+bool WINAPI TU_MmAggregatedIteratorSecurityRefreshed(TakionIterator* mmAggregatedIterator, const Security* stock);
+bool WINAPI TU_MmAggregatedIteratorSetBookFilter(TakionIterator* mmAggregatedIterator, const unsigned int* lineCount, unsigned int exchangeMask);
+bool WINAPI TU_MmAggregatedIteratorSetAttributionMask(TakionIterator* multiBookIterator, unsigned int attributionMask);
+bool WINAPI TU_MmAggregatedIteratorSetSortBySize(TakionIterator* mmAggregatedIterator, bool sortBySize);
+bool WINAPI TU_MmAggregatedIteratorSetHideSlowQuotes(TakionIterator* multiBookIterator, bool hide);
+bool WINAPI TU_MmAggregatedIteratorSetBookSortRank(TakionIterator* mmAggregatedIterator, const unsigned char* bookSortRank);
+void WINAPI TU_MmAggregatedIteratorUpdateEntitlements(TakionIterator* mmAggregatedIterator);
+//void WINAPI TU_MmAggregatedIteratorSetExtensionEntitlements(TakionIterator* mmAggregatedIterator, unsigned int extEntitlements);
+
+TakionIterator* WINAPI TU_CreateMultiPrintIterator(unsigned int printFilter = AllMarketCenterFilter, bool printShowOddLot = true, unsigned int bookFilter = ((1 << ECNBOOK_COUNT) - 1) & ~(1 << BOOK_LEVEL2), bool ecnExecShowOddLot = true, const Security* stock = NULL);
+const Trade* WINAPI TU_GetMultiPrintNextTrade(TakionIterator* multiPrintIterator);
+void WINAPI TU_MultiPrintIteratorSetSecurity(TakionIterator* multiPrintIterator, const Security* stock);
+bool WINAPI TU_MultiPrintIteratorSetBookFilter(TakionIterator* multiPrintIterator, unsigned int bookFilter, bool ecnExecShowOddLot);
+bool WINAPI TU_MultiPrintIteratorSetPrintFilter(TakionIterator* multiPrintIterator, unsigned int printFilter, bool printShowOddLot);
+void WINAPI TU_MultiPrintIteratorUpdateAllEntitlements(TakionIterator* multiPrintIterator);
+bool WINAPI TU_MultiPrintIteratorUpdateBookEntitlements(TakionIterator* multiPrintIterator);
+bool WINAPI TU_MultiPrintIteratorUpdatePrintEntitlements(TakionIterator* multiPrintIterator);
 
 unsigned short WINAPI TU_GetUserOrderTypeCount();
 const std::string& WINAPI TU_GetUserOrderType(unsigned short i);
@@ -19790,7 +18670,6 @@ enum PriceBaseEnum : unsigned char
 	PB_AVG_POSITION_COST,
 	PB_CUSTOM,
 	PB_IMB_EX_NEAR,
-	PB_MIDPOINT,
 
 	PB_Count
 };
@@ -19978,18 +18857,17 @@ public:
 		return m_numericSymbol == other.m_numericSymbol
 			&& GetAlertType() == other.GetAlertType()
 			&& GetValue() == other.GetValue()
-			&& GetModifierValue() == other.GetModifierValue();
-//			&& m_timeTriggered == other.m_timeTriggered;
+			&& GetModifierValue() == other.GetModifierValue()
+			&& m_timeTriggered < other.m_timeTriggered;
 	}
 	bool operator<(const Alert& other) const
 	{
 //		return m_symbol != other.m_symbol ? m_symbol < other.m_symbol:
-		return m_numericSymbol != other.m_numericSymbol ? U_CompareUIntAsString(m_numericSymbol, other.m_numericSymbol) < 0 :
-			GetAlertType() != other.GetAlertType() ? GetAlertType() < other.GetAlertType() :
-			GetValue() != other.GetValue() ? GetValue() < other.GetValue() :
-			GetModifierValue() < other.GetModifierValue();
-//			GetModifierValue() != other.GetModifierValue() ? GetModifierValue() < other.GetModifierValue():
-//			m_timeTriggered < other.m_timeTriggered;
+		return m_numericSymbol != other.m_numericSymbol ? U_CompareUIntAsString(m_numericSymbol, other.m_numericSymbol) < 0:
+			GetAlertType() != other.GetAlertType() ? GetAlertType() < other.GetAlertType():
+			GetValue() != other.GetValue() ? GetValue() < other.GetValue():
+			GetModifierValue() != other.GetModifierValue() ? GetModifierValue() < other.GetModifierValue():
+			m_timeTriggered < other.m_timeTriggered;
 	}
 	bool isSame(const Alert& other) const
 	{
@@ -20217,7 +19095,7 @@ public:
 			break;
 
 			case AT_TIME:
-			U_AppendMillisecond(str, (unsigned int)value, true);
+			U_AppendMillisecond(str, (unsigned int)value, false);
 			break;
 
 			case AT_INDEX:

@@ -36,7 +36,7 @@
 #include <set>
 #include <map>
 
-const char* const UtilsHeaderVersion = "1.0.5.6";
+const char* const UtilsHeaderVersion = "1.0.4.198";
 const char fix_soh = '\1';
 
 #ifdef __cplusplus
@@ -755,8 +755,6 @@ public:
 	void ResetIterator(unsigned short skip) const;
 	unsigned short GetNextValue() const;
 	unsigned int GetSum() const;
-//	void InitAllValues(unsigned short value);
-	void NullifyAllValues();
 protected:
 	ThermographVectorUShort* m_vector;
 };
@@ -3356,127 +3354,6 @@ protected:
 	mutable CCriticalSection m_chainLock;
 };
 
-template <class T>
-class DynamicPtrArray
-{
-public:
-	typedef T ValueType;
-	DynamicPtrArray(const unsigned int& capacity = 8, const unsigned int& incrementSize = 8):
-		m_incrementSize(incrementSize),
-		m_capacity(capacity),
-		m_size(0),
-		m_array(new ValueType*[capacity + 1])
-	{
-		ValueType** cursor = m_array;
-		for(unsigned int i = 0; i <= m_capacity; ++i, ++cursor)
-		{
-			*cursor = NULL;
-		}
-	}
-	~DynamicPtrArray(){delete[] m_array;}
-	const unsigned int& GetIncrementSize() const{return m_incrementSize;}
-	const unsigned int& GetCapacity() const{return m_capacity;}
-	const unsigned int& GetSize() const{return m_size;}
-	bool empty() const{return !m_size;}
-
-	void SetIncrementSize(const unsigned int& incrementSize)
-	{
-		if(incrementSize != m_incrementSize)
-		{
-			m_incrementSize = incrementSize;
-		}
-	}
-	bool SetCapacity(const unsigned int& capacity)
-	{
-		if(capacity != m_capacity && capacity >= m_size)
-		{
-			ValueType** newArray = new ValueType*[capacity + 1];
-			ValueType** cursor = m_array;
-			ValueType** newCursor = newArray;
-			const unsigned int end = m_capacity < capacity ? m_capacity : capacity;
-			unsigned int i = 0;
-			for(; i <= end; ++i, ++cursor, ++newCursor)
-			{
-				*newCursor = *cursor;
-			}
-			for(; i <= capacity; ++i, ++newCursor)
-			{
-				*newCursor = NULL;
-			}
-			delete[] m_array;
-			m_array = newArray;
-			m_capacity = capacity;
-			return true;
-		}
-		return false;
-	}
-
-	bool AddValue(ValueType* value)
-	{
-		if(value)
-		{
-			for(ValueType** cursor = m_array; *cursor; ++cursor)
-			{
-				if(*cursor == value)
-				{
-					return false;
-				}
-			}
-			if(m_size >= m_capacity)
-			{
-//				const unsigned int capacity = m_incrementSize ? m_capacity + m_incrementSize : m_capacity << 1;
-				if(!SetCapacity(m_incrementSize ? m_capacity + m_incrementSize : m_capacity << 1))
-				{
-					return false;
-				}
-			}
-			m_array[m_size] = value;
-			++m_size;
-			return true;
-		}
-		return false;
-	}
-
-	bool RemoveValue(ValueType* value)
-	{
-		if(m_size)
-		{
-			for(ValueType** cursor = m_array; *cursor; ++cursor)
-			{
-				if(*cursor == value)
-				{
-					ValueType** cursorNext = cursor + 1;
-					for(; *cursorNext; ++cursor, ++cursorNext)
-					{
-						*cursor = *cursorNext;
-					}
-					*cursor = NULL;
-					--m_size;
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-	void Clear()
-	{
-		if(m_size)
-		{
-			for(ValueType** cursor = m_array; *cursor; ++cursor)
-			{
-				*cursor = NULL;
-			}
-			m_size = 0;
-		}
-	}
-	ValueType** const& GetArray(){return m_array;}
-protected:
-	unsigned int m_incrementSize;
-	unsigned int m_capacity;
-	unsigned int m_size;
-	ValueType** m_array;
-};
-
 template<class T>
 class TakionBitField
 {
@@ -5362,8 +5239,6 @@ public:
 	}
 	bool SameQuantity(const PriceQuantity& other) const{return m_quantity == other.m_quantity;}
 	size_t GetHashValue() const {return ((size_t)m_dollars << 16) | (((size_t)m_dollarFraction >> 16) + m_quantity);}
-//	bool operator==(const PriceQuantity& other) const{return Price::operator==(other) && m_quantity == other.m_quantity;}
-//	bool operator!=(const PriceQuantity& other) const{return !operator==(other);}
 protected:
 	unsigned int m_quantity;
 };
@@ -5435,30 +5310,6 @@ template<class T>
 void U_AppendUnsignedNumberAsString(std::string& text, T str)
 {
 	for(; str; str >>= 8)text += (char)str;
-}
-
-template<class T>
-void U_AppendUnsignedNumberAsStringLowercase(std::string& text, T str)
-{
-	char c;
-	for(; str; str >>= 8)
-	{
-		c = (char)str;
-		if(c >= 'A' && c <= 'Z')c += 0x20;
-		text += c;
-	}
-}
-
-template<class T>
-void U_AppendUnsignedNumberAsStringUppercase(std::string& text, T str)
-{
-	char c;
-	for(; str; str >>= 8)
-	{
-		c = (char)str;
-		if(c >= 'a' && c <= 'z')c -= 0x20;
-		text += c;
-	}
 }
 
 template<class T>
@@ -7703,8 +7554,6 @@ const char* WINAPI U_StrStrEndUpToLength(const char* str, unsigned int& length, 
 
 void WINAPI U_GetProcessesWithName(const char* exeFileName, std::map<DWORD, std::string>& processMap);
 unsigned char WINAPI U_GetProcessPath(DWORD processId, std::string& path);
-
-unsigned int WINAPI U_GetProcessIntegrityLevel(DWORD processId, std::string& integrityLevelStr);
 
 unsigned int WINAPI U_CalculateControlSum(const char* cursor, unsigned int length);
 
